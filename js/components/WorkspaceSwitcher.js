@@ -3,7 +3,7 @@ import { store, mutations } from '../store.js';
 Vue.component('workspace-switcher', {
     template: `
         <div class="workspace-switcher" v-click-outside="closeDropdown">
-            <div class="ws-current" @click="toggleDropdown">
+            <div class="ws-current" @click="toggleDropdown" title="Switch Workspace">
                 <span class="ws-name">{{ currentWorkspaceName }}</span>
                 <i class="fas fa-chevron-down"></i>
             </div>
@@ -24,7 +24,7 @@ Vue.component('workspace-switcher', {
                         </div>
                     </div>
                 </div>
-                <div class="ws-create" @click="createWorkspace">
+                <div class="ws-create" @click="createWorkspace" title="Create New Workspace">
                     <i class="fas fa-plus"></i> New Workspace
                 </div>
             </div>

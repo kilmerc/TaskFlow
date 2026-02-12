@@ -12,7 +12,7 @@ export const store = Vue.observable({
     columns: {},
     tasks: {},
     columnTaskOrder: {},
-    activeFilter: null,
+    activeFilter: [],
     activeTaskId: null,
     storageWarning: null // Message if limit approached/exceeded
 });
@@ -349,11 +349,24 @@ export const mutations = {
         }
     },
 
-    setFilter(tag) {
-        store.activeFilter = tag;
+    toggleFilter(tag) {
+        if (!store.activeFilter) {
+            Vue.set(store, 'activeFilter', []);
+        }
+
+        const index = store.activeFilter.indexOf(tag);
+        if (index > -1) {
+            store.activeFilter.splice(index, 1);
+        } else {
+            store.activeFilter.push(tag);
+        }
+        persist();
+    },
+
+    clearFilters() {
+        store.activeFilter = [];
         persist();
     }
-
 };
 
 export function hydrate(inputData = null) {
@@ -372,7 +385,7 @@ export function hydrate(inputData = null) {
             store.appVersion = data.appVersion;
             store.theme = data.theme;
             store.currentWorkspaceId = data.currentWorkspaceId;
-            store.activeFilter = data.activeFilter; // Restore simple filter state
+            store.activeFilter = Array.isArray(data.activeFilter) ? data.activeFilter : [];
 
             // Restore workspaces (array is reactive)
             store.workspaces = data.workspaces || [];

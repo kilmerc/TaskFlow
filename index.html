@@ -27,7 +27,8 @@
                 <workspace-switcher v-if="currentWorkspace"></workspace-switcher>
 
                 <div class="view-toggle" style="display: flex; gap: 0.5rem; margin-left: 1rem;">
-                    <button :class="{ active: currentView === 'kanban' }" @click="currentView = 'kanban'">
+                    <button :class="{ active: currentView === 'kanban' }" @click="currentView = 'kanban'"
+                        title="Kanban Board">
                         <i class="fas fa-columns"></i>
                     </button>
                     <button :class="{ active: currentView === 'calendar' }" @click="currentView = 'calendar'"

@@ -25,7 +25,7 @@ Vue.component('kanban-column', {
                 >
                 <div class="column-actions">
                     <div class="dropdown" :class="{ active: isMenuOpen }" v-click-outside="closeMenu">
-                        <i class="fas fa-ellipsis-h" @click="toggleMenu"></i>
+                        <i class="fas fa-ellipsis-h" @click="toggleMenu" title="Column Actions"></i>
                         <div class="dropdown-menu" v-if="isMenuOpen">
                             <div class="menu-item" @click="startRenaming">Rename</div>
                             <div class="menu-item" @click="printList">Print List</div>
@@ -56,7 +56,7 @@ Vue.component('kanban-column', {
 
                 <!-- Quick Add Input -->
                 <div class="quick-add-container">
-                    <div v-if="!isAddingTask" class="quick-add-btn" @click="startAddingTask">
+                    <div v-if="!isAddingTask" class="quick-add-btn" @click="startAddingTask" title="Add a Task">
                         <i class="fas fa-plus"></i> Add
                     </div>
                     <div v-else class="quick-add-input-wrapper" v-click-outside="cancelAddingTask">
@@ -69,8 +69,8 @@ Vue.component('kanban-column', {
                             rows="2"
                         ></textarea>
                         <div class="add-actions">
-                            <button class="btn-primary" @mousedown.prevent="confirmAddTask">Add Card</button>
-                            <button class="btn-text" @mousedown.prevent="cancelAddingTask"><i class="fas fa-times"></i></button>
+                            <button class="btn-primary" @mousedown.prevent="confirmAddTask" title="Add Card">Add Card</button>
+                            <button class="btn-text" @mousedown.prevent="cancelAddingTask" title="Cancel"><i class="fas fa-times"></i></button>
                         </div>
                     </div>
                 </div>
@@ -97,16 +97,20 @@ Vue.component('kanban-column', {
         displayTasks: {
             get() {
                 const allTasks = this.sharedStore.columnTaskOrder[this.columnId] || [];
-                if (!this.activeFilter) return allTasks;
+                const filters = this.activeFilter || [];
+
+                if (filters.length === 0) return allTasks;
 
                 return allTasks.filter(taskId => {
                     const task = this.sharedStore.tasks[taskId];
-                    return task && task.tags && task.tags.includes(this.activeFilter);
+                    if (!task || !task.tags) return false;
+                    // OR logic: Show if task has ANY of the selected tags
+                    return task.tags.some(tag => filters.includes(tag));
                 });
             },
             set(value) {
-                // Only allow reordering if filter is NOT active
-                if (!this.activeFilter) {
+                // Only allow reordering if filters are NOT active
+                if (!this.activeFilter || this.activeFilter.length === 0) {
                     mutations.updateColumnTaskOrder(this.columnId, value);
                 }
             }

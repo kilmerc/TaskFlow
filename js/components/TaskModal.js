@@ -12,7 +12,7 @@ Vue.component('task-modal', {
                         @keyup.enter="$event.target.blur()"
                         placeholder="Task Title"
                     >
-                    <button class="close-btn" @click="close"><i class="fas fa-times"></i></button>
+                    <button class="close-btn" @click="close" title="Close Modal"><i class="fas fa-times"></i></button>
                 </header>
                 
                 <div class="modal-body">
@@ -29,7 +29,7 @@ Vue.component('task-modal', {
                     <div class="form-row">
                         <div class="form-group">
                             <label>Due Date</label>
-                            <input type="date" v-model="localDueDate" @change="saveDueDate">
+                            <input type="date" v-model="localDueDate" @change="saveDueDate" title="Set Due Date">
                         </div>
                         <div class="form-group">
                             <label>Color</label>
@@ -40,6 +40,7 @@ Vue.component('task-modal', {
                                     class="color-dot"
                                     :class="['bg-' + color, { selected: localColor === color }]"
                                     @click="saveColor(color)"
+                                    :title="'Set color to ' + color"
                                 ></button>
                             </div>
                         </div>
@@ -57,6 +58,7 @@ Vue.component('task-modal', {
                                     type="checkbox" 
                                     :checked="st.done" 
                                     @change="toggleSubtask(index, $event.target.checked)"
+                                    title="Mark as done"
                                 >
                                 <input 
                                     type="text" 
@@ -64,8 +66,9 @@ Vue.component('task-modal', {
                                     @change="updateSubtaskText(index, $event.target.value)"
                                     class="subtask-input"
                                     :class="{ completed: st.done }"
+                                    placeholder="Subtask..."
                                 >
-                                <button class="delete-subtask-btn" @click="deleteSubtask(index)">
+                                <button class="delete-subtask-btn" @click="deleteSubtask(index)" title="Delete Subtask">
                                     <i class="fas fa-trash-alt"></i>
                                 </button>
                             </li>
@@ -78,13 +81,14 @@ Vue.component('task-modal', {
                                 v-model="newSubtaskText" 
                                 @keyup.enter="addSubtask" 
                                 placeholder="Add a subtask..."
+                                title="Press Enter to add subtask"
                             >
                         </div>
                     </div>
                 </div>
 
                 <footer class="modal-footer">
-                    <button class="btn btn-danger" @click="deleteTask">Delete Task</button>
+                    <button class="btn btn-danger" @click="deleteTask" title="Permanently delete this task">Delete Task</button>
                 </footer>
             </div>
         </div>

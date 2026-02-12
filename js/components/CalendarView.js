@@ -8,19 +8,19 @@ Vue.component('calendar-view', {
             <div class="calendar-main">
                 <div class="calendar-header">
                     <div class="cal-controls">
-                        <button class="btn-text" @click="moveDate(-1)">
+                        <button class="btn-text" @click="moveDate(-1)" title="Previous">
                             <i class="fas fa-chevron-left"></i>
                         </button>
-                        <button class="btn-text" @click="goToToday">Today</button>
-                        <button class="btn-text" @click="moveDate(1)">
+                        <button class="btn-text" @click="goToToday" title="Go to Today">Today</button>
+                        <button class="btn-text" @click="moveDate(1)" title="Next">
                             <i class="fas fa-chevron-right"></i>
                         </button>
                         <h3 class="cal-title">{{ currentMonthYear }}</h3>
                     </div>
                     
                     <div class="cal-modes">
-                        <button :class="{ active: viewMode === 'month' }" @click="viewMode = 'month'">Month</button>
-                        <button :class="{ active: viewMode === 'week' }" @click="viewMode = 'week'">Week</button>
+                        <button :class="{ active: viewMode === 'month' }" @click="viewMode = 'month'" title="Switch to Month View">Month</button>
+                        <button :class="{ active: viewMode === 'week' }" @click="viewMode = 'week'" title="Switch to Week View">Week</button>
                     </div>
                 </div>
 
@@ -85,8 +85,10 @@ Vue.component('calendar-view', {
             allTasks.forEach(task => {
                 if (!task.dueDate) return;
                 // Add filter logic here if activeFilter is present
-                if (this.store.activeFilter && !task.tags.includes(this.store.activeFilter)) {
-                    return;
+                const filters = this.store.activeFilter || [];
+                if (filters.length > 0) {
+                    const hasMatch = task.tags && task.tags.some(tag => filters.includes(tag));
+                    if (!hasMatch) return;
                 }
 
                 if (!map[task.dueDate]) {
