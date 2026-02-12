@@ -9,11 +9,15 @@ Vue.config.errorHandler = function (err, vm, info) {
 new Vue({
     el: '#app',
     data: {
-        store: store // Share the store with the template
+        store: store,
+        currentView: 'kanban' // Start with 'kanban' default
     },
     computed: {
         appTheme() {
             return this.store.theme;
+        },
+        currentWorkspace() {
+            return this.store.workspaces.find(w => w.id === this.store.currentWorkspaceId);
         }
     },
     watch: {

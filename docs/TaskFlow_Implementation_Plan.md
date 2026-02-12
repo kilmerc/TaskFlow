@@ -98,7 +98,7 @@ Note: `docs/TaskFlow_PRD.md` mentions Vue 3, but this plan follows the technical
 
 ---
 
-## Phase 1: Workspace and Column Management
+## [x] Phase 1: Workspace and Column Management
 
 ### Feature 1.1: Workspace CRUD and switching
 **Goal:** Let users create, rename, delete, and switch isolated workspaces.

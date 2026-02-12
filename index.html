@@ -18,17 +18,35 @@
 <body>
     <div id="app">
         <header>
-            <h1>TaskFlow</h1>
-            <button @click="toggleTheme">{{ store.theme === 'light' ? 'Dark Mode' : 'Light Mode' }}</button>
-        </header>
-        <main>
-            <p>Welcome to TaskFlow.</p>
-            <p>Current Workspace: {{ store.currentWorkspaceId }}</p>
-            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
-                <div v-for="colId in (store.workspaces[0] ? store.workspaces[0].columns : [])" :key="colId"
-                    style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-md); width: 250px;">
-                    <h3>{{ store.columns[colId] ? store.columns[colId].title : 'Unknown' }}</h3>
+            <div style="display: flex; align-items: center;">
+                <h2 style="margin: 0; margin-right: 1.5rem;">TaskFlow</h2>
+                <workspace-switcher v-if="currentWorkspace"></workspace-switcher>
+
+                <div class="view-toggle" style="display: flex; gap: 0.5rem; margin-left: 1rem;">
+                    <button :class="{ active: currentView === 'kanban' }" @click="currentView = 'kanban'">
+                        <i class="fas fa-columns"></i>
+                    </button>
+                    <button :class="{ active: currentView === 'calendar' }" @click="currentView = 'calendar'" disabled
+                        title="Coming Phase 4">
+                        <i class="fas fa-calendar-alt"></i>
+                    </button>
                 </div>
+            </div>
+
+            <div class="header-actions">
+                <button @click="toggleTheme" title="Toggle Theme">
+                    <i class="fas" :class="appTheme === 'dark' ? 'fa-sun' : 'fa-moon'"></i>
+                </button>
+            </div>
+        </header>
+
+        <main>
+            <kanban-board v-if="currentView === 'kanban' && currentWorkspace"
+                :workspace="currentWorkspace"></kanban-board>
+
+            <div v-else-if="!currentWorkspace"
+                style="text-align: center; margin-top: 5rem; color: var(--text-secondary);">
+                No workspace selected. Please create one.
             </div>
         </main>
     </div>
