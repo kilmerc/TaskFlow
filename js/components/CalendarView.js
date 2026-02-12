@@ -1,9 +1,15 @@
 import { store, mutations } from '../store.js';
 
 Vue.component('calendar-view', {
+    props: {
+        workspace: {
+            type: Object,
+            required: true
+        }
+    },
     template: `
         <div class="calendar-layout">
-            <calendar-sidebar></calendar-sidebar>
+            <calendar-sidebar :workspace="workspace"></calendar-sidebar>
             
             <div class="calendar-main">
                 <div class="calendar-header">
@@ -81,14 +87,14 @@ Vue.component('calendar-view', {
             // Group tasks by dueDate YYYY-MM-DD
             const map = {};
             const allTasks = Object.values(this.store.tasks);
+            const workspaceId = this.workspace ? this.workspace.id : null;
 
             allTasks.forEach(task => {
                 if (!task.dueDate) return;
 
-                // Workspace Scoping Fix:
-                // Only show tasks that belong to a column in the current workspace
+                // Only show tasks that belong to a column in the active workspace.
                 const column = this.store.columns[task.columnId];
-                if (!column || column.workspaceId !== this.store.currentWorkspaceId) {
+                if (!workspaceId || !column || column.workspaceId !== workspaceId) {
                     return;
                 }
 

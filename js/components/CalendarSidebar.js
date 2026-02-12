@@ -1,6 +1,12 @@
 import { store, mutations } from '../store.js';
 
 Vue.component('calendar-sidebar', {
+    props: {
+        workspace: {
+            type: Object,
+            required: true
+        }
+    },
     template: `
         <div class="calendar-sidebar">
             <div class="sidebar-header">
@@ -41,16 +47,23 @@ Vue.component('calendar-sidebar', {
             return store;
         },
         unscheduledTasks() {
-            // Return tasks where dueDate is null
+            // Return tasks in the active workspace where dueDate is null.
             const allTasks = Object.values(this.store.tasks);
-            // Fix: Check for empty array specifically since [] is truthy in JS
-            // Also updated filter logic to check if *some* of the task's tags match *any* of the active filters (OR logic)
-            // or if no filters are active.
-            return allTasks.filter(t => !t.dueDate && (
-                !this.store.activeFilter ||
-                this.store.activeFilter.length === 0 ||
-                (t.tags && t.tags.some(tag => this.store.activeFilter.includes(tag)))
-            ));
+            const workspaceId = this.workspace ? this.workspace.id : null;
+            return allTasks.filter(t => {
+                if (t.dueDate) return false;
+
+                const column = this.store.columns[t.columnId];
+                if (!workspaceId || !column || column.workspaceId !== workspaceId) {
+                    return false;
+                }
+
+                if (!this.store.activeFilter || this.store.activeFilter.length === 0) {
+                    return true;
+                }
+
+                return t.tags && t.tags.some(tag => this.store.activeFilter.includes(tag));
+            });
         }
     },
     methods: {
