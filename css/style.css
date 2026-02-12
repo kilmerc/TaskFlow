@@ -560,7 +560,7 @@ button:hover {
 
 .modal-content {
   background: var(--bg-primary);
-  width: 90%;
+  width: min(600px, calc(100vw - 2rem));
   max-width: 600px;
   max-height: 90vh;
   border-radius: var(--radius-lg);
@@ -571,6 +571,13 @@ button:hover {
   overflow: hidden;
   border-left: 6px solid transparent;
   /* Show color */
+}
+
+.modal-content,
+.modal-content *,
+.modal-content *::before,
+.modal-content *::after {
+  box-sizing: border-box;
 }
 
 /* Modal Colors matching task colors */
@@ -616,6 +623,7 @@ button:hover {
 
 .modal-title-input {
   flex-grow: 1;
+  min-width: 0;
   font-size: 1.5rem;
   font-weight: 700;
   border: none;
@@ -644,6 +652,7 @@ button:hover {
 
 .modal-body {
   padding: 1.5rem;
+  overflow-x: hidden;
   overflow-y: auto;
   flex-grow: 1;
 }
@@ -670,6 +679,7 @@ button:hover {
   background: var(--bg-secondary);
   color: var(--text-primary);
   font-family: inherit;
+  font-size: 1rem;
   resize: vertical;
   min-height: 100px;
   outline: none;
@@ -678,6 +688,10 @@ button:hover {
 .form-group textarea:focus {
   border-color: var(--task-color-blue);
   background: var(--bg-primary);
+}
+
+.form-group textarea::placeholder {
+  color: var(--text-secondary);
 }
 
 .form-row {
@@ -799,11 +813,93 @@ input[type="date"] {
 
 .subtask-input {
   flex-grow: 1;
+  min-width: 0;
   border: none;
   background: transparent;
   color: var(--text-primary);
   font-family: inherit;
   outline: none;
+}
+
+.delete-subtask-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  padding: 0.25rem;
+  line-height: 1;
+}
+
+.delete-subtask-btn:hover {
+  color: var(--text-primary);
+  background: transparent;
+}
+
+.add-subtask {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.add-subtask i {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.add-subtask input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 1rem;
+  outline: none;
+}
+
+.add-subtask input:focus {
+  border-color: var(--task-color-blue);
+  background: var(--bg-primary);
+}
+
+.add-subtask input::placeholder {
+  color: var(--text-secondary);
+}
+
+.modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.btn {
+  font-family: inherit;
+  font-weight: 600;
+}
+
+.btn-danger {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #ffffff;
+}
+
+.btn-danger:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
+[data-theme="dark"] .btn-danger {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .btn-danger:hover {
+  background: #dc2626;
+  border-color: #dc2626;
 }
 
 
