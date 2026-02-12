@@ -1,9 +1,5 @@
-(function() {
-    window.IdUtils = {
-        generateId: function(prefix = '') {
-            const timestamp = Date.now().toString(36);
-            const random = Math.random().toString(36).substring(2, 8);
-            return prefix ? `${prefix}_${timestamp}${random}` : `${timestamp}${random}`;
-        }
-    };
-})();
+export function generateId(prefix = '') {
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substring(2, 8);
+    return prefix ? `${prefix}_${timestamp}${random}` : `${timestamp}${random}`;
+}

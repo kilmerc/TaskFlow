@@ -23,7 +23,7 @@ Note: `docs/TaskFlow_PRD.md` mentions Vue 3, but this plan follows the technical
 
 ---
 
-## Phase 0: Foundation and Scaffolding
+## [x] Phase 0: Foundation and Scaffolding
 
 ### Feature 0.1: Project skeleton and dependency bootstrapping
 **Goal:** Create a runnable zero-build SPA shell with deterministic load order and failure handling.

@@ -18,12 +18,12 @@
   --task-color-gray: #f3f4f6;
 
   /* Shadows, radii, transitions */
-  --card-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
   --transition-fast: 150ms ease;
-  
+
   --header-height: 60px;
 }
 
@@ -45,11 +45,7 @@
   --task-color-pink: #831843;
   --task-color-gray: #374151;
 
-  --card-shadow: 0 1px 3px rgba(0,0,0,0.4);
-}
-
-* {
-    box-sizing: border-box;
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 body {
@@ -59,42 +55,39 @@ body {
   line-height: 1.5;
   color: var(--text-primary);
   background: var(--bg-primary);
-  height: 100vh;
-  overflow: hidden; /* App is full height */
+  transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
 #app {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
 }
 
-.loading-state {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    font-size: 1.2em;
-    color: var(--text-secondary);
-    gap: 0.5rem;
+header {
+  height: var(--header-height);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+  justify-content: space-between;
 }
 
-/* Utilities */
-.btn {
-    cursor: pointer;
-    border: none;
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-    padding: 0.5rem 1rem;
-    border-radius: var(--radius-sm);
-    transition: background var(--transition-fast);
+main {
+  flex: 1;
+  overflow: hidden;
+  padding: 1rem;
 }
 
-.btn:hover {
-    background: var(--bg-tertiary);
+button {
+  cursor: pointer;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
 }
 
-.container {
-    max-width: 100%;
-    padding: 0 1rem;
+button:hover {
+  background: var(--bg-tertiary);
 }
