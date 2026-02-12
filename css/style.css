@@ -92,6 +92,15 @@ button:hover {
   background: var(--bg-tertiary);
 }
 
+.icon-btn {
+  padding: 0.5rem;
+  font-size: 1rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* --- Workspace Switcher --- */
 .workspace-switcher {
   position: relative;
@@ -1208,5 +1217,83 @@ input[type="date"] {
 
   .cal-cell {
     min-height: auto;
+  }
+}
+
+/* --- Print Styles --- */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .print-container,
+  .print-container * {
+    visibility: visible;
+  }
+
+  .print-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    background: white;
+    color: black;
+    padding: 2rem;
+    z-index: 9999;
+  }
+
+  /* Header */
+  .print-container h1 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 2px solid #000;
+  }
+
+  .print-meta {
+    font-size: 0.9rem;
+    color: #555;
+    margin-bottom: 2rem;
+  }
+
+  .print-list {
+    list-style: none;
+    padding: 0;
+  }
+
+  .print-item {
+    padding: 1rem 0;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    page-break-inside: avoid;
+  }
+
+  .print-checkbox {
+    font-family: monospace;
+    font-weight: bold;
+    font-size: 1.2rem;
+    min-width: 2rem;
+  }
+
+  .print-content {
+    flex: 1;
+  }
+
+  .print-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+
+  .print-subtasks {
+    margin-top: 0.5rem;
+    padding-left: 0;
+    list-style: none;
+  }
+
+  .print-subtasks li {
+    font-size: 0.9rem;
+    color: #333;
+    padding: 0.2rem 0;
   }
 }

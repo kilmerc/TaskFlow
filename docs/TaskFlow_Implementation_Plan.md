@@ -348,7 +348,7 @@ Note: `docs/TaskFlow_PRD.md` mentions Vue 3, but this plan follows the technical
 
 ---
 
-## Phase 5: Data Management, Printing, and Reliability
+## [x] Phase 5: Data Management, Printing, and Reliability
 
 ### Feature 5.1: JSON export/import
 **Goal:** Provide backup and restore of complete app state.

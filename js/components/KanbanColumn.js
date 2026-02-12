@@ -1,4 +1,5 @@
 import { store, mutations } from '../store.js';
+import { printColumn } from '../utils/print.js';
 
 Vue.component('kanban-column', {
     props: {
@@ -27,6 +28,7 @@ Vue.component('kanban-column', {
                         <i class="fas fa-ellipsis-h" @click="toggleMenu"></i>
                         <div class="dropdown-menu" v-if="isMenuOpen">
                             <div class="menu-item" @click="startRenaming">Rename</div>
+                            <div class="menu-item" @click="printList">Print List</div>
                             <div class="menu-item delete" @click="deleteColumn">Delete</div>
                         </div>
                     </div>
@@ -185,6 +187,11 @@ Vue.component('kanban-column', {
         },
         cancelRenaming() {
             this.isRenaming = false;
+        },
+        printList() {
+            this.isMenuOpen = false;
+            const tasks = this.displayTasks.map(id => this.sharedStore.tasks[id]).filter(t => t);
+            printColumn(this.column, tasks);
         },
         deleteColumn() {
             this.isMenuOpen = false;

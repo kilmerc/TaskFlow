@@ -1,4 +1,5 @@
 import { store, hydrate, persist } from './store.js';
+import { exportData, importData } from './utils/io.js';
 
 // Import components for side-effects (global registration)
 import './components/WorkspaceSwitcher.js';
@@ -48,6 +49,20 @@ new Vue({
         toggleTheme() {
             this.store.theme = this.store.theme === 'dark' ? 'light' : 'dark';
             persist();
+        },
+        downloadBackup() {
+            exportData();
+        },
+        triggerImport() {
+            this.$refs.fileInput.click();
+        },
+        handleImport(event) {
+            const file = event.target.files[0];
+            if (file) {
+                importData(file);
+            }
+            // Reset input so same file can be selected again if needed
+            event.target.value = '';
         }
     }
 });

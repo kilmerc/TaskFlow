@@ -17,6 +17,10 @@
 
 <body>
     <div id="app">
+        <div v-if="store.storageWarning"
+            style="background: #fee2e2; color: #b91c1c; padding: 0.75rem; text-align: center; font-weight: bold; border-bottom: 1px solid #ef4444;">
+            <i class="fas fa-exclamation-triangle"></i> {{ store.storageWarning }}
+        </div>
         <header>
             <div style="display: flex; align-items: center;">
                 <h2 style="margin: 0; margin-right: 1.5rem;">TaskFlow</h2>
@@ -35,6 +39,15 @@
 
             <div class="header-actions">
                 <filter-bar></filter-bar>
+                <div style="display: flex; gap: 0.5rem; margin-right: 1rem;">
+                    <button @click="downloadBackup" title="Export Data" class="icon-btn">
+                        <i class="fas fa-download"></i>
+                    </button>
+                    <button @click="triggerImport" title="Import Data" class="icon-btn">
+                        <i class="fas fa-upload"></i>
+                    </button>
+                    <input type="file" ref="fileInput" @change="handleImport" accept=".json" style="display: none;">
+                </div>
                 <button @click="toggleTheme" title="Toggle Theme">
                     <i class="fas" :class="appTheme === 'dark' ? 'fa-sun' : 'fa-moon'"></i>
                 </button>

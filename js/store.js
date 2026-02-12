@@ -13,7 +13,8 @@ export const store = Vue.observable({
     tasks: {},
     columnTaskOrder: {},
     activeFilter: null,
-    activeTaskId: null
+    activeTaskId: null,
+    storageWarning: null // Message if limit approached/exceeded
 });
 
 // Debounce helper
@@ -32,10 +33,20 @@ function debounce(fn, delay) {
 export const persist = debounce(() => {
     try {
         const snapshot = JSON.stringify(store);
+
+        // Check size (approx 4MB limit for warning)
+        if (snapshot.length > 4 * 1024 * 1024) {
+            store.storageWarning = "Start-up disk is nearly full. Please export a backup.";
+        } else {
+            store.storageWarning = null;
+        }
+
         localStorage.setItem(STORAGE_KEY, snapshot);
-        // Size check warning could go here
     } catch (e) {
         console.error('Failed to save to localStorage', e);
+        if (e.name === 'QuotaExceededError' || e.code === 22) {
+            store.storageWarning = "Storage full! Changes may not be saved. Please export and clear data.";
+        }
     }
 }, 300);
 
@@ -345,11 +356,17 @@ export const mutations = {
 
 };
 
-export function hydrate() {
+export function hydrate(inputData = null) {
     try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-            const data = JSON.parse(raw);
+        let data = inputData;
+        if (!data) {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) {
+                data = JSON.parse(raw);
+            }
+        }
+
+        if (data) {
 
             // Restore top-level primitives
             store.appVersion = data.appVersion;
