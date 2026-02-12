@@ -36,16 +36,17 @@ Vue.component('kanban-column', {
             <!-- Task List -->
             <div class="task-list">
                 <draggable 
-                    v-model="tasksInOrder" 
+                    v-model="displayTasks" 
                     group="tasks"
                     class="task-list-draggable"
                     ghost-class="task-ghost"
                     drag-class="task-drag"
                     :animation="150"
+                    :disabled="!!activeFilter"
                     @end="onTaskDrop"
                 >
                     <task-card 
-                        v-for="taskId in tasksInOrder" 
+                        v-for="taskId in displayTasks" 
                         :key="taskId" 
                         :task-id="taskId"
                     ></task-card>
@@ -88,17 +89,29 @@ Vue.component('kanban-column', {
         column() {
             return this.sharedStore.columns[this.columnId] || {};
         },
-        tasksInOrder: {
+        activeFilter() {
+            return this.sharedStore.activeFilter;
+        },
+        displayTasks: {
             get() {
-                return this.sharedStore.columnTaskOrder[this.columnId] || [];
+                const allTasks = this.sharedStore.columnTaskOrder[this.columnId] || [];
+                if (!this.activeFilter) return allTasks;
+
+                return allTasks.filter(taskId => {
+                    const task = this.sharedStore.tasks[taskId];
+                    return task && task.tags && task.tags.includes(this.activeFilter);
+                });
             },
             set(value) {
-                mutations.updateColumnTaskOrder(this.columnId, value);
+                // Only allow reordering if filter is NOT active
+                if (!this.activeFilter) {
+                    mutations.updateColumnTaskOrder(this.columnId, value);
+                }
             }
         }
     },
     watch: {
-        'tasksInOrder': function (newVal) {
+        'displayTasks': function (newVal) {
             // Check for tasks that moved column
             newVal.forEach(taskId => {
                 const task = this.sharedStore.tasks[taskId];

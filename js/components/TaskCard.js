@@ -63,8 +63,7 @@ Vue.component('task-card', {
     },
     methods: {
         openTask() {
-            // Placeholder for Phase 3 (Task Modal)
-            console.log('Open task:', this.task.title);
+            store.activeTaskId = this.taskId;
         },
         getTagStyle(tag) {
             // Simple deterministic color generation for tags

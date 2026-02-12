@@ -12,7 +12,8 @@ export const store = Vue.observable({
     columns: {},
     tasks: {},
     columnTaskOrder: {},
-    activeFilter: null
+    activeFilter: null,
+    activeTaskId: null
 });
 
 // Debounce helper
@@ -241,6 +242,96 @@ export const mutations = {
 
     updateColumnTaskOrder(columnId, newOrder) {
         Vue.set(store.columnTaskOrder, columnId, newOrder);
+        persist();
+    },
+
+    setActiveTask(taskId) {
+        store.activeTaskId = taskId;
+    },
+
+    updateTask(taskId, updates) {
+        const task = store.tasks[taskId];
+        if (!task) return;
+
+        // Apply updates
+        Object.keys(updates).forEach(key => {
+            // Handle tags updates if title changed? 
+            // For now, assume title update parses tags elsewhere or we do it here if needed.
+            // If the modal updates title, it should probably re-parse tags?
+            // PRD says: "Title: Editable text". behavior of parsing tags in modal isn't explicitly detailed 
+            // but for consistency, if user types #tag in modal title, it should probably be parsed.
+            // However, Feature 3.1 just says "Title (single-line)". 
+            // Let's just update the fields provided.
+            Vue.set(task, key, updates[key]);
+        });
+
+        // If title was updated, we might want to re-parse tags, but let's stick to simple updates for now.
+        // If the implementation plan implies simple editing, we do exactly that.
+
+        persist();
+    },
+
+    deleteTask(taskId) {
+        const task = store.tasks[taskId];
+        if (!task) return;
+
+        const colId = task.columnId;
+
+        // Remove from column order
+        if (store.columnTaskOrder[colId]) {
+            const idx = store.columnTaskOrder[colId].indexOf(taskId);
+            if (idx > -1) {
+                store.columnTaskOrder[colId].splice(idx, 1);
+            }
+        }
+
+        // Delete task
+        Vue.delete(store.tasks, taskId);
+
+        // If it was active, close modal
+        if (store.activeTaskId === taskId) {
+            store.activeTaskId = null;
+        }
+
+        persist();
+    },
+
+    addSubtask(taskId, text) {
+        const task = store.tasks[taskId];
+        if (!task) return;
+
+        if (!task.subtasks) {
+            Vue.set(task, 'subtasks', []);
+        }
+
+        task.subtasks.push({
+            text: text,
+            done: false
+        });
+        persist();
+    },
+
+    updateSubtask(taskId, index, updates) {
+        const task = store.tasks[taskId];
+        if (!task || !task.subtasks || !task.subtasks[index]) return;
+
+        const subtask = task.subtasks[index];
+        Object.keys(updates).forEach(key => {
+            Vue.set(subtask, key, updates[key]);
+        });
+        persist();
+    },
+
+    deleteSubtask(taskId, index) {
+        const task = store.tasks[taskId];
+        if (!task || !task.subtasks) return;
+
+        task.subtasks.splice(index, 1);
+        persist();
+    },
+
+    setFilter(tag) {
+        store.activeFilter = tag;
         persist();
     }
 

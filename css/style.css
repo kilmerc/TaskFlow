@@ -533,3 +533,365 @@ button:hover {
 .task-color-pink {
   border-left-color: var(--task-color-pink);
 }
+
+/* --- Task Modal --- */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.modal-content {
+  background: var(--bg-primary);
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  border-radius: var(--radius-lg);
+  /* Fixed variable name */
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-left: 6px solid transparent;
+  /* Show color */
+}
+
+/* Modal Colors matching task colors */
+.modal-content.task-color-gray {
+  border-left-color: var(--task-color-gray);
+}
+
+.modal-content.task-color-red {
+  border-left-color: var(--task-color-red);
+}
+
+.modal-content.task-color-orange {
+  border-left-color: var(--task-color-orange);
+}
+
+.modal-content.task-color-yellow {
+  border-left-color: var(--task-color-yellow);
+}
+
+.modal-content.task-color-green {
+  border-left-color: var(--task-color-green);
+}
+
+.modal-content.task-color-blue {
+  border-left-color: var(--task-color-blue);
+}
+
+.modal-content.task-color-purple {
+  border-left-color: var(--task-color-purple);
+}
+
+.modal-content.task-color-pink {
+  border-left-color: var(--task-color-pink);
+}
+
+.modal-header {
+  padding: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.modal-title-input {
+  flex-grow: 1;
+  font-size: 1.5rem;
+  font-weight: 700;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  outline: none;
+  font-family: inherit;
+  margin-right: 1rem;
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.close-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex-grow: 1;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: inherit;
+  resize: vertical;
+  min-height: 100px;
+  outline: none;
+}
+
+.form-group textarea:focus {
+  border-color: var(--task-color-blue);
+  background: var(--bg-primary);
+}
+
+.form-row {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.form-row .form-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+input[type="date"] {
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: inherit;
+  width: 100%;
+  outline: none;
+}
+
+/* Color Picker */
+.color-picker {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.color-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: transform var(--transition-fast);
+}
+
+.color-dot:hover {
+  transform: scale(1.1);
+}
+
+.color-dot.selected {
+  border-color: var(--text-primary);
+  transform: scale(1.1);
+}
+
+.bg-gray {
+  background-color: var(--task-color-gray);
+}
+
+.bg-red {
+  background-color: var(--task-color-red);
+}
+
+.bg-orange {
+  background-color: var(--task-color-orange);
+}
+
+.bg-yellow {
+  background-color: var(--task-color-yellow);
+}
+
+.bg-green {
+  background-color: var(--task-color-green);
+}
+
+.bg-blue {
+  background-color: var(--task-color-blue);
+}
+
+.bg-purple {
+  background-color: var(--task-color-purple);
+}
+
+.bg-pink {
+  background-color: var(--task-color-pink);
+}
+
+/* Subtasks */
+.subtasks-section {
+  margin-top: 1rem;
+}
+
+.progress-bar {
+  height: 6px;
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--task-color-green);
+  transition: width 0.3s ease;
+}
+
+.subtask-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.subtask-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.subtask-item:last-child {
+  border-bottom: none;
+}
+
+.subtask-input {
+  flex-grow: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: inherit;
+  outline: none;
+}
+
+.subtask-input.completed {
+  text-decoration: line-through;
+  color: var(--text-secondary);
+}
+
+.delete-subtask-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  opacity: 0;
+  cursor: pointer;
+  padding: 0.25rem;
+  transition: opacity var(--transition-fast);
+}
+
+.subtask-item:hover .delete-subtask-btn {
+  opacity: 1;
+}
+
+.delete-subtask-btn:hover {
+  color: #ef4444;
+}
+
+.add-subtask {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  color: var(--text-secondary);
+  cursor: text;
+}
+
+.add-subtask input {
+  flex-grow: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  outline: none;
+}
+
+.modal-footer {
+  padding: 1.5rem;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-danger {
+  background: transparent;
+  border: 1px solid #ef4444;
+  color: #ef4444;
+}
+
+.btn-danger:hover {
+  background: #fef2f2;
+}
+
+[data-theme="dark"] .btn-danger:hover {
+  background: #451a1a;
+}
+
+
+/* --- Filter Bar --- */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-secondary);
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  margin-right: 1rem;
+}
+
+.filter-bar select {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.9em;
+  outline: none;
+  cursor: pointer;
+  min-width: 100px;
+}
+
+.clear-filter-btn {
+  padding: 0.25rem;
+  font-size: 0.8em;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.clear-filter-btn:hover {
+  color: var(--text-primary);
+  background: transparent;
+}

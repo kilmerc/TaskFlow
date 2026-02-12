@@ -224,7 +224,7 @@ Note: `docs/TaskFlow_PRD.md` mentions Vue 3, but this plan follows the technical
 
 ---
 
-## Phase 3: Task Detail Editing and Filtering
+## [x] Phase 3: Task Detail Editing and Filtering
 
 ### Feature 3.1: Task details modal
 **Goal:** Implement full task editor modal launched from any task card.
