@@ -159,7 +159,7 @@ Note: `docs/TaskFlow_PRD.md` mentions Vue 3, but this plan follows the technical
 
 ---
 
-## Phase 2: Kanban Task Lifecycle
+## [x] Phase 2: Kanban Task Lifecycle
 
 ### Feature 2.1: Quick add task + inline tag parsing
 **Goal:** Create tasks quickly from column UI and auto-extract `#tags` from title input.
