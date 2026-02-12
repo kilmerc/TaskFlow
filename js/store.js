@@ -366,6 +366,13 @@ export const mutations = {
     clearFilters() {
         store.activeFilter = [];
         persist();
+    },
+
+    deleteAllData() {
+        // Reset to default state
+        initializeDefaultData();
+        // Force immediate persist
+        persist();
     }
 };
 

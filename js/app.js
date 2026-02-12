@@ -1,4 +1,4 @@
-import { store, hydrate, persist } from './store.js';
+import { store, hydrate, persist, mutations } from './store.js';
 import { exportData, importData } from './utils/io.js';
 
 // Import components for side-effects (global registration)
@@ -63,6 +63,15 @@ new Vue({
             }
             // Reset input so same file can be selected again if needed
             event.target.value = '';
+        },
+        confirmDeleteAll() {
+            if (confirm("Are you sure you want to delete ALL data? This cannot be undone.")) {
+                if (confirm("Are you REALLY sure? All workspaces and tasks will be permanently lost.")) {
+                    mutations.deleteAllData();
+                    // Force clean reload to ensure UI state is pristine
+                    window.location.reload();
+                }
+            }
         }
     }
 });
