@@ -1,5 +1,16 @@
 import { store, hydrate, persist } from './store.js';
 
+// Import components for side-effects (global registration)
+import './components/WorkspaceSwitcher.js';
+import './components/KanbanBoard.js';
+import './components/KanbanColumn.js';
+import './components/CalendarView.js'; // Placeholder
+import './components/CalendarSidebar.js'; // Placeholder
+import './components/TaskCard.js'; // Placeholder
+import './components/TaskModal.js'; // Placeholder
+import './components/FilterBar.js'; // Placeholder
+import './components/ThemeToggle.js'; // Placeholder
+
 // Global error handler for Vue
 Vue.config.errorHandler = function (err, vm, info) {
     console.error('Vue Error:', err, info);
