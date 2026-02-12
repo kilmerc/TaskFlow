@@ -23,27 +23,7 @@ new Vue({
         store: store,
         currentView: 'kanban' // Start with 'kanban' default
     },
-    template: `
-        <div id="app">
-            <header class="app-header">
-                <div class="header-left">
-                    <h1>TaskFlow</h1>
-                    <workspace-switcher></workspace-switcher>
-                </div>
-                <div class="header-right">
-                    <filter-bar></filter-bar>
-                    <theme-toggle></theme-toggle>
-                </div>
-            </header>
-            
-            <main class="app-content">
-                <kanban-board v-if="currentView === 'kanban'"></kanban-board>
-                <calendar-view v-else-if="currentView === 'calendar'"></calendar-view>
-            </main>
 
-            <task-modal></task-modal>
-        </div>
-    `,
     computed: {
         appTheme() {
             return this.store.theme;

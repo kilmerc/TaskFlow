@@ -34,6 +34,7 @@
             </div>
 
             <div class="header-actions">
+                <filter-bar></filter-bar>
                 <button @click="toggleTheme" title="Toggle Theme">
                     <i class="fas" :class="appTheme === 'dark' ? 'fa-sun' : 'fa-moon'"></i>
                 </button>
@@ -44,11 +45,15 @@
             <kanban-board v-if="currentView === 'kanban' && currentWorkspace"
                 :workspace="currentWorkspace"></kanban-board>
 
+            <calendar-view v-else-if="currentView === 'calendar'"></calendar-view>
+
             <div v-else-if="!currentWorkspace"
                 style="text-align: center; margin-top: 5rem; color: var(--text-secondary);">
                 No workspace selected. Please create one.
             </div>
         </main>
+
+        <task-modal></task-modal>
     </div>
 
     <!-- Dependency Check -->
