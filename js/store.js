@@ -390,6 +390,13 @@ export function hydrate() {
         } else {
             initializeDefaultData();
         }
+
+        // Validate: ensure currentWorkspaceId points to an existing workspace
+        if (store.workspaces.length && !store.workspaces.find(w => w.id === store.currentWorkspaceId)) {
+            store.currentWorkspaceId = store.workspaces[0].id;
+        } else if (!store.workspaces.length) {
+            initializeDefaultData();
+        }
     } catch (e) {
         console.error('Corruption detected, resetting', e);
         initializeDefaultData();

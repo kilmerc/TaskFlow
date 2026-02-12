@@ -53,7 +53,7 @@ Vue.component('kanban-board', {
     computed: {
         columns: {
             get() {
-                return this.workspace.columns;
+                return this.workspace ? this.workspace.columns : [];
             },
             set(value) {
                 // v-model updates local value, but we need to commit to store
