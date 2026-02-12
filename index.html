@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Dependency Guard will populate this if Vue is missing, otherwise Vue takes over -->
+        <div class="loading-state">
+            <i class="fas fa-circle-notch fa-spin"></i> Loading TaskFlow...
+        </div>
+    </div>
+
+    <!-- Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vuedraggable@2.24.3/dist/vuedraggable.umd.min.js"></script>
+
+    <!-- Dependency Guard -->
+    <script>
+        if (!window.Vue || !window.Sortable || !window.vuedraggable) {
+            const missing = [];
+            if (!window.Vue) missing.push('Vue.js');
+            if (!window.Sortable) missing.push('SortableJS');
+            if (!window.vuedraggable) missing.push('Vue.Draggable');
+            
+            document.getElementById('app').innerHTML = `
+                <div style="padding: 2rem; color: #ef4444; font-family: system-ui; text-align: center;">
+                    <h2>Dependency Error</h2>
+                    <p>Failed to load: ${missing.join(', ')}</p>
+                    <p>Please check your internet connection and refresh.</p>
+                </div>
+            `;
+            throw new Error('Critical dependencies failed to load');
+        }
+    </script>
+
+    <!-- Application Scripts -->
+    <script src="js/utils/id.js"></script>
+    <script src="js/utils/tagParser.js"></script>
+    <script src="js/utils/io.js"></script>
+    <script src="js/utils/print.js"></script>
+    <script src="js/store.js"></script>
+    <!-- Component placeholders will go here -->
+    <script src="js/app.js"></script>
+</body>
+</html>

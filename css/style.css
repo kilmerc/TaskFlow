@@ -1,0 +1,100 @@
+:root {
+  /* Surface & text */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f3f4f6;
+  --bg-tertiary: #e5e7eb;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --border-color: #d1d5db;
+
+  /* Task colors (light mode — pastel) */
+  --task-color-red: #fee2e2;
+  --task-color-orange: #ffedd5;
+  --task-color-yellow: #fef9c3;
+  --task-color-green: #d1fae5;
+  --task-color-blue: #dbeafe;
+  --task-color-purple: #ede9fe;
+  --task-color-pink: #fce7f3;
+  --task-color-gray: #f3f4f6;
+
+  /* Shadows, radii, transitions */
+  --card-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --transition-fast: 150ms ease;
+  
+  --header-height: 60px;
+}
+
+[data-theme="dark"] {
+  --bg-primary: #111827;
+  --bg-secondary: #1f2937;
+  --bg-tertiary: #374151;
+  --text-primary: #f9fafb;
+  --text-secondary: #9ca3af;
+  --border-color: #4b5563;
+
+  /* Task colors (dark mode — muted/deeper) */
+  --task-color-red: #7f1d1d;
+  --task-color-orange: #7c2d12;
+  --task-color-yellow: #713f12;
+  --task-color-green: #065f46;
+  --task-color-blue: #1e3a5f;
+  --task-color-purple: #4c1d95;
+  --task-color-pink: #831843;
+  --task-color-gray: #374151;
+
+  --card-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  height: 100vh;
+  overflow: hidden; /* App is full height */
+}
+
+#app {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.loading-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    font-size: 1.2em;
+    color: var(--text-secondary);
+    gap: 0.5rem;
+}
+
+/* Utilities */
+.btn {
+    cursor: pointer;
+    border: none;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast);
+}
+
+.btn:hover {
+    background: var(--bg-tertiary);
+}
+
+.container {
+    max-width: 100%;
+    padding: 0 1rem;
+}
