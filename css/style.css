@@ -356,3 +356,180 @@ button:hover {
 .btn-text:hover {
   color: var(--text-primary);
 }
+
+/* --- Task Card --- */
+.task-list {
+  flex: 1;
+  min-height: 50px;
+  /* Drop zone */
+  padding: 0 0.5rem 0.5rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.task-list-draggable {
+  min-height: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.task-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem;
+  box-shadow: var(--card-shadow);
+  cursor: grab;
+  user-select: none;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  position: relative;
+  /* Left border for color */
+  border-left: 4px solid transparent;
+}
+
+.task-card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+.task-card:active {
+  cursor: grabbing;
+}
+
+/* Task Ghost/Drag States */
+.task-ghost {
+  background: var(--bg-secondary);
+  border: 2px dashed var(--border-color);
+  opacity: 0.5;
+}
+
+.task-drag {
+  opacity: 1;
+  transform: rotate(2deg);
+}
+
+/* Task Content */
+.task-title {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  word-break: break-word;
+  /* Prevent overflow */
+}
+
+.task-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.meta-item.overdue {
+  color: var(--task-color-red);
+  /* Or semantic error color */
+  font-weight: 600;
+}
+
+.meta-item.completed {
+  color: var(--task-color-green);
+}
+
+/* Tags */
+.task-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.tag-pill {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  font-weight: 500;
+}
+
+/* --- Quick Add --- */
+.quick-add-container {
+  padding: 0.5rem 0.5rem 0;
+}
+
+.quick-add-btn {
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background var(--transition-fast);
+}
+
+.quick-add-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.quick-add-input-wrapper {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem;
+  box-shadow: var(--card-shadow);
+}
+
+.quick-add-input-wrapper textarea {
+  width: 100%;
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: 0.9rem;
+  resize: none;
+  /* Auto-grow better but fixed for now */
+  background: transparent;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+/* --- Task Colors (Left Border) --- */
+.task-color-gray {
+  border-left-color: var(--task-color-gray);
+}
+
+.task-color-red {
+  border-left-color: var(--task-color-red);
+}
+
+.task-color-orange {
+  border-left-color: var(--task-color-orange);
+}
+
+.task-color-yellow {
+  border-left-color: var(--task-color-yellow);
+}
+
+.task-color-green {
+  border-left-color: var(--task-color-green);
+}
+
+.task-color-blue {
+  border-left-color: var(--task-color-blue);
+}
+
+.task-color-purple {
+  border-left-color: var(--task-color-purple);
+}
+
+.task-color-pink {
+  border-left-color: var(--task-color-pink);
+}

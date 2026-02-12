@@ -1,4 +1,84 @@
-// TaskCard component placeholder
+import { store } from '../store.js';
+
 Vue.component('task-card', {
-    template: '<div>Task Card</div>'
+    props: {
+        taskId: {
+            type: String,
+            required: true
+        }
+    },
+    template: `
+        <div class="task-card" :class="colorClass" @click="openTask">
+            <div class="task-content">
+                <span class="task-title">{{ task.title }}</span>
+                
+                <div class="task-meta" v-if="hasMeta">
+                    <span v-if="task.dueDate" class="meta-item due-date" :class="{ overdue: isOverdue }">
+                        <i class="far fa-clock"></i> {{ formattedDate }}
+                    </span>
+                    <span v-if="subtaskCount > 0" class="meta-item subtasks" :class="{ completed: allSubtasksDone }">
+                        <i class="fas fa-check-square"></i> {{ completedSubtasks }}/{{ subtaskCount }}
+                    </span>
+                </div>
+
+                <div class="task-tags" v-if="task.tags && task.tags.length">
+                    <span v-for="tag in task.tags" :key="tag" class="tag-pill" :style="getTagStyle(tag)">
+                        {{ tag }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    `,
+    computed: {
+        task() {
+            return store.tasks[this.taskId] || {};
+        },
+        colorClass() {
+            return `task-color-${this.task.color || 'gray'}`;
+        },
+        hasMeta() {
+            return this.task.dueDate || (this.task.subtasks && this.task.subtasks.length > 0);
+        },
+        subtaskCount() {
+            return (this.task.subtasks || []).length;
+        },
+        completedSubtasks() {
+            return (this.task.subtasks || []).filter(st => st.done).length;
+        },
+        allSubtasksDone() {
+            return this.subtaskCount > 0 && this.completedSubtasks === this.subtaskCount;
+        },
+        formattedDate() {
+            if (!this.task.dueDate) return '';
+            const date = new Date(this.task.dueDate);
+            return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        },
+        isOverdue() {
+            if (!this.task.dueDate || this.task.isCompleted) return false;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const due = new Date(this.task.dueDate);
+            return due < today;
+        }
+    },
+    methods: {
+        openTask() {
+            // Placeholder for Phase 3 (Task Modal)
+            console.log('Open task:', this.task.title);
+        },
+        getTagStyle(tag) {
+            // Simple deterministic color generation for tags
+            let hash = 0;
+            for (let i = 0; i < tag.length; i++) {
+                hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const hues = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
+            const hue = hues[Math.abs(hash) % hues.length];
+            return {
+                backgroundColor: `hsl(${hue}, 70%, 90%)`,
+                color: `hsl(${hue}, 80%, 25%)`,
+                border: `1px solid hsl(${hue}, 60%, 80%)`
+            };
+        }
+    }
 });

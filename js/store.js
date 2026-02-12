@@ -1,4 +1,6 @@
 import { generateId } from './utils/id.js';
+import { parseTagsFromTitle } from './utils/tagParser.js';
+
 
 const STORAGE_KEY = 'taskflow_data';
 
@@ -177,7 +179,71 @@ export const mutations = {
             ws.columns = newOrder;
             persist();
         }
+    },
+
+    addTask(columnId, rawTitle) {
+        const { title, tags } = parseTagsFromTitle(rawTitle);
+        if (!title) return;
+
+        const id = generateId('task');
+        const newTask = {
+            id,
+            columnId,
+            title,
+            tags,
+            description: '',
+            color: 'gray',
+            dueDate: null,
+            subtasks: [],
+            isCompleted: false,
+            createdAt: new Date().toISOString()
+        };
+
+        // Add to global task map
+        Vue.set(store.tasks, id, newTask);
+
+        // Add to column order
+        if (!store.columnTaskOrder[columnId]) {
+            Vue.set(store.columnTaskOrder, columnId, []);
+        }
+        store.columnTaskOrder[columnId].push(id);
+
+        persist();
+    },
+
+    moveTask(taskId, sourceColId, targetColId, newIndex) {
+        const task = store.tasks[taskId];
+        if (!task) return;
+
+        // Remove from source column
+        const sourceOrder = store.columnTaskOrder[sourceColId];
+        const sourceIndex = sourceOrder.indexOf(taskId);
+        if (sourceIndex > -1) {
+            sourceOrder.splice(sourceIndex, 1);
+        }
+
+        // Update task columnId if changed
+        if (sourceColId !== targetColId) {
+            task.columnId = targetColId;
+        }
+
+        // Add to target column at specific index
+        const targetOrder = store.columnTaskOrder[targetColId];
+        // If newIndex is missing (e.g. appended), push
+        if (typeof newIndex === 'number') {
+            targetOrder.splice(newIndex, 0, taskId);
+        } else {
+            targetOrder.push(taskId);
+        }
+
+        persist();
+    },
+
+    updateColumnTaskOrder(columnId, newOrder) {
+        Vue.set(store.columnTaskOrder, columnId, newOrder);
+        persist();
     }
+
 };
 
 export function hydrate() {
