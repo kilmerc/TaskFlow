@@ -411,7 +411,7 @@ Note: `docs/TaskFlow_PRD.md` mentions Vue 3, but this plan follows the technical
 
 ---
 
-## Phase 6: Polish, QA, and Deployment
+## [x] Phase 6: Polish, QA, and Deployment
 
 ### Feature 6.1: Responsive behavior and mobile fallbacks
 **Goal:** Ensure usable behavior from desktop to mobile with desktop-first interactions.
