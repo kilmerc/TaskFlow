@@ -330,6 +330,14 @@ export const mutations = {
         persist();
     },
 
+    scheduleTask(taskId, dateString) {
+        const task = store.tasks[taskId];
+        if (task) {
+            Vue.set(task, 'dueDate', dateString);
+            persist();
+        }
+    },
+
     setFilter(tag) {
         store.activeFilter = tag;
         persist();

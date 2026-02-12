@@ -290,7 +290,7 @@ Note: `docs/TaskFlow_PRD.md` mentions Vue 3, but this plan follows the technical
 
 ---
 
-## Phase 4: Calendar View and Scheduling
+## [x] Phase 4: Calendar View and Scheduling
 
 ### Feature 4.1: Calendar view scaffold (month/week)
 **Goal:** Provide calendar UI with navigable date range and task rendering by due date.
