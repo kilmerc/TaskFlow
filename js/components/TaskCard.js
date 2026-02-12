@@ -50,14 +50,18 @@ Vue.component('task-card', {
         },
         formattedDate() {
             if (!this.task.dueDate) return '';
-            const date = new Date(this.task.dueDate);
+            // Fix: Parse YYYY-MM-DD manually to create local date instead of UTC
+            const [year, month, day] = this.task.dueDate.split('-').map(Number);
+            const date = new Date(year, month - 1, day);
             return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
         },
         isOverdue() {
             if (!this.task.dueDate || this.task.isCompleted) return false;
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            const due = new Date(this.task.dueDate);
+            // Fix: Parse YYYY-MM-DD manually to avoid timezone shifts
+            const [year, month, day] = this.task.dueDate.split('-').map(Number);
+            const due = new Date(year, month - 1, day);
             return due < today;
         }
     },

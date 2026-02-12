@@ -89,6 +89,7 @@ Vue.component('task-modal', {
 
                 <footer class="modal-footer">
                     <button class="btn btn-danger" @click="deleteTask" title="Permanently delete this task">Delete Task</button>
+                    <button class="btn btn-primary" @click="close">OK</button>
                 </footer>
             </div>
         </div>

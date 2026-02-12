@@ -44,7 +44,7 @@ Vue.component('kanban-column', {
                     ghost-class="task-ghost"
                     drag-class="task-drag"
                     :animation="150"
-                    :disabled="!!activeFilter"
+                    :disabled="activeFilter && activeFilter.length > 0"
                     @end="onTaskDrop"
                 >
                     <task-card 
@@ -59,7 +59,7 @@ Vue.component('kanban-column', {
                     <div v-if="!isAddingTask" class="quick-add-btn" @click="startAddingTask" title="Add a Task">
                         <i class="fas fa-plus"></i> Add
                     </div>
-                    <div v-else class="quick-add-input-wrapper" v-click-outside="cancelAddingTask">
+                    <div v-else class="quick-add-input-wrapper" v-click-outside="finishAddingTask">
                         <textarea 
                             ref="addTaskInput"
                             v-model="newTaskTitle" 
@@ -157,6 +157,13 @@ Vue.component('kanban-column', {
         cancelAddingTask() {
             this.isAddingTask = false;
         },
+        finishAddingTask() {
+            if (this.newTaskTitle.trim()) {
+                this.confirmAddTask();
+            } else {
+                this.cancelAddingTask();
+            }
+        },
         confirmAddTask() {
             const title = this.newTaskTitle.trim();
             if (title) {
@@ -179,6 +186,7 @@ Vue.component('kanban-column', {
             this.isRenaming = true;
             this.$nextTick(() => {
                 this.$refs.renameInput.focus();
+                this.$refs.renameInput.select();
             });
         },
         finishRenaming() {

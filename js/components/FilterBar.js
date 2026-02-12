@@ -16,7 +16,7 @@ Vue.component('filter-bar', {
             <div class="filter-dropdown" v-if="isOpen">
                 <div class="filter-header">
                     <span>Filter by Tag</span>
-                    <button v-if="activeFilterCount > 0" @click="clearFilters" class="btn-text-sm">Clear</button>
+                    <button v-if="activeFilterCount > 0" @click="clearFilters" class="btn-text-sm" title="Clear all filters">Clear</button>
                 </div>
                 <div class="filter-list">
                     <label v-for="tag in allTags" :key="tag" class="filter-item">

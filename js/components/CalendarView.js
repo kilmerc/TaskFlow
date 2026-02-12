@@ -84,6 +84,14 @@ Vue.component('calendar-view', {
 
             allTasks.forEach(task => {
                 if (!task.dueDate) return;
+
+                // Workspace Scoping Fix:
+                // Only show tasks that belong to a column in the current workspace
+                const column = this.store.columns[task.columnId];
+                if (!column || column.workspaceId !== this.store.currentWorkspaceId) {
+                    return;
+                }
+
                 // Add filter logic here if activeFilter is present
                 const filters = this.store.activeFilter || [];
                 if (filters.length > 0) {

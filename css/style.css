@@ -497,22 +497,14 @@ button:hover {
   padding: 0.5rem;
   border-radius: var(--radius-sm);
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: background var(--transition-fast);
-}
-
-.quick-add-btn:hover {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-}
-
-.quick-add-input-wrapper {
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  padding: 0.5rem;
   box-shadow: var(--card-shadow);
+}
+
+.quick-add-btn i,
+.quick-add-btn svg,
+.add-column-btn i,
+.add-column-btn svg {
+  pointer-events: none;
 }
 
 .quick-add-input-wrapper textarea {
@@ -891,6 +883,9 @@ input[type="date"] {
 .modal-footer {
   padding: 1rem 1.5rem;
   border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .btn {

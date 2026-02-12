@@ -25,7 +25,7 @@ Vue.component('kanban-board', {
             </draggable>
             
             <div class="add-column-container">
-                <div v-if="!isAdding" class="add-column-btn" @click="startAdding">
+                <div v-if="!isAdding" class="add-column-btn" @click="startAdding" title="Add a new column">
                     <i class="fas fa-plus"></i> Add Column
                 </div>
                 <div v-else class="add-column-input-wrapper" v-click-outside="cancelAdding">
@@ -37,8 +37,8 @@ Vue.component('kanban-board', {
                         @keyup.esc="cancelAdding"
                     >
                     <div class="add-actions">
-                        <button class="btn-primary" @click="confirmAdd">Add</button>
-                        <button class="btn-text" @click="cancelAdding"><i class="fas fa-times"></i></button>
+                        <button class="btn-primary" @click="confirmAdd" title="Add Column">Add</button>
+                        <button class="btn-text" @click="cancelAdding" title="Cancel"><i class="fas fa-times"></i></button>
                     </div>
                 </div>
             </div>

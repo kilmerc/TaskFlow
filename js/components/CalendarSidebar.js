@@ -10,8 +10,9 @@ Vue.component('calendar-sidebar', {
             <draggable 
                 class="sidebar-list" 
                 :list="unscheduledTasks" 
-                :group="{ name: 'calendar', pull: 'clone', put: false }"
+                :group="{ name: 'calendar', pull: 'clone', put: true }"
                 :sort="false"
+                @change="onSidebarDrop"
             >
                 <div 
                     v-for="task in unscheduledTasks" 
@@ -42,14 +43,26 @@ Vue.component('calendar-sidebar', {
         unscheduledTasks() {
             // Return tasks where dueDate is null
             const allTasks = Object.values(this.store.tasks);
+            // Fix: Check for empty array specifically since [] is truthy in JS
+            // Also updated filter logic to check if *some* of the task's tags match *any* of the active filters (OR logic)
+            // or if no filters are active.
             return allTasks.filter(t => !t.dueDate && (
-                !this.store.activeFilter || t.tags.includes(this.store.activeFilter)
+                !this.store.activeFilter ||
+                this.store.activeFilter.length === 0 ||
+                (t.tags && t.tags.some(tag => this.store.activeFilter.includes(tag)))
             ));
         }
     },
     methods: {
         openTask(task) {
             mutations.setActiveTask(task.id);
+        },
+        onSidebarDrop(event) {
+            if (event.added) {
+                const task = event.added.element;
+                // dropping into sidebar clears the due date
+                mutations.scheduleTask(task.id, null);
+            }
         }
     }
 });
