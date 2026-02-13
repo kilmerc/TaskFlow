@@ -503,10 +503,6 @@ button:hover {
   gap: 0.25rem;
 }
 
-.task-priority-row {
-  margin-bottom: 0.5rem;
-}
-
 .tag-pill {
   font-size: 0.7rem;
   padding: 0.1rem 0.4rem;

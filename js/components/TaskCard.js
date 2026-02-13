@@ -19,12 +19,9 @@ Vue.component('task-card', {
                 >
                 <div class="task-content">
                     <span class="task-title">{{ task.title }}</span>
-
-                    <div class="task-priority-row" v-if="task.priority">
-                        <span class="priority-pill" :class="priorityClass">{{ task.priority }}</span>
-                    </div>
                     
                     <div class="task-meta" v-if="hasMeta">
+                        <span v-if="task.priority" class="priority-pill" :class="priorityClass">{{ task.priority }}</span>
                         <span v-if="task.dueDate" class="meta-item due-date" :class="{ overdue: isOverdue }">
                             <i class="far fa-clock"></i> {{ formattedDate }}
                         </span>
@@ -54,7 +51,7 @@ Vue.component('task-card', {
             return `priority-${String(this.task.priority).toLowerCase()}`;
         },
         hasMeta() {
-            return this.task.dueDate || (this.task.subtasks && this.task.subtasks.length > 0);
+            return this.task.priority || this.task.dueDate || (this.task.subtasks && this.task.subtasks.length > 0);
         },
         subtaskCount() {
             return (this.task.subtasks || []).length;
