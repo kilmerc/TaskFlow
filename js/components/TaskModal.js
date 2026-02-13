@@ -5,13 +5,23 @@ Vue.component('task-modal', {
         <div class="modal-backdrop" @click.self="close" v-if="task">
             <div class="modal-content" :class="colorClass">
                 <header class="modal-header">
-                    <input 
-                        class="modal-title-input" 
-                        v-model="localTitle" 
-                        @blur="saveTitle" 
-                        @keyup.enter="$event.target.blur()"
-                        placeholder="Task Title"
-                    >
+                    <div class="modal-title-row">
+                        <input
+                            type="checkbox"
+                            class="task-checkbox modal-checkbox"
+                            :checked="task.isCompleted"
+                            @change="toggleCompleted"
+                            title="Mark as complete"
+                        >
+                        <input 
+                            class="modal-title-input"
+                            :class="{ 'title-completed': task.isCompleted }"
+                            v-model="localTitle" 
+                            @blur="saveTitle" 
+                            @keyup.enter="$event.target.blur()"
+                            placeholder="Task Title"
+                        >
+                    </div>
                     <button class="close-btn" @click="close" title="Close Modal"><i class="fas fa-times"></i></button>
                 </header>
                 
@@ -142,6 +152,9 @@ Vue.component('task-modal', {
     methods: {
         close() {
             store.activeTaskId = null;
+        },
+        toggleCompleted() {
+            mutations.toggleTaskCompletion(this.task.id);
         },
         onEsc(e) {
             if (e.key === 'Escape') this.close();

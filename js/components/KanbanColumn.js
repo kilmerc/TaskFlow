@@ -74,6 +74,20 @@ Vue.component('kanban-column', {
                         </div>
                     </div>
                 </div>
+
+                <div v-if="completedCount > 0" class="completed-section">
+                    <div class="completed-toggle" @click="toggleShowCompleted">
+                        <i class="fas" :class="showCompleted ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                        <span>{{ completedCount }} completed</span>
+                    </div>
+                    <div v-if="showCompleted" class="completed-tasks-list">
+                        <task-card
+                            v-for="taskId in completedTasks"
+                            :key="taskId"
+                            :task-id="taskId"
+                        ></task-card>
+                    </div>
+                </div>
             </div>
         </div>
     `,
@@ -94,26 +108,55 @@ Vue.component('kanban-column', {
         activeFilter() {
             return this.sharedStore.activeFilter;
         },
+        filteredTaskIds() {
+            const allTasks = this.sharedStore.columnTaskOrder[this.columnId] || [];
+            const filters = this.activeFilter || [];
+
+            if (filters.length === 0) return allTasks;
+
+            return allTasks.filter(taskId => {
+                const task = this.sharedStore.tasks[taskId];
+                if (!task || !task.tags) return false;
+                return task.tags.some(tag => filters.includes(tag));
+            });
+        },
         displayTasks: {
             get() {
-                const allTasks = this.sharedStore.columnTaskOrder[this.columnId] || [];
-                const filters = this.activeFilter || [];
-
-                if (filters.length === 0) return allTasks;
-
-                return allTasks.filter(taskId => {
+                return this.filteredTaskIds.filter(taskId => {
                     const task = this.sharedStore.tasks[taskId];
-                    if (!task || !task.tags) return false;
-                    // OR logic: Show if task has ANY of the selected tags
-                    return task.tags.some(tag => filters.includes(tag));
+                    return task && !task.isCompleted;
                 });
             },
             set(value) {
-                // Only allow reordering if filters are NOT active
                 if (!this.activeFilter || this.activeFilter.length === 0) {
-                    mutations.updateColumnTaskOrder(this.columnId, value);
+                    const columnOrder = this.sharedStore.columnTaskOrder[this.columnId] || [];
+                    const completedIds = columnOrder.filter(taskId => {
+                        const task = this.sharedStore.tasks[taskId];
+                        return task && task.isCompleted;
+                    });
+                    mutations.updateColumnTaskOrder(this.columnId, [...value, ...completedIds]);
                 }
             }
+        },
+        completedTasks() {
+            return this.filteredTaskIds
+                .filter(taskId => {
+                    const task = this.sharedStore.tasks[taskId];
+                    return task && task.isCompleted;
+                })
+                .sort((a, b) => {
+                    const aTask = this.sharedStore.tasks[a];
+                    const bTask = this.sharedStore.tasks[b];
+                    const aTime = Date.parse(aTask.completedAt || 0);
+                    const bTime = Date.parse(bTask.completedAt || 0);
+                    return bTime - aTime;
+                });
+        },
+        showCompleted() {
+            return this.column.showCompleted || false;
+        },
+        completedCount() {
+            return this.completedTasks.length;
         }
     },
     watch: {
@@ -202,8 +245,12 @@ Vue.component('kanban-column', {
         },
         printList() {
             this.isMenuOpen = false;
-            const tasks = this.displayTasks.map(id => this.sharedStore.tasks[id]).filter(t => t);
+            const allIds = [...this.displayTasks, ...this.completedTasks];
+            const tasks = allIds.map(id => this.sharedStore.tasks[id]).filter(t => t);
             printColumn(this.column, tasks);
+        },
+        toggleShowCompleted() {
+            mutations.toggleColumnShowCompleted(this.columnId);
         },
         deleteColumn() {
             this.isMenuOpen = false;

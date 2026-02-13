@@ -403,6 +403,21 @@ button:hover {
   gap: 0.5rem;
 }
 
+.task-card-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.task-checkbox {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: var(--task-color-blue);
+}
+
 .task-card {
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
@@ -424,6 +439,15 @@ button:hover {
 
 .task-card:active {
   cursor: grabbing;
+}
+
+.task-card.task-completed {
+  opacity: 0.6;
+}
+
+.task-card.task-completed .task-title {
+  text-decoration: line-through;
+  color: var(--text-secondary);
 }
 
 /* Task Ghost/Drag States */
@@ -489,6 +513,34 @@ button:hover {
 /* --- Quick Add --- */
 .quick-add-container {
   padding: 0.5rem 0.5rem 0;
+}
+
+.completed-section {
+  padding: 0.25rem 0.5rem 0;
+}
+
+.completed-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  user-select: none;
+}
+
+.completed-toggle:hover {
+  background: var(--bg-tertiary);
+}
+
+.completed-tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
 }
 
 .quick-add-btn {
@@ -631,6 +683,22 @@ button:hover {
   border-bottom: 1px solid var(--border-color);
 }
 
+.modal-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-grow: 1;
+  min-width: 0;
+  margin-right: 1rem;
+}
+
+.modal-checkbox {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  margin-top: 0;
+}
+
 .modal-title-input {
   flex-grow: 1;
   min-width: 0;
@@ -641,7 +709,12 @@ button:hover {
   color: var(--text-primary);
   outline: none;
   font-family: inherit;
-  margin-right: 1rem;
+  margin-right: 0;
+}
+
+.modal-title-input.title-completed {
+  text-decoration: line-through;
+  color: var(--text-secondary);
 }
 
 .close-btn {

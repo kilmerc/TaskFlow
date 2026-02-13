@@ -1,4 +1,4 @@
-import { store } from '../store.js';
+import { store, mutations } from '../store.js';
 
 Vue.component('task-card', {
     props: {
@@ -8,23 +8,32 @@ Vue.component('task-card', {
         }
     },
     template: `
-        <div class="task-card" :class="colorClass" @click="openTask">
-            <div class="task-content">
-                <span class="task-title">{{ task.title }}</span>
-                
-                <div class="task-meta" v-if="hasMeta">
-                    <span v-if="task.dueDate" class="meta-item due-date" :class="{ overdue: isOverdue }">
-                        <i class="far fa-clock"></i> {{ formattedDate }}
-                    </span>
-                    <span v-if="subtaskCount > 0" class="meta-item subtasks" :class="{ completed: allSubtasksDone }">
-                        <i class="fas fa-check-square"></i> {{ completedSubtasks }}/{{ subtaskCount }}
-                    </span>
-                </div>
+        <div class="task-card" :class="[colorClass, { 'task-completed': task.isCompleted }]" @click="openTask">
+            <div class="task-card-row">
+                <input
+                    type="checkbox"
+                    class="task-checkbox"
+                    :checked="task.isCompleted"
+                    @click.stop="toggleCompleted"
+                    title="Mark as complete"
+                >
+                <div class="task-content">
+                    <span class="task-title">{{ task.title }}</span>
+                    
+                    <div class="task-meta" v-if="hasMeta">
+                        <span v-if="task.dueDate" class="meta-item due-date" :class="{ overdue: isOverdue }">
+                            <i class="far fa-clock"></i> {{ formattedDate }}
+                        </span>
+                        <span v-if="subtaskCount > 0" class="meta-item subtasks" :class="{ completed: allSubtasksDone }">
+                            <i class="fas fa-check-square"></i> {{ completedSubtasks }}/{{ subtaskCount }}
+                        </span>
+                    </div>
 
-                <div class="task-tags" v-if="task.tags && task.tags.length">
-                    <span v-for="tag in task.tags" :key="tag" class="tag-pill" :style="getTagStyle(tag)">
-                        {{ tag }}
-                    </span>
+                    <div class="task-tags" v-if="task.tags && task.tags.length">
+                        <span v-for="tag in task.tags" :key="tag" class="tag-pill" :style="getTagStyle(tag)">
+                            {{ tag }}
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -66,6 +75,9 @@ Vue.component('task-card', {
         }
     },
     methods: {
+        toggleCompleted() {
+            mutations.toggleTaskCompletion(this.taskId);
+        },
         openTask() {
             store.activeTaskId = this.taskId;
         },

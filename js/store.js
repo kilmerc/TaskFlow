@@ -65,9 +65,9 @@ function initializeDefaultData() {
     store.currentWorkspaceId = wsId;
 
     store.columns = {
-        [col1]: { id: col1, workspaceId: wsId, title: 'To Do' },
-        [col2]: { id: col2, workspaceId: wsId, title: 'In Progress' },
-        [col3]: { id: col3, workspaceId: wsId, title: 'Done' }
+        [col1]: { id: col1, workspaceId: wsId, title: 'To Do', showCompleted: false },
+        [col2]: { id: col2, workspaceId: wsId, title: 'In Progress', showCompleted: false },
+        [col3]: { id: col3, workspaceId: wsId, title: 'Done', showCompleted: false }
     };
 
     store.columnTaskOrder = {
@@ -96,9 +96,9 @@ export const mutations = {
         store.workspaces.push(newWorkspace);
 
         // Add default columns
-        Vue.set(store.columns, col1, { id: col1, workspaceId: id, title: 'To Do' });
-        Vue.set(store.columns, col2, { id: col2, workspaceId: id, title: 'In Progress' });
-        Vue.set(store.columns, col3, { id: col3, workspaceId: id, title: 'Done' });
+        Vue.set(store.columns, col1, { id: col1, workspaceId: id, title: 'To Do', showCompleted: false });
+        Vue.set(store.columns, col2, { id: col2, workspaceId: id, title: 'In Progress', showCompleted: false });
+        Vue.set(store.columns, col3, { id: col3, workspaceId: id, title: 'Done', showCompleted: false });
 
         // Initialize column order
         Vue.set(store.columnTaskOrder, col1, []);
@@ -151,7 +151,7 @@ export const mutations = {
         const ws = store.workspaces.find(w => w.id === workspaceId);
         if (!ws) return;
 
-        Vue.set(store.columns, id, { id, workspaceId, title });
+        Vue.set(store.columns, id, { id, workspaceId, title, showCompleted: false });
         Vue.set(store.columnTaskOrder, id, []);
         ws.columns.push(id);
         persist();
@@ -208,6 +208,7 @@ export const mutations = {
             dueDate: null,
             subtasks: [],
             isCompleted: false,
+            completedAt: null,
             createdAt: new Date().toISOString()
         };
 
@@ -253,6 +254,24 @@ export const mutations = {
 
     updateColumnTaskOrder(columnId, newOrder) {
         Vue.set(store.columnTaskOrder, columnId, newOrder);
+        persist();
+    },
+
+    toggleTaskCompletion(taskId) {
+        const task = store.tasks[taskId];
+        if (!task) return;
+
+        const isCompleted = !task.isCompleted;
+        Vue.set(task, 'isCompleted', isCompleted);
+        Vue.set(task, 'completedAt', isCompleted ? new Date().toISOString() : null);
+        persist();
+    },
+
+    toggleColumnShowCompleted(columnId) {
+        const col = store.columns[columnId];
+        if (!col) return;
+
+        Vue.set(col, 'showCompleted', !col.showCompleted);
         persist();
     },
 
@@ -404,7 +423,11 @@ export function hydrate(inputData = null) {
             store.columns = {};
             if (data.columns) {
                 Object.keys(data.columns).forEach(key => {
-                    Vue.set(store.columns, key, data.columns[key]);
+                    const col = data.columns[key];
+                    if (col.showCompleted === undefined) {
+                        col.showCompleted = false;
+                    }
+                    Vue.set(store.columns, key, col);
                 });
             }
 
@@ -412,7 +435,14 @@ export function hydrate(inputData = null) {
             store.tasks = {};
             if (data.tasks) {
                 Object.keys(data.tasks).forEach(key => {
-                    Vue.set(store.tasks, key, data.tasks[key]);
+                    const task = data.tasks[key];
+                    if (task.isCompleted && !task.completedAt) {
+                        task.completedAt = task.createdAt;
+                    }
+                    if (task.completedAt === undefined) {
+                        task.completedAt = null;
+                    }
+                    Vue.set(store.tasks, key, task);
                 });
             }
 
