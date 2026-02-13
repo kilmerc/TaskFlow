@@ -72,8 +72,6 @@ new Vue({
             if (confirm("Are you sure you want to delete ALL data? This cannot be undone.")) {
                 if (confirm("Are you REALLY sure? All workspaces and tasks will be permanently lost.")) {
                     mutations.deleteAllData();
-                    // Force clean reload to ensure UI state is pristine
-                    window.location.reload();
                 }
             }
         }

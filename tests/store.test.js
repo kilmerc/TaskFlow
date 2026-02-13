@@ -208,6 +208,29 @@ describe('Store', () => {
         expect(store.activeFilters.priorities).to.deep.equal([]);
     });
 
+    it('should delete all data and persist reset snapshot immediately', () => {
+        const colId = store.workspaces[0].columns[0];
+        mutations.addTask(colId, 'Task before full reset');
+
+        expect(Object.keys(store.tasks)).to.have.lengthOf(1);
+
+        mutations.deleteAllData();
+
+        expect(Object.keys(store.tasks)).to.have.lengthOf(0);
+        expect(store.workspaces).to.have.lengthOf(1);
+        expect(store.workspaces[0].name).to.equal('My Workspace');
+        expect(store.workspaces[0].columns).to.have.lengthOf(3);
+
+        const raw = localStorage.getItem('taskflow_data');
+        expect(raw).to.be.a('string');
+
+        const persisted = JSON.parse(raw);
+        expect(Object.keys(persisted.tasks || {})).to.have.lengthOf(0);
+        expect(persisted.workspaces).to.have.lengthOf(1);
+        expect(persisted.workspaces[0].name).to.equal('My Workspace');
+        expect(persisted.workspaces[0].columns).to.have.lengthOf(3);
+    });
+
     it('should reorder subtasks', () => {
         const colId = store.workspaces[0].columns[0];
         mutations.addTask(colId, 'Task with subtasks');

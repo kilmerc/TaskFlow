@@ -23,20 +23,7 @@ export const store = Vue.observable({
     storageWarning: null // Message if limit approached/exceeded
 });
 
-// Debounce helper
-function debounce(fn, delay) {
-    let timeoutID = null;
-    return function () {
-        clearTimeout(timeoutID);
-        const args = arguments;
-        const that = this;
-        timeoutID = setTimeout(function () {
-            fn.apply(that, args);
-        }, delay);
-    };
-}
-
-export const persist = debounce(() => {
+function persistSnapshot() {
     try {
         const snapshot = JSON.stringify(store);
 
@@ -54,6 +41,27 @@ export const persist = debounce(() => {
             store.storageWarning = "Storage full! Changes may not be saved. Please export and clear data.";
         }
     }
+}
+
+// Debounce helper
+function debounce(fn, delay) {
+    let timeoutID = null;
+    return function () {
+        clearTimeout(timeoutID);
+        const args = arguments;
+        const that = this;
+        timeoutID = setTimeout(function () {
+            fn.apply(that, args);
+        }, delay);
+    };
+}
+
+export function persistNow() {
+    persistSnapshot();
+}
+
+export const persist = debounce(() => {
+    persistNow();
 }, 300);
 
 function getWorkspace(workspaceId) {
@@ -619,8 +627,8 @@ export const mutations = {
     deleteAllData() {
         // Reset to default state
         initializeDefaultData();
-        // Force immediate persist
-        persist();
+        // Force immediate persist to avoid stale state after reload
+        persistNow();
     }
 };
 

@@ -72,4 +72,39 @@ test.describe('Kanban Board', () => {
         // .tag-pill
         await expect(taskCard.locator('.tag-pill')).toHaveText('urgent');
     });
+
+    test('should delete all data and keep it cleared after reload', async ({ page }) => {
+        const firstColumn = page.locator('.kanban-column').first();
+        await firstColumn.locator('.quick-add-btn').click();
+        await firstColumn.locator('.quick-add-input-wrapper textarea').fill('Task to delete');
+        await firstColumn.locator('.add-actions .btn-primary').click();
+
+        await expect(page.locator('.task-card')).toHaveCount(1);
+
+        page.on('dialog', async dialog => {
+            await dialog.accept();
+        });
+
+        await page.locator('button[title="Delete All Data (Reset App)"]').click();
+
+        await expect(page.locator('.task-card')).toHaveCount(0);
+        await expect(page.locator('.kanban-column').filter({ hasText: 'To Do' })).toBeVisible();
+        await expect(page.locator('.kanban-column').filter({ hasText: 'In Progress' })).toBeVisible();
+        await expect(page.locator('.kanban-column').filter({ hasText: 'Done' })).toBeVisible();
+
+        const persistedTaskCount = await page.evaluate(() => {
+            const raw = window.localStorage.getItem('taskflow_data');
+            if (!raw) return -1;
+            const parsed = JSON.parse(raw);
+            return Object.keys(parsed.tasks || {}).length;
+        });
+        expect(persistedTaskCount).toBe(0);
+
+        await page.reload();
+
+        await expect(page.locator('.task-card')).toHaveCount(0);
+        await expect(page.locator('.kanban-column').filter({ hasText: 'To Do' })).toBeVisible();
+        await expect(page.locator('.kanban-column').filter({ hasText: 'In Progress' })).toBeVisible();
+        await expect(page.locator('.kanban-column').filter({ hasText: 'Done' })).toBeVisible();
+    });
 });
