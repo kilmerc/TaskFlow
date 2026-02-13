@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(del \"c:\\\\Personal\\\\Workspaces\\\\TaskFlow\\\\js\\\\components\\\\ThemeToggle.js\")",
+      "Bash(npx playwright test)"
+    ]
+  }
+}

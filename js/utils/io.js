@@ -1,4 +1,4 @@
-import { store, hydrate, persist, mutations } from '../store.js';
+import { store, hydrate, persist, mutations, buildPersistedSnapshot } from '../store.js';
 
 function validateBackupData(data) {
     if (!data || typeof data !== 'object') {
@@ -22,16 +22,7 @@ function validateBackupData(data) {
 
 export function exportData() {
     try {
-        const snapshot = {
-            appVersion: store.appVersion,
-            theme: store.theme,
-            currentWorkspaceId: store.currentWorkspaceId,
-            workspaces: store.workspaces,
-            columns: store.columns,
-            tasks: store.tasks,
-            columnTaskOrder: store.columnTaskOrder,
-            activeFilters: store.activeFilters
-        };
+        const snapshot = buildPersistedSnapshot();
 
         const json = JSON.stringify(snapshot, null, 2);
         const blob = new Blob([json], { type: 'application/json' });

@@ -1,17 +1,25 @@
 import { store, hydrate, persist, mutations } from './store.js';
 import { exportData, importData } from './utils/io.js';
 
+// Global directives
+import './directives/clickOutside.js';
+
 // Import components for side-effects (global registration)
+// Subcomponents must be imported before their parent components
+import './components/KanbanColumnHeader.js';
+import './components/KanbanQuickAdd.js';
+import './components/TaskModalColumnPicker.js';
+import './components/TaskModalTagEditor.js';
+import './components/TaskModalSubtasks.js';
 import './components/WorkspaceSwitcher.js';
 import './components/KanbanBoard.js';
 import './components/KanbanColumn.js';
-import './components/CalendarView.js'; // Placeholder
-import './components/CalendarSidebar.js'; // Placeholder
+import './components/CalendarView.js';
+import './components/CalendarSidebar.js';
 import './components/EisenhowerView.js';
-import './components/TaskCard.js'; // Placeholder
-import './components/TaskModal.js'; // Placeholder
-import './components/FilterBar.js'; // Placeholder
-import './components/ThemeToggle.js'; // Placeholder
+import './components/TaskCard.js';
+import './components/TaskModal.js';
+import './components/FilterBar.js';
 import './components/AppDialog.js';
 import './components/AppToast.js';
 

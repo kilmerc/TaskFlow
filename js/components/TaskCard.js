@@ -1,4 +1,5 @@
 import { store, mutations } from '../store.js';
+import { getTagStyle as computeTagStyle } from '../utils/tagStyle.js';
 
 Vue.component('task-card', {
     props: {
@@ -94,18 +95,7 @@ Vue.component('task-card', {
             mutations.setActiveTask(this.taskId);
         },
         getTagStyle(tag) {
-            // Simple deterministic color generation for tags
-            let hash = 0;
-            for (let i = 0; i < tag.length; i++) {
-                hash = tag.charCodeAt(i) + ((hash << 5) - hash);
-            }
-            const hues = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
-            const hue = hues[Math.abs(hash) % hues.length];
-            return {
-                backgroundColor: `hsl(${hue}, 70%, 90%)`,
-                color: `hsl(${hue}, 80%, 25%)`,
-                border: `1px solid hsl(${hue}, 60%, 80%)`
-            };
+            return computeTagStyle(tag);
         }
     }
 });

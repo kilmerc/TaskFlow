@@ -1,9 +1,9 @@
-import { store, mutations, hydrate, normalizeText, validateName } from '../js/store.js';
+import { store, mutations, hydrate, normalizeText, validateName, buildPersistedSnapshot, persistNow } from '../js/store.js';
 
 const expect = chai.expect;
 
 const BASELINE_STATE = {
-    appVersion: '1.1',
+    appVersion: '1.2',
     theme: 'light',
     currentWorkspaceId: 'ws_base',
     workspaces: [{
@@ -430,7 +430,7 @@ describe('Store', () => {
 
     it('should normalize invalid task columnId and rebuild columnTaskOrder on hydrate', () => {
         hydrate({
-            appVersion: '1.1',
+            appVersion: '1.2',
             theme: 'light',
             currentWorkspaceId: 'ws_base',
             workspaces: BASELINE_STATE.workspaces,
@@ -467,5 +467,80 @@ describe('Store', () => {
         expect(store.columnTaskOrder.col_inprogress).to.not.include('task_orphan');
         expect(store.dialog.isOpen).to.equal(false);
         expect(store.toasts).to.deep.equal([]);
+    });
+
+    describe('buildPersistedSnapshot', () => {
+        it('should return only domain keys and no transient state', () => {
+            const snapshot = buildPersistedSnapshot();
+            const expectedKeys = ['appVersion', 'theme', 'currentWorkspaceId', 'workspaces', 'columns', 'tasks', 'columnTaskOrder', 'activeFilters'];
+            expect(Object.keys(snapshot).sort()).to.deep.equal(expectedKeys.sort());
+        });
+
+        it('should not include transient UI state', () => {
+            mutations.setActiveTask('some-task');
+            mutations.pushToast({ message: 'test', variant: 'info' });
+
+            const snapshot = buildPersistedSnapshot();
+            expect(snapshot).to.not.have.property('activeTaskId');
+            expect(snapshot).to.not.have.property('taskModalMode');
+            expect(snapshot).to.not.have.property('taskModalDraft');
+            expect(snapshot).to.not.have.property('storageWarning');
+            expect(snapshot).to.not.have.property('dialog');
+            expect(snapshot).to.not.have.property('toasts');
+        });
+
+        it('should persist domain data correctly via persistNow', () => {
+            mutations.createTask({ title: 'Snapshot Test', columnId: 'col_todo' });
+            persistNow();
+
+            const raw = localStorage.getItem('taskflow_data');
+            const parsed = JSON.parse(raw);
+            expect(parsed).to.have.property('tasks');
+            expect(parsed).to.not.have.property('activeTaskId');
+            expect(parsed).to.not.have.property('dialog');
+            expect(parsed).to.not.have.property('toasts');
+            expect(parsed).to.not.have.property('taskModalMode');
+        });
+    });
+
+    describe('hydrate migration', () => {
+        it('should migrate legacy activeFilter array to activeFilters.tags', () => {
+            hydrate({
+                appVersion: '1.0',
+                theme: 'light',
+                currentWorkspaceId: 'ws_base',
+                workspaces: [{ id: 'ws_base', name: 'Base', columns: ['col_todo'] }],
+                columns: { col_todo: { id: 'col_todo', workspaceId: 'ws_base', title: 'To Do' } },
+                tasks: {},
+                columnTaskOrder: { col_todo: [] },
+                activeFilter: ['legacy-tag']
+            });
+
+            expect(store.appVersion).to.equal('1.2');
+            expect(store.activeFilters.tags).to.include('legacy-tag');
+        });
+
+        it('should handle pre-1.2 data with transient fields gracefully', () => {
+            hydrate({
+                appVersion: '1.1',
+                theme: 'dark',
+                currentWorkspaceId: 'ws_base',
+                workspaces: [{ id: 'ws_base', name: 'Base', columns: ['col_todo'] }],
+                columns: { col_todo: { id: 'col_todo', workspaceId: 'ws_base', title: 'To Do' } },
+                tasks: {},
+                columnTaskOrder: { col_todo: [] },
+                activeFilters: { tags: [], priorities: [] },
+                activeTaskId: 'stale-id',
+                taskModalMode: 'edit',
+                dialog: { isOpen: true },
+                toasts: [{ message: 'stale' }]
+            });
+
+            expect(store.appVersion).to.equal('1.2');
+            expect(store.activeTaskId).to.equal(null);
+            expect(store.taskModalMode).to.equal(null);
+            expect(store.dialog.isOpen).to.equal(false);
+            expect(store.toasts).to.deep.equal([]);
+        });
     });
 });

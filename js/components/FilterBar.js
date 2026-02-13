@@ -1,5 +1,6 @@
 import { store, mutations } from '../store.js';
 import { PRIORITY_VALUES } from '../utils/taskFilters.js';
+import { getTagStyle as computeTagStyle } from '../utils/tagStyle.js';
 
 Vue.component('filter-bar', {
     data() {
@@ -103,35 +104,10 @@ Vue.component('filter-bar', {
             return this.activePriorityFilters.includes(priority);
         },
         getTagStyle(tag) {
-            let hash = 0;
-            for (let i = 0; i < tag.length; i++) {
-                hash = tag.charCodeAt(i) + ((hash << 5) - hash);
-            }
-            const hues = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
-            const hue = hues[Math.abs(hash) % hues.length];
-            return {
-                backgroundColor: `hsl(${hue}, 70%, 90%)`,
-                color: `hsl(${hue}, 80%, 25%)`,
-                border: `1px solid hsl(${hue}, 60%, 80%)`
-            };
+            return computeTagStyle(tag);
         },
         clearFilters() {
             mutations.clearFilters();
-        }
-    },
-    directives: {
-        'click-outside': {
-            bind: function (el, binding, vnode) {
-                el.clickOutsideEvent = function (event) {
-                    if (!(el == event.target || el.contains(event.target))) {
-                        vnode.context[binding.expression](event);
-                    }
-                };
-                document.body.addEventListener('click', el.clickOutsideEvent);
-            },
-            unbind: function (el) {
-                document.body.removeEventListener('click', el.clickOutsideEvent);
-            }
         }
     }
 });

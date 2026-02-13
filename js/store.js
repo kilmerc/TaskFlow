@@ -74,7 +74,7 @@ function cloneDialogState(overrides = {}) {
 }
 
 export const store = Vue.observable({
-    appVersion: '1.1',
+    appVersion: '1.2',
     theme: 'light',
     currentWorkspaceId: null,
     workspaces: [],
@@ -90,9 +90,22 @@ export const store = Vue.observable({
     toasts: []
 });
 
+export function buildPersistedSnapshot() {
+    return {
+        appVersion: store.appVersion,
+        theme: store.theme,
+        currentWorkspaceId: store.currentWorkspaceId,
+        workspaces: store.workspaces,
+        columns: store.columns,
+        tasks: store.tasks,
+        columnTaskOrder: store.columnTaskOrder,
+        activeFilters: store.activeFilters
+    };
+}
+
 function persistSnapshot() {
     try {
-        const snapshot = JSON.stringify(store);
+        const snapshot = JSON.stringify(buildPersistedSnapshot());
 
         // Check size (approx 4MB limit for warning)
         if (snapshot.length > 4 * 1024 * 1024) {
@@ -1088,13 +1101,16 @@ export function hydrate(inputData = null) {
         if (data) {
 
             // Restore top-level primitives
-            store.appVersion = '1.1';
+            store.appVersion = '1.2';
             store.theme = data.theme || 'light';
             store.currentWorkspaceId = data.currentWorkspaceId;
+
+            // Reset transient UI state (only needed for pre-1.2 data that included these)
             store.activeTaskId = null;
             store.taskModalMode = null;
             store.taskModalDraft = null;
 
+            // Migration: legacy activeFilter (array) → activeFilters.tags (v1.0 → v1.1)
             const legacyTags = Array.isArray(data.activeFilter) ? data.activeFilter : [];
             const nextActiveFilters = data.activeFilters || {};
             const rawTags = Array.isArray(nextActiveFilters.tags) ? nextActiveFilters.tags : legacyTags;

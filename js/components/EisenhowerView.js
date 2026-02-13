@@ -1,5 +1,6 @@
 import { store, mutations } from '../store.js';
 import { taskMatchesFilters } from '../utils/taskFilters.js';
+import { getTagStyle as computeTagStyle } from '../utils/tagStyle.js';
 
 Vue.component('eisenhower-view', {
     props: {
@@ -208,17 +209,7 @@ Vue.component('eisenhower-view', {
             mutations.setActiveTask(taskId);
         },
         getTagStyle(tag) {
-            let hash = 0;
-            for (let i = 0; i < tag.length; i++) {
-                hash = tag.charCodeAt(i) + ((hash << 5) - hash);
-            }
-            const hues = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
-            const hue = hues[Math.abs(hash) % hues.length];
-            return {
-                backgroundColor: `hsl(${hue}, 70%, 90%)`,
-                color: `hsl(${hue}, 80%, 25%)`,
-                border: `1px solid hsl(${hue}, 60%, 80%)`
-            };
+            return computeTagStyle(tag);
         }
     }
 });
