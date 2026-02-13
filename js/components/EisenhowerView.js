@@ -40,7 +40,7 @@ Vue.component('eisenhower-view', {
                             <div class="task-content">
                                 <span class="task-title">{{ task.title }}</span>
                                 <div class="task-tags" v-if="task.tags && task.tags.length">
-                                    <span v-for="tag in task.tags" :key="tag" class="tag-pill">{{ tag }}</span>
+                                    <span v-for="tag in task.tags" :key="tag" class="tag-pill" :style="getTagStyle(tag)">{{ tag }}</span>
                                 </div>
                             </div>
                         </div>
@@ -88,7 +88,7 @@ Vue.component('eisenhower-view', {
                                 <div class="task-content">
                                     <span class="task-title">{{ task.title }}</span>
                                     <div class="task-tags" v-if="task.tags && task.tags.length">
-                                        <span v-for="tag in task.tags" :key="tag" class="tag-pill">{{ tag }}</span>
+                                        <span v-for="tag in task.tags" :key="tag" class="tag-pill" :style="getTagStyle(tag)">{{ tag }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -131,7 +131,7 @@ Vue.component('eisenhower-view', {
                                 <div class="task-content">
                                     <span class="task-title">{{ task.title }}</span>
                                     <div class="task-tags" v-if="task.tags && task.tags.length">
-                                        <span v-for="tag in task.tags" :key="tag" class="tag-pill">{{ tag }}</span>
+                                        <span v-for="tag in task.tags" :key="tag" class="tag-pill" :style="getTagStyle(tag)">{{ tag }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -174,7 +174,7 @@ Vue.component('eisenhower-view', {
                                 <div class="task-content">
                                     <span class="task-title">{{ task.title }}</span>
                                     <div class="task-tags" v-if="task.tags && task.tags.length">
-                                        <span v-for="tag in task.tags" :key="tag" class="tag-pill">{{ tag }}</span>
+                                        <span v-for="tag in task.tags" :key="tag" class="tag-pill" :style="getTagStyle(tag)">{{ tag }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -217,7 +217,7 @@ Vue.component('eisenhower-view', {
                                 <div class="task-content">
                                     <span class="task-title">{{ task.title }}</span>
                                     <div class="task-tags" v-if="task.tags && task.tags.length">
-                                        <span v-for="tag in task.tags" :key="tag" class="tag-pill">{{ tag }}</span>
+                                        <span v-for="tag in task.tags" :key="tag" class="tag-pill" :style="getTagStyle(tag)">{{ tag }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -306,6 +306,19 @@ Vue.component('eisenhower-view', {
         },
         openTask(taskId) {
             mutations.setActiveTask(taskId);
+        },
+        getTagStyle(tag) {
+            let hash = 0;
+            for (let i = 0; i < tag.length; i++) {
+                hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const hues = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
+            const hue = hues[Math.abs(hash) % hues.length];
+            return {
+                backgroundColor: `hsl(${hue}, 70%, 90%)`,
+                color: `hsl(${hue}, 80%, 25%)`,
+                border: `1px solid hsl(${hue}, 60%, 80%)`
+            };
         }
     }
 });

@@ -25,7 +25,7 @@ Vue.component('filter-bar', {
                     <div class="filter-list">
                         <label v-for="priority in allPriorities" :key="priority" class="filter-item">
                             <input type="checkbox" :checked="isPriorityActive(priority)" @change="togglePriority(priority)">
-                            <span class="priority-filter-pill" :class="'priority-' + priority.toLowerCase()">{{ priority }}</span>
+                            <span class="priority-pill priority-filter-pill" :class="'priority-' + priority.toLowerCase()">{{ priority }}</span>
                         </label>
                     </div>
                 </div>
@@ -35,7 +35,7 @@ Vue.component('filter-bar', {
                     <div class="filter-list">
                         <label v-for="tag in allTags" :key="tag" class="filter-item">
                             <input type="checkbox" :checked="isTagActive(tag)" @change="toggleTag(tag)">
-                            <span class="tag-text">#{{ tag }}</span>
+                            <span class="tag-pill" :style="getTagStyle(tag)">{{ tag }}</span>
                         </label>
                         <div v-if="allTags.length === 0" class="empty-filters">No tags found</div>
                     </div>
@@ -87,6 +87,19 @@ Vue.component('filter-bar', {
         },
         isPriorityActive(priority) {
             return this.activePriorityFilters.includes(priority);
+        },
+        getTagStyle(tag) {
+            let hash = 0;
+            for (let i = 0; i < tag.length; i++) {
+                hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const hues = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
+            const hue = hues[Math.abs(hash) % hues.length];
+            return {
+                backgroundColor: `hsl(${hue}, 70%, 90%)`,
+                color: `hsl(${hue}, 80%, 25%)`,
+                border: `1px solid hsl(${hue}, 60%, 80%)`
+            };
         },
         clearFilters() {
             mutations.clearFilters();

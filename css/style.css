@@ -943,18 +943,19 @@ select {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.15rem 0.45rem;
+  padding: 0.1rem 0.4rem;
   border-radius: 999px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  font-size: 0.78rem;
+  background: transparent;
+  border: 1px solid transparent;
+  font-size: 0.7rem;
   line-height: 1.2;
 }
 
 .tag-chip-remove {
   border: none;
   background: transparent;
-  color: var(--text-secondary);
+  color: currentColor;
+  opacity: 0.75;
   padding: 0;
   min-height: 0;
   line-height: 1;
@@ -962,7 +963,9 @@ select {
 }
 
 .tag-chip-remove:hover {
-  color: var(--text-primary);
+  color: currentColor;
+  opacity: 1;
+  background: transparent;
 }
 
 .tag-combobox-input {
@@ -1764,12 +1767,6 @@ select {
 
 .matrix-task-card .task-tags {
   margin-top: 0.35rem;
-}
-
-.matrix-task-card .tag-pill {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  color: var(--text-secondary);
 }
 
 .matrix-task-card:active {

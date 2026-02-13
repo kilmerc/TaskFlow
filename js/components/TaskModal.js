@@ -78,7 +78,7 @@ Vue.component('task-modal', {
                         <label>Tags</label>
                         <div class="tag-combobox" v-click-outside="closeTagMenu">
                             <div class="tag-chip-list" @click="focusTagInput">
-                                <span v-for="tag in selectedTags" :key="tag" class="tag-chip">
+                                <span v-for="tag in selectedTags" :key="tag" class="tag-chip tag-pill" :style="getTagStyle(tag)">
                                     #{{ tag }}
                                     <button type="button" class="tag-chip-remove" @click.stop="removeTag(tag)" title="Remove tag">
                                         <i class="fas fa-times"></i>
@@ -448,6 +448,19 @@ Vue.component('task-modal', {
             const nextTags = this.selectedTags.filter(tag => tag !== tagToRemove);
             if (this.isEdit) mutations.updateTask(this.task.id, { tags: nextTags });
             else this.localTags = nextTags;
+        },
+        getTagStyle(tag) {
+            let hash = 0;
+            for (let i = 0; i < tag.length; i++) {
+                hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const hues = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
+            const hue = hues[Math.abs(hash) % hues.length];
+            return {
+                backgroundColor: `hsl(${hue}, 70%, 90%)`,
+                color: `hsl(${hue}, 80%, 25%)`,
+                border: `1px solid hsl(${hue}, 60%, 80%)`
+            };
         },
         onTagBackspace() {
             if (this.localTagInput.length > 0 || !this.selectedTags.length) return;
