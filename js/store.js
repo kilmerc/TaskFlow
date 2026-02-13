@@ -378,6 +378,19 @@ export const mutations = {
         persist();
     },
 
+    reorderSubtasks(taskId, newOrder) {
+        const task = store.tasks[taskId];
+        if (!task || !Array.isArray(task.subtasks) || !Array.isArray(newOrder)) return;
+
+        const normalizedOrder = newOrder.map(item => ({
+            text: typeof item.text === 'string' ? item.text : String(item && item.text != null ? item.text : ''),
+            done: !!(item && item.done)
+        }));
+
+        Vue.set(task, 'subtasks', normalizedOrder);
+        persist();
+    },
+
     scheduleTask(taskId, dateString) {
         const task = store.tasks[taskId];
         if (task) {

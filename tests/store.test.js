@@ -145,6 +145,74 @@ describe('Store', () => {
         expect(store.activeFilters.priorities).to.deep.equal([]);
     });
 
+    it('should reorder subtasks', () => {
+        const colId = store.workspaces[0].columns[0];
+        mutations.addTask(colId, 'Task with subtasks');
+        const taskId = store.columnTaskOrder[colId][0];
+
+        mutations.addSubtask(taskId, 'First');
+        mutations.addSubtask(taskId, 'Second');
+        mutations.addSubtask(taskId, 'Third');
+        mutations.updateSubtask(taskId, 1, { done: true });
+
+        const current = store.tasks[taskId].subtasks;
+        const reordered = [current[2], current[0], current[1]];
+        mutations.reorderSubtasks(taskId, reordered);
+
+        expect(store.tasks[taskId].subtasks.map(st => st.text)).to.deep.equal(['Third', 'First', 'Second']);
+        expect(store.tasks[taskId].subtasks.map(st => st.done)).to.deep.equal([false, false, true]);
+    });
+
+    it('should preserve subtask text and done values when reordering', () => {
+        const colId = store.workspaces[0].columns[0];
+        mutations.addTask(colId, 'Task with subtasks');
+        const taskId = store.columnTaskOrder[colId][0];
+
+        mutations.addSubtask(taskId, 'Alpha');
+        mutations.addSubtask(taskId, 'Beta');
+        mutations.addSubtask(taskId, 'Gamma');
+        mutations.updateSubtask(taskId, 0, { done: true });
+        mutations.updateSubtask(taskId, 2, { done: true });
+
+        const beforeMap = store.tasks[taskId].subtasks.reduce((acc, st) => {
+            acc[st.text] = st.done;
+            return acc;
+        }, {});
+
+        const current = store.tasks[taskId].subtasks;
+        mutations.reorderSubtasks(taskId, [current[1], current[2], current[0]]);
+
+        const afterMap = store.tasks[taskId].subtasks.reduce((acc, st) => {
+            acc[st.text] = st.done;
+            return acc;
+        }, {});
+
+        expect(afterMap).to.deep.equal(beforeMap);
+    });
+
+    it('should no-op reorderSubtasks on invalid task id', () => {
+        const colId = store.workspaces[0].columns[0];
+        mutations.addTask(colId, 'Task with subtasks');
+        const taskId = store.columnTaskOrder[colId][0];
+
+        mutations.addSubtask(taskId, 'Only subtask');
+        const before = JSON.stringify(store.tasks[taskId].subtasks);
+
+        expect(() => mutations.reorderSubtasks('task_missing', [])).to.not.throw();
+        expect(JSON.stringify(store.tasks[taskId].subtasks)).to.equal(before);
+    });
+
+    it('should no-op reorderSubtasks when subtasks is missing or non-array', () => {
+        const colId = store.workspaces[0].columns[0];
+        mutations.addTask(colId, 'Task with subtasks');
+        const taskId = store.columnTaskOrder[colId][0];
+
+        store.tasks[taskId].subtasks = null;
+
+        expect(() => mutations.reorderSubtasks(taskId, [{ text: 'X', done: false }])).to.not.throw();
+        expect(store.tasks[taskId].subtasks).to.equal(null);
+    });
+
     it('should migrate legacy activeFilter and normalize missing/invalid priority on hydrate', () => {
         hydrate({
             appVersion: '1.0',

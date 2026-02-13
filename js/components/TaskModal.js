@@ -118,8 +118,26 @@ Vue.component('task-modal', {
                             <div class="progress-fill" :style="{ width: progress + '%' }"></div>
                         </div>
 
-                        <ul class="subtask-list">
-                            <li v-for="(st, index) in subtasks" :key="index" class="subtask-item">
+                        <draggable
+                            v-model="subtasks"
+                            tag="ul"
+                            class="subtask-list"
+                            handle=".subtask-drag-handle"
+                            ghost-class="subtask-ghost"
+                            drag-class="subtask-drag"
+                            :animation="150"
+                            :disabled="!canDragSubtasks"
+                        >
+                            <li v-for="(st, index) in subtasks" :key="subtaskKey(st, index)" class="subtask-item">
+                                <button
+                                    type="button"
+                                    class="subtask-drag-handle"
+                                    :title="canDragSubtasks ? 'Drag to reorder subtask' : 'Add more subtasks to reorder'"
+                                    aria-label="Drag to reorder subtask"
+                                    :disabled="!canDragSubtasks"
+                                >
+                                    <i class="fas fa-grip-vertical" aria-hidden="true"></i>
+                                </button>
                                 <input
                                     type="checkbox"
                                     :checked="st.done"
@@ -138,7 +156,7 @@ Vue.component('task-modal', {
                                     <i class="fas fa-trash-alt"></i>
                                 </button>
                             </li>
-                        </ul>
+                        </draggable>
 
                         <div class="add-subtask">
                             <i class="fas fa-plus"></i>
@@ -172,6 +190,8 @@ Vue.component('task-modal', {
             activeTagIndex: 0,
             maxTagSuggestions: 8,
             newSubtaskText: '',
+            subtaskKeySeed: 0,
+            subtaskKeyMap: typeof WeakMap === 'function' ? new WeakMap() : null,
             colors: ['gray', 'red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink'],
             priorities: PRIORITY_VALUES
         };
@@ -180,8 +200,17 @@ Vue.component('task-modal', {
         task() {
             return store.activeTaskId ? store.tasks[store.activeTaskId] : null;
         },
-        subtasks() {
-            return this.task ? (this.task.subtasks || []) : [];
+        subtasks: {
+            get() {
+                return this.task ? (this.task.subtasks || []) : [];
+            },
+            set(value) {
+                if (!this.task) return;
+                mutations.reorderSubtasks(this.task.id, value);
+            }
+        },
+        canDragSubtasks() {
+            return this.subtasks.length > 1;
         },
         colorClass() {
             return `task-color-${this.localColor}`;
@@ -396,6 +425,19 @@ Vue.component('task-modal', {
         },
         deleteSubtask(index) {
             mutations.deleteSubtask(this.task.id, index);
+        },
+        subtaskKey(st, index) {
+            if (!st || typeof st !== 'object') {
+                return `subtask-${index}`;
+            }
+            if (!this.subtaskKeyMap) {
+                return `subtask-${index}`;
+            }
+            if (!this.subtaskKeyMap.has(st)) {
+                this.subtaskKeySeed += 1;
+                this.subtaskKeyMap.set(st, `subtask-${this.subtaskKeySeed}`);
+            }
+            return this.subtaskKeyMap.get(st);
         }
     },
     directives: {

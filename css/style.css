@@ -1101,6 +1101,52 @@ select {
   border-bottom: none;
 }
 
+.subtask-drag-handle {
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  flex-shrink: 0;
+  touch-action: none;
+}
+
+.subtask-drag-handle:hover {
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+}
+
+.subtask-drag-handle:active {
+  cursor: grabbing;
+}
+
+.subtask-drag-handle:focus-visible {
+  outline: 2px solid var(--task-color-blue);
+  outline-offset: 1px;
+}
+
+.subtask-drag-handle[disabled] {
+  opacity: 0.45;
+  cursor: default;
+  pointer-events: none;
+}
+
+.subtask-ghost {
+  opacity: 0.45;
+  background: var(--bg-secondary);
+}
+
+.subtask-drag {
+  opacity: 0.95;
+  box-shadow: var(--card-shadow);
+}
+
 .subtask-input {
   flex-grow: 1;
   min-width: 0;
@@ -1793,6 +1839,10 @@ select {
   .kanban-column {
     min-width: 85vw;
     width: 85vw;
+  }
+
+  .subtask-drag-handle {
+    min-height: 0;
   }
 
 
