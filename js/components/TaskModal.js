@@ -79,7 +79,7 @@ Vue.component('task-modal', {
                         <div class="tag-combobox" v-click-outside="closeTagMenu">
                             <div class="tag-chip-list" @click="focusTagInput">
                                 <span v-for="tag in selectedTags" :key="tag" class="tag-chip tag-pill" :style="getTagStyle(tag)">
-                                    #{{ tag }}
+                                    {{ tag }}
                                     <button type="button" class="tag-chip-remove" @click.stop="removeTag(tag)" title="Remove tag">
                                         <i class="fas fa-times"></i>
                                     </button>
