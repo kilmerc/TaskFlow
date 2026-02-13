@@ -28,12 +28,24 @@ Vue.component('calendar-sidebar', {
                     :class="'task-color-' + (task.color || 'gray')"
                     @click="openTask(task)"
                 >
-                    <span class="task-title">{{ task.title }}</span>
-                    <div class="task-meta" v-if="task.subtasks && task.subtasks.length > 0">
-                        <span class="meta-item">
-                            <i class="fas fa-check-square"></i> 
-                            {{ task.subtasks.filter(s => s.done).length }}/{{ task.subtasks.length }}
-                        </span>
+                    <div class="task-card-row">
+                        <input
+                            type="checkbox"
+                            class="task-checkbox"
+                            :checked="task.isCompleted"
+                            @click.stop
+                            @change="toggleTaskCompletion(task.id)"
+                            title="Mark as complete"
+                        >
+                        <div class="task-content">
+                            <span class="task-title">{{ task.title }}</span>
+                            <div class="task-meta" v-if="task.subtasks && task.subtasks.length > 0">
+                                <span class="meta-item">
+                                    <i class="fas fa-check-square"></i> 
+                                    {{ task.subtasks.filter(s => s.done).length }}/{{ task.subtasks.length }}
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
@@ -56,6 +68,7 @@ Vue.component('calendar-sidebar', {
             const workspaceId = this.workspace ? this.workspace.id : null;
             return allTasks.filter(t => {
                 if (t.dueDate) return false;
+                if (t.isCompleted) return false;
 
                 const column = this.store.columns[t.columnId];
                 if (!workspaceId || !column || column.workspaceId !== workspaceId) {
@@ -69,6 +82,9 @@ Vue.component('calendar-sidebar', {
     methods: {
         openTask(task) {
             mutations.setActiveTask(task.id);
+        },
+        toggleTaskCompletion(taskId) {
+            mutations.toggleTaskCompletion(taskId);
         },
         onSidebarDrop(event) {
             if (event.added) {

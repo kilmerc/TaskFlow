@@ -43,6 +43,7 @@ Vue.component('calendar-view', {
                             'other-month': !cell.isCurrentMonth,
                             'today': cell.isToday
                         }"
+                        @click="onCellClick(cell, $event)"
                     >
                         <div class="cal-cell-header">
                             <span class="day-number">{{ cell.dayNumber }}</span>
@@ -62,6 +63,14 @@ Vue.component('calendar-view', {
                                 :class="'task-color-' + (task.color || 'gray')"
                                 @click.stop="openTask(task)"
                             >
+                                <input
+                                    type="checkbox"
+                                    class="cal-task-checkbox"
+                                    :checked="task.isCompleted"
+                                    @click.stop
+                                    @change="toggleTaskCompletion(task.id)"
+                                    title="Mark as complete"
+                                >
                                 <span class="pill-title">{{ task.title }}</span>
                             </div>
                         </draggable>
@@ -95,6 +104,7 @@ Vue.component('calendar-view', {
 
             allTasks.forEach(task => {
                 if (!task.dueDate) return;
+                if (task.isCompleted) return;
 
                 // Only show tasks that belong to a column in the active workspace.
                 const column = this.store.columns[task.columnId];
@@ -190,6 +200,21 @@ Vue.component('calendar-view', {
                 const task = event.added.element;
                 mutations.scheduleTask(task.id, targetDateStr);
             }
+        },
+        onCellClick(cell, event) {
+            const target = event && event.target;
+            if (target && target.closest && (target.closest('.cal-task-pill') || target.closest('.cal-task-checkbox'))) {
+                return;
+            }
+
+            mutations.openTaskModalForCreate({
+                workspaceId: this.workspace.id,
+                dueDate: cell.dateStr,
+                priority: null
+            });
+        },
+        toggleTaskCompletion(taskId) {
+            mutations.toggleTaskCompletion(taskId);
         },
         openTask(task) {
             mutations.setActiveTask(task.id);

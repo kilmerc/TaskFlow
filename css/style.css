@@ -2169,6 +2169,142 @@ select {
   text-decoration: line-through;
 }
 
+/* --- Modal Column Field --- */
+.required-marker {
+  color: #dc2626;
+  margin-left: 0.15rem;
+}
+
+.form-error {
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+  color: #dc2626;
+}
+
+.column-combobox {
+  position: relative;
+}
+
+.column-combobox-input {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: inherit;
+  outline: none;
+}
+
+.column-combobox-input:focus {
+  border-color: var(--task-color-blue);
+  background: var(--bg-primary);
+}
+
+.column-combobox-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 0.35rem);
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--card-shadow);
+  z-index: 65;
+}
+
+.column-combobox-item {
+  padding: 0.5rem 0.65rem;
+  font-size: 0.86rem;
+  cursor: pointer;
+}
+
+.column-combobox-item:hover,
+.column-combobox-item.active {
+  background: var(--bg-tertiary);
+}
+
+.column-combobox-item.is-create {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+[data-theme="dark"] .column-combobox-item.is-create {
+  color: #93c5fd;
+}
+
+.column-combobox-empty {
+  padding: 0.6rem 0.7rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* --- Calendar Checkboxes --- */
+.cal-task-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.cal-task-checkbox {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: #3b82f6;
+  flex-shrink: 0;
+}
+
+.pill-title {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Matrix Checkboxes and Add Buttons --- */
+.quadrant-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.matrix-add-btn {
+  min-width: 28px;
+  min-height: 28px;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.matrix-add-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+.matrix-task-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.matrix-task-checkbox {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
 /* 5. Date Badge Improvements */
 .meta-item.due-date {
   background: var(--bg-tertiary);

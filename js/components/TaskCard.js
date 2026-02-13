@@ -84,7 +84,7 @@ Vue.component('task-card', {
             mutations.toggleTaskCompletion(this.taskId);
         },
         openTask() {
-            store.activeTaskId = this.taskId;
+            mutations.setActiveTask(this.taskId);
         },
         getTagStyle(tag) {
             // Simple deterministic color generation for tags

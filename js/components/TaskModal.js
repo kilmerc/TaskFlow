@@ -5,11 +5,12 @@ import { getWorkspaceTags } from '../utils/tagAutocomplete.js';
 
 Vue.component('task-modal', {
     template: `
-        <div class="modal-backdrop" @click.self="close" v-if="task">
+        <div class="modal-backdrop" @click.self="close" v-if="isOpen">
             <div class="modal-content" :class="colorClass">
                 <header class="modal-header">
                     <div class="modal-title-row">
                         <input
+                            v-if="isEdit"
                             type="checkbox"
                             class="task-checkbox modal-checkbox"
                             :checked="task.isCompleted"
@@ -18,25 +19,59 @@ Vue.component('task-modal', {
                         >
                         <input
                             class="modal-title-input"
-                            :class="{ 'title-completed': task.isCompleted }"
+                            :class="{ 'title-completed': isEdit && task.isCompleted }"
                             v-model="localTitle"
-                            @blur="saveTitle"
+                            @blur="onTitleBlur"
                             @keyup.enter="$event.target.blur()"
-                            placeholder="Task Title"
+                            placeholder="Task Title *"
                         >
                     </div>
                     <button class="close-btn" @click="close" title="Close Modal"><i class="fas fa-times"></i></button>
                 </header>
 
                 <div class="modal-body">
+                    <div v-if="showTitleError" class="form-error">Title is required.</div>
+
+                    <div class="form-group">
+                        <label>Column <span class="required-marker">*</span></label>
+                        <div class="column-combobox" v-click-outside="closeColumnMenu">
+                            <input
+                                ref="columnInput"
+                                type="text"
+                                class="column-combobox-input"
+                                v-model="localColumnInput"
+                                placeholder="Select or create a column..."
+                                @focus="openColumnMenu"
+                                @input="onColumnInput"
+                                @blur="onColumnBlur"
+                                @keydown.down.prevent="moveColumnSelection(1)"
+                                @keydown.up.prevent="moveColumnSelection(-1)"
+                                @keydown.enter.prevent="selectActiveColumn"
+                                @keydown.tab.prevent="selectActiveColumn"
+                                @keydown.esc.stop.prevent="closeColumnMenu"
+                            >
+                            <div v-if="isColumnMenuOpen && columnMenuItems.length" class="column-combobox-menu">
+                                <div
+                                    v-for="(item, index) in columnMenuItems"
+                                    :key="item.type + '-' + item.id + '-' + item.value"
+                                    class="column-combobox-item"
+                                    :class="{ active: index === activeColumnIndex, 'is-create': item.type === 'create' }"
+                                    @mousedown.prevent="selectColumnItem(item)"
+                                >
+                                    <span v-if="item.type === 'create'">Create column "{{ item.value }}"</span>
+                                    <span v-else>{{ item.value }}</span>
+                                </div>
+                            </div>
+                            <div v-else-if="isColumnMenuOpen && localColumnInput.trim()" class="column-combobox-menu">
+                                <div class="column-combobox-empty">No matching columns</div>
+                            </div>
+                        </div>
+                        <div v-if="showColumnError" class="form-error">Column is required.</div>
+                    </div>
+
                     <div class="form-group">
                         <label>Description</label>
-                        <textarea
-                            v-model="localDescription"
-                            @blur="saveDescription"
-                            placeholder="Add a description..."
-                            rows="4"
-                        ></textarea>
+                        <textarea v-model="localDescription" @blur="saveDescription" placeholder="Add a description..." rows="4"></textarea>
                     </div>
 
                     <div class="form-group">
@@ -92,9 +127,7 @@ Vue.component('task-modal', {
                             <label>Priority</label>
                             <select v-model="localPriority" @change="savePriority" title="Set Priority">
                                 <option value="">Unassigned</option>
-                                <option v-for="priority in priorities" :key="priority" :value="priority">
-                                    {{ priority }}
-                                </option>
+                                <option v-for="priority in priorities" :key="priority" :value="priority">{{ priority }}</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -112,12 +145,11 @@ Vue.component('task-modal', {
                         </div>
                     </div>
 
-                    <div class="subtasks-section">
+                    <div class="subtasks-section" v-if="isEdit">
                         <label>Subtasks</label>
                         <div class="progress-bar" v-if="subtasks.length > 0">
                             <div class="progress-fill" :style="{ width: progress + '%' }"></div>
                         </div>
-
                         <draggable
                             v-model="subtasks"
                             tag="ul"
@@ -135,15 +167,8 @@ Vue.component('task-modal', {
                                     :title="canDragSubtasks ? 'Drag to reorder subtask' : 'Add more subtasks to reorder'"
                                     aria-label="Drag to reorder subtask"
                                     :disabled="!canDragSubtasks"
-                                >
-                                    <i class="fas fa-grip-vertical" aria-hidden="true"></i>
-                                </button>
-                                <input
-                                    type="checkbox"
-                                    :checked="st.done"
-                                    @change="toggleSubtask(index, $event.target.checked)"
-                                    title="Mark as done"
-                                >
+                                ><i class="fas fa-grip-vertical" aria-hidden="true"></i></button>
+                                <input type="checkbox" :checked="st.done" @change="toggleSubtask(index, $event.target.checked)" title="Mark as done">
                                 <input
                                     type="text"
                                     :value="st.text"
@@ -152,12 +177,9 @@ Vue.component('task-modal', {
                                     :class="{ completed: st.done }"
                                     placeholder="Subtask..."
                                 >
-                                <button class="delete-subtask-btn" @click="deleteSubtask(index)" title="Delete Subtask">
-                                    <i class="fas fa-trash-alt"></i>
-                                </button>
+                                <button class="delete-subtask-btn" @click="deleteSubtask(index)" title="Delete Subtask"><i class="fas fa-trash-alt"></i></button>
                             </li>
                         </draggable>
-
                         <div class="add-subtask">
                             <i class="fas fa-plus"></i>
                             <input
@@ -172,8 +194,9 @@ Vue.component('task-modal', {
                 </div>
 
                 <footer class="modal-footer">
-                    <button class="btn btn-danger" @click="deleteTask" title="Permanently delete this task">Delete Task</button>
-                    <button class="btn btn-primary" @click="close" title="Save and close">OK</button>
+                    <button v-if="isEdit" class="btn btn-danger" @click="deleteTask" title="Permanently delete this task">Delete Task</button>
+                    <span v-else></span>
+                    <button class="btn btn-primary" @click="submitModal" :title="isCreate ? 'Create task' : 'Save and close'">{{ isCreate ? 'Create Task' : 'OK' }}</button>
                 </footer>
             </div>
         </div>
@@ -185,254 +208,279 @@ Vue.component('task-modal', {
             localDueDate: null,
             localPriority: '',
             localColor: 'gray',
+            localTags: [],
+            localColumnId: null,
+            localColumnInput: '',
+            isColumnMenuOpen: false,
+            activeColumnIndex: 0,
             localTagInput: '',
             isTagMenuOpen: false,
             activeTagIndex: 0,
             maxTagSuggestions: 8,
+            maxColumnSuggestions: 8,
             newSubtaskText: '',
             subtaskKeySeed: 0,
             subtaskKeyMap: typeof WeakMap === 'function' ? new WeakMap() : null,
+            showTitleError: false,
+            showColumnError: false,
             colors: ['gray', 'red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink'],
             priorities: PRIORITY_VALUES
         };
     },
     computed: {
-        task() {
-            return store.activeTaskId ? store.tasks[store.activeTaskId] : null;
-        },
+        task() { return store.activeTaskId ? store.tasks[store.activeTaskId] : null; },
+        draft() { return store.taskModalDraft || null; },
+        mode() { return store.taskModalMode || (this.task ? 'edit' : null); },
+        isEdit() { return this.mode === 'edit' && !!this.task; },
+        isCreate() { return this.mode === 'create'; },
+        isOpen() { return this.isEdit || this.isCreate; },
         subtasks: {
-            get() {
-                return this.task ? (this.task.subtasks || []) : [];
-            },
-            set(value) {
-                if (!this.task) return;
-                mutations.reorderSubtasks(this.task.id, value);
-            }
+            get() { return this.isEdit ? (this.task.subtasks || []) : []; },
+            set(value) { if (this.isEdit) mutations.reorderSubtasks(this.task.id, value); }
         },
-        canDragSubtasks() {
-            return this.subtasks.length > 1;
-        },
-        colorClass() {
-            return `task-color-${this.localColor}`;
-        },
+        canDragSubtasks() { return this.subtasks.length > 1; },
+        colorClass() { return `task-color-${this.localColor}`; },
         progress() {
             if (!this.subtasks.length) return 0;
             const done = this.subtasks.filter(st => st.done).length;
             return (done / this.subtasks.length) * 100;
         },
         selectedTags() {
-            if (!this.task || !Array.isArray(this.task.tags)) return [];
-            return this.task.tags;
+            if (this.isEdit && Array.isArray(this.task.tags)) return this.task.tags;
+            return this.localTags;
         },
         workspaceId() {
-            if (!this.task) return null;
-            const column = store.columns[this.task.columnId];
-            return column ? column.workspaceId : null;
+            if (this.isEdit && this.task) {
+                const col = store.columns[this.task.columnId];
+                return col ? col.workspaceId : null;
+            }
+            if (this.isCreate) {
+                return (this.draft && this.draft.workspaceId) || store.currentWorkspaceId;
+            }
+            return null;
         },
-        workspaceTags() {
-            return getWorkspaceTags(this.workspaceId, store);
+        workspace() { return store.workspaces.find(ws => ws.id === this.workspaceId) || null; },
+        workspaceColumns() {
+            if (!this.workspace || !Array.isArray(this.workspace.columns)) return [];
+            return this.workspace.columns.map(id => store.columns[id]).filter(Boolean);
         },
+        workspaceTags() { return getWorkspaceTags(this.workspaceId, store); },
         tagMenuItems() {
             const selectedSet = new Set(this.selectedTags);
             const query = this.localTagInput.trim().toLowerCase();
             const items = [];
-
             const normalizedInput = normalizeTag(this.localTagInput);
-            const hasNormalizedInput = normalizedInput.length > 0;
-            const existsInWorkspace = this.workspaceTags.includes(normalizedInput);
-            const alreadySelected = selectedSet.has(normalizedInput);
-
-            if (hasNormalizedInput && !existsInWorkspace && !alreadySelected) {
-                items.push({
-                    type: 'create',
-                    value: normalizedInput
-                });
-            }
-
-            const filteredExisting = this.workspaceTags
+            const hasInput = normalizedInput.length > 0;
+            const exists = this.workspaceTags.includes(normalizedInput);
+            if (hasInput && !exists && !selectedSet.has(normalizedInput)) items.push({ type: 'create', value: normalizedInput });
+            const existing = this.workspaceTags
                 .filter(tag => !selectedSet.has(tag))
                 .filter(tag => !query || tag.includes(query))
                 .slice(0, this.maxTagSuggestions)
-                .map(tag => ({
-                    type: 'existing',
-                    value: tag
-                }));
-
-            return items.concat(filteredExisting);
+                .map(tag => ({ type: 'existing', value: tag }));
+            return items.concat(existing);
+        },
+        columnMenuItems() {
+            const query = this.localColumnInput.trim();
+            const lowered = query.toLowerCase();
+            const items = [];
+            const exact = this.workspaceColumns.find(col => col.title.toLowerCase() === lowered);
+            if (query && !exact) items.push({ type: 'create', id: '', value: query });
+            const existing = this.workspaceColumns
+                .filter(col => !lowered || col.title.toLowerCase().includes(lowered))
+                .slice(0, this.maxColumnSuggestions)
+                .map(col => ({ type: 'existing', id: col.id, value: col.title }));
+            return items.concat(existing);
         }
     },
     watch: {
-        task: {
-            immediate: true,
-            handler(newTask) {
-                if (newTask) {
-                    this.localTitle = newTask.title;
-                    this.localDescription = newTask.description || '';
-                    this.localDueDate = newTask.dueDate;
-                    this.localPriority = newTask.priority || '';
-                    this.localColor = newTask.color || 'gray';
-                } else {
-                    this.localTitle = '';
-                    this.localDescription = '';
-                    this.localDueDate = null;
-                    this.localPriority = '';
-                    this.localColor = 'gray';
-                }
-                this.localTagInput = '';
-                this.closeTagMenu();
-            }
-        },
-        tagMenuItems(newItems) {
-            if (!newItems.length) {
-                this.activeTagIndex = 0;
-                return;
-            }
-            if (this.activeTagIndex >= newItems.length) {
-                this.activeTagIndex = 0;
-            }
-        }
+        mode: { immediate: true, handler() { this.resetFromContext(); } },
+        task() { if (this.isEdit) this.resetFromContext(); },
+        draft: { deep: true, handler() { if (this.isCreate) this.resetFromContext(); } },
+        tagMenuItems(items) { if (!items.length || this.activeTagIndex >= items.length) this.activeTagIndex = 0; },
+        columnMenuItems(items) { if (!items.length || this.activeColumnIndex >= items.length) this.activeColumnIndex = 0; }
     },
-    mounted() {
-        document.addEventListener('keydown', this.onEsc);
-    },
-    beforeDestroy() {
-        document.removeEventListener('keydown', this.onEsc);
-    },
+    mounted() { document.addEventListener('keydown', this.onEsc); },
+    beforeDestroy() { document.removeEventListener('keydown', this.onEsc); },
     methods: {
-        close() {
-            store.activeTaskId = null;
-        },
-        toggleCompleted() {
-            mutations.toggleTaskCompletion(this.task.id);
-        },
-        onEsc(e) {
-            if (e.key !== 'Escape') return;
-            if (this.isTagMenuOpen) {
-                this.closeTagMenu();
+        resetFromContext() {
+            this.showTitleError = false;
+            this.showColumnError = false;
+            this.localTagInput = '';
+            this.closeTagMenu();
+            this.closeColumnMenu();
+            if (this.isEdit && this.task) {
+                this.localTitle = this.task.title || '';
+                this.localDescription = this.task.description || '';
+                this.localDueDate = this.task.dueDate || null;
+                this.localPriority = this.task.priority || '';
+                this.localColor = this.task.color || 'gray';
+                this.localTags = Array.isArray(this.task.tags) ? this.task.tags.slice() : [];
+                this.localColumnId = this.task.columnId || null;
+                this.localColumnInput = this.getColumnTitle(this.localColumnId);
                 return;
             }
+            if (this.isCreate) {
+                const draft = this.draft || {};
+                this.localTitle = draft.title || '';
+                this.localDescription = draft.description || '';
+                this.localDueDate = draft.dueDate || null;
+                this.localPriority = draft.priority || '';
+                this.localColor = draft.color || 'gray';
+                this.localTags = Array.isArray(draft.tags) ? draft.tags.slice() : [];
+                this.localColumnId = draft.columnId && store.columns[draft.columnId] ? draft.columnId : (this.workspaceColumns[0] ? this.workspaceColumns[0].id : null);
+                this.localColumnInput = this.localColumnId ? this.getColumnTitle(this.localColumnId) : '';
+                return;
+            }
+            this.localTitle = '';
+            this.localDescription = '';
+            this.localDueDate = null;
+            this.localPriority = '';
+            this.localColor = 'gray';
+            this.localTags = [];
+            this.localColumnId = null;
+            this.localColumnInput = '';
+        },
+        close() { mutations.closeTaskModal(); },
+        toggleCompleted() { if (this.isEdit) mutations.toggleTaskCompletion(this.task.id); },
+        onEsc(e) {
+            if (e.key !== 'Escape' || !this.isOpen) return;
+            if (this.isTagMenuOpen) { this.closeTagMenu(); return; }
+            if (this.isColumnMenuOpen) { this.closeColumnMenu(); return; }
             this.close();
         },
-        saveTitle() {
-            if (this.localTitle.trim() !== this.task.title) {
-                mutations.updateTask(this.task.id, { title: this.localTitle });
+        onTitleBlur() {
+            const trimmed = (this.localTitle || '').trim();
+            if (this.isEdit && this.task) {
+                if (!trimmed) { this.localTitle = this.task.title; return; }
+                this.localTitle = trimmed;
+                if (trimmed !== this.task.title) mutations.updateTask(this.task.id, { title: trimmed });
+                return;
             }
+            this.localTitle = trimmed;
         },
-        saveDescription() {
-            if (this.localDescription !== this.task.description) {
-                mutations.updateTask(this.task.id, { description: this.localDescription });
+        saveDescription() { if (this.isEdit && this.localDescription !== this.task.description) mutations.updateTask(this.task.id, { description: this.localDescription }); },
+        saveDueDate() { if (this.isEdit) mutations.updateTask(this.task.id, { dueDate: this.localDueDate }); },
+        savePriority() { if (this.isEdit) mutations.setTaskPriority(this.task.id, this.localPriority || null); },
+        saveColor(color) { this.localColor = color; if (this.isEdit) mutations.updateTask(this.task.id, { color }); },
+        getColumnTitle(columnId) { const column = store.columns[columnId]; return column ? column.title : ''; },
+        openColumnMenu() { this.isColumnMenuOpen = true; },
+        closeColumnMenu() { this.isColumnMenuOpen = false; },
+        onColumnInput() {
+            const query = this.localColumnInput.trim().toLowerCase();
+            const exact = this.workspaceColumns.find(col => col.title.toLowerCase() === query);
+            this.localColumnId = exact ? exact.id : null;
+            this.showColumnError = false;
+            this.openColumnMenu();
+            this.activeColumnIndex = 0;
+        },
+        onColumnBlur() { if (this.isEdit) this.saveColumn(); },
+        moveColumnSelection(step) {
+            if (!this.columnMenuItems.length) return;
+            const count = this.columnMenuItems.length;
+            this.activeColumnIndex = (this.activeColumnIndex + step + count) % count;
+        },
+        selectActiveColumn() {
+            if (!this.columnMenuItems.length) return;
+            this.selectColumnItem(this.columnMenuItems[this.activeColumnIndex]);
+        },
+        selectColumnItem(item) {
+            if (!item) return;
+            this.localColumnId = item.type === 'existing' ? item.id : null;
+            this.localColumnInput = item.value;
+            this.closeColumnMenu();
+            if (this.isEdit) this.saveColumn();
+        },
+        resolveColumnIdForSubmit() {
+            if (this.localColumnId && store.columns[this.localColumnId]) return this.localColumnId;
+            const title = this.localColumnInput.trim();
+            if (!title) return null;
+            const existing = this.workspaceColumns.find(col => col.title.toLowerCase() === title.toLowerCase());
+            if (existing) return existing.id;
+            const workspaceId = this.workspaceId || store.currentWorkspaceId;
+            if (!workspaceId) return null;
+            return mutations.addColumn(workspaceId, title);
+        },
+        saveColumn() {
+            if (!this.isEdit || !this.task) return;
+            const columnId = this.resolveColumnIdForSubmit();
+            if (!columnId) {
+                this.showColumnError = true;
+                this.localColumnId = this.task.columnId;
+                this.localColumnInput = this.getColumnTitle(this.task.columnId);
+                return;
             }
-        },
-        saveDueDate() {
-            mutations.updateTask(this.task.id, { dueDate: this.localDueDate });
-        },
-        savePriority() {
-            const value = this.localPriority || null;
-            mutations.setTaskPriority(this.task.id, value);
-        },
-        saveColor(color) {
-            this.localColor = color;
-            mutations.updateTask(this.task.id, { color });
+            this.showColumnError = false;
+            this.localColumnId = columnId;
+            this.localColumnInput = this.getColumnTitle(columnId);
+            if (columnId !== this.task.columnId) mutations.updateTask(this.task.id, { columnId });
         },
         focusTagInput() {
             this.openTagMenu();
-            this.$nextTick(() => {
-                if (this.$refs.tagInput) {
-                    this.$refs.tagInput.focus();
-                }
-            });
+            this.$nextTick(() => { if (this.$refs.tagInput) this.$refs.tagInput.focus(); });
         },
-        onTagInput() {
-            this.openTagMenu();
-            this.activeTagIndex = 0;
-        },
-        openTagMenu() {
-            this.isTagMenuOpen = true;
-        },
-        closeTagMenu() {
-            this.isTagMenuOpen = false;
-        },
+        onTagInput() { this.openTagMenu(); this.activeTagIndex = 0; },
+        openTagMenu() { this.isTagMenuOpen = true; },
+        closeTagMenu() { this.isTagMenuOpen = false; },
         moveTagSelection(step) {
             if (!this.tagMenuItems.length) return;
-            this.openTagMenu();
             const count = this.tagMenuItems.length;
             this.activeTagIndex = (this.activeTagIndex + step + count) % count;
         },
         selectActiveTag() {
-            if (this.tagMenuItems.length) {
-                this.selectTagItem(this.tagMenuItems[this.activeTagIndex]);
-                return;
-            }
+            if (this.tagMenuItems.length) { this.selectTagItem(this.tagMenuItems[this.activeTagIndex]); return; }
             const normalized = normalizeTag(this.localTagInput);
-            if (normalized) {
-                this.addTag(normalized);
-            }
+            if (normalized) this.addTag(normalized);
         },
-        selectTagItem(item) {
-            if (!item || !item.value) return;
-            this.addTag(item.value);
-        },
+        selectTagItem(item) { if (item && item.value) this.addTag(item.value); },
         addTag(value) {
-            if (!this.task) return;
-
             const normalized = normalizeTag(value);
             if (!normalized) return;
-
-            const current = Array.isArray(this.task.tags) ? this.task.tags : [];
-            if (current.includes(normalized)) {
-                this.localTagInput = '';
-                this.closeTagMenu();
-                return;
-            }
-
-            mutations.updateTask(this.task.id, { tags: [...current, normalized] });
+            const current = this.selectedTags;
+            if (current.includes(normalized)) { this.localTagInput = ''; this.closeTagMenu(); return; }
+            if (this.isEdit) mutations.updateTask(this.task.id, { tags: [...current, normalized] });
+            else this.localTags = [...current, normalized];
             this.localTagInput = '';
             this.openTagMenu();
-
-            this.$nextTick(() => {
-                if (this.$refs.tagInput) {
-                    this.$refs.tagInput.focus();
-                }
-            });
+            this.$nextTick(() => { if (this.$refs.tagInput) this.$refs.tagInput.focus(); });
         },
         removeTag(tagToRemove) {
-            if (!this.task || !Array.isArray(this.task.tags)) return;
-            const nextTags = this.task.tags.filter(tag => tag !== tagToRemove);
-            mutations.updateTask(this.task.id, { tags: nextTags });
+            const nextTags = this.selectedTags.filter(tag => tag !== tagToRemove);
+            if (this.isEdit) mutations.updateTask(this.task.id, { tags: nextTags });
+            else this.localTags = nextTags;
         },
         onTagBackspace() {
-            if (this.localTagInput.length > 0) return;
-            if (!this.task || !Array.isArray(this.task.tags) || !this.task.tags.length) return;
-            const nextTags = this.task.tags.slice(0, this.task.tags.length - 1);
-            mutations.updateTask(this.task.id, { tags: nextTags });
+            if (this.localTagInput.length > 0 || !this.selectedTags.length) return;
+            const nextTags = this.selectedTags.slice(0, this.selectedTags.length - 1);
+            if (this.isEdit) mutations.updateTask(this.task.id, { tags: nextTags });
+            else this.localTags = nextTags;
         },
-        deleteTask() {
-            if (confirm('Are you sure you want to delete this task?')) {
-                mutations.deleteTask(this.task.id);
-            }
+        submitModal() {
+            if (!this.isCreate) { this.close(); return; }
+            const title = (this.localTitle || '').trim();
+            const columnId = this.resolveColumnIdForSubmit();
+            this.showTitleError = !title;
+            this.showColumnError = !columnId;
+            if (!title || !columnId) return;
+            const taskId = mutations.createTask({
+                title,
+                columnId,
+                description: this.localDescription,
+                dueDate: this.localDueDate || null,
+                priority: this.localPriority || null,
+                color: this.localColor,
+                tags: this.localTags
+            });
+            if (!taskId) return;
+            mutations.closeTaskModal();
         },
-        addSubtask() {
-            if (this.newSubtaskText.trim()) {
-                mutations.addSubtask(this.task.id, this.newSubtaskText.trim());
-                this.newSubtaskText = '';
-            }
-        },
-        toggleSubtask(index, done) {
-            mutations.updateSubtask(this.task.id, index, { done });
-        },
-        updateSubtaskText(index, text) {
-            mutations.updateSubtask(this.task.id, index, { text });
-        },
-        deleteSubtask(index) {
-            mutations.deleteSubtask(this.task.id, index);
-        },
+        deleteTask() { if (this.isEdit && confirm('Are you sure you want to delete this task?')) mutations.deleteTask(this.task.id); },
+        addSubtask() { if (this.isEdit && this.newSubtaskText.trim()) { mutations.addSubtask(this.task.id, this.newSubtaskText.trim()); this.newSubtaskText = ''; } },
+        toggleSubtask(index, done) { if (this.isEdit) mutations.updateSubtask(this.task.id, index, { done }); },
+        updateSubtaskText(index, text) { if (this.isEdit) mutations.updateSubtask(this.task.id, index, { text }); },
+        deleteSubtask(index) { if (this.isEdit) mutations.deleteSubtask(this.task.id, index); },
         subtaskKey(st, index) {
-            if (!st || typeof st !== 'object') {
-                return `subtask-${index}`;
-            }
-            if (!this.subtaskKeyMap) {
-                return `subtask-${index}`;
-            }
+            if (!st || typeof st !== 'object' || !this.subtaskKeyMap) return `subtask-${index}`;
             if (!this.subtaskKeyMap.has(st)) {
                 this.subtaskKeySeed += 1;
                 this.subtaskKeyMap.set(st, `subtask-${this.subtaskKeySeed}`);
@@ -445,7 +493,8 @@ Vue.component('task-modal', {
             bind: function (el, binding, vnode) {
                 el.clickOutsideEvent = function (event) {
                     if (!(el === event.target || el.contains(event.target))) {
-                        vnode.context[binding.expression](event);
+                        const handler = vnode.context[binding.expression];
+                        if (typeof handler === 'function') handler(event);
                     }
                 };
                 document.body.addEventListener('click', el.clickOutsideEvent);

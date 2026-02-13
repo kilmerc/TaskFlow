@@ -18,6 +18,8 @@ export const store = Vue.observable({
         priorities: []
     },
     activeTaskId: null,
+    taskModalMode: null,
+    taskModalDraft: null,
     storageWarning: null // Message if limit approached/exceeded
 });
 
@@ -54,6 +56,56 @@ export const persist = debounce(() => {
     }
 }, 300);
 
+function getWorkspace(workspaceId) {
+    return store.workspaces.find(w => w.id === workspaceId) || null;
+}
+
+function getWorkspaceColumnIds(workspaceId) {
+    const workspace = getWorkspace(workspaceId);
+    if (!workspace || !Array.isArray(workspace.columns)) return [];
+    return workspace.columns.filter(columnId => !!store.columns[columnId]);
+}
+
+function getDefaultColumnId(workspaceId = null) {
+    const workspaceColumnIds = workspaceId ? getWorkspaceColumnIds(workspaceId) : [];
+    if (workspaceColumnIds.length > 0) {
+        return workspaceColumnIds[0];
+    }
+
+    const allColumnIds = Object.keys(store.columns);
+    return allColumnIds.length > 0 ? allColumnIds[0] : null;
+}
+
+function ensureColumnTaskOrder(columnId) {
+    if (!store.columnTaskOrder[columnId]) {
+        Vue.set(store.columnTaskOrder, columnId, []);
+    }
+}
+
+function removeTaskFromColumnOrder(taskId, columnId) {
+    const order = store.columnTaskOrder[columnId];
+    if (!Array.isArray(order)) return;
+    const index = order.indexOf(taskId);
+    if (index > -1) {
+        order.splice(index, 1);
+    }
+}
+
+function addTaskToColumnOrder(taskId, columnId) {
+    if (!store.columns[columnId]) return false;
+
+    ensureColumnTaskOrder(columnId);
+    if (!store.columnTaskOrder[columnId].includes(taskId)) {
+        store.columnTaskOrder[columnId].push(taskId);
+    }
+    return true;
+}
+
+function getColumnWorkspaceId(columnId) {
+    const column = store.columns[columnId];
+    return column ? column.workspaceId : null;
+}
+
 function initializeDefaultData() {
     store.appVersion = '1.1';
 
@@ -88,6 +140,8 @@ function initializeDefaultData() {
         priorities: []
     };
     store.activeTaskId = null;
+    store.taskModalMode = null;
+    store.taskModalDraft = null;
     persist();
 }
 
@@ -138,6 +192,10 @@ export const mutations = {
 
         store.workspaces.splice(wsIndex, 1);
 
+        if (store.activeTaskId && !store.tasks[store.activeTaskId]) {
+            this.closeTaskModal();
+        }
+
         if (store.currentWorkspaceId === workspaceId) {
             store.currentWorkspaceId = store.workspaces.length ? store.workspaces[0].id : null;
         }
@@ -159,13 +217,15 @@ export const mutations = {
 
     addColumn(workspaceId, title) {
         const id = generateId('col');
-        const ws = store.workspaces.find(w => w.id === workspaceId);
-        if (!ws) return;
+        const ws = getWorkspace(workspaceId);
+        const normalizedTitle = typeof title === 'string' ? title.trim() : '';
+        if (!ws || !normalizedTitle) return null;
 
-        Vue.set(store.columns, id, { id, workspaceId, title, showCompleted: false });
+        Vue.set(store.columns, id, { id, workspaceId, title: normalizedTitle, showCompleted: false });
         Vue.set(store.columnTaskOrder, id, []);
         ws.columns.push(id);
         persist();
+        return id;
     },
 
     updateColumn(columnId, title) {
@@ -193,6 +253,10 @@ export const mutations = {
 
         Vue.delete(store.columnTaskOrder, columnId);
         Vue.delete(store.columns, columnId);
+
+        if (store.activeTaskId && !store.tasks[store.activeTaskId]) {
+            this.closeTaskModal();
+        }
         persist();
     },
 
@@ -206,19 +270,34 @@ export const mutations = {
 
     addTask(columnId, rawTitle) {
         const { title, tags } = parseTagsFromTitle(rawTitle);
-        if (!title) return;
+        if (!title) return null;
+        return this.createTask({
+            columnId,
+            title,
+            tags
+        });
+    },
+
+    createTask(payload) {
+        const input = payload && typeof payload === 'object' ? payload : {};
+        const title = typeof input.title === 'string' ? input.title.trim() : '';
+        const columnId = typeof input.columnId === 'string' ? input.columnId : null;
+
+        if (!title || !columnId || !store.columns[columnId]) {
+            return null;
+        }
 
         const id = generateId('task');
         const newTask = {
             id,
             columnId,
             title,
-            tags,
-            priority: null,
-            description: '',
-            color: 'gray',
-            dueDate: null,
-            subtasks: [],
+            tags: normalizeTagList(input.tags || []),
+            priority: normalizePriority(input.priority),
+            description: typeof input.description === 'string' ? input.description : '',
+            color: typeof input.color === 'string' && input.color ? input.color : 'gray',
+            dueDate: input.dueDate || null,
+            subtasks: Array.isArray(input.subtasks) ? input.subtasks : [],
             isCompleted: false,
             completedAt: null,
             createdAt: new Date().toISOString()
@@ -228,12 +307,10 @@ export const mutations = {
         Vue.set(store.tasks, id, newTask);
 
         // Add to column order
-        if (!store.columnTaskOrder[columnId]) {
-            Vue.set(store.columnTaskOrder, columnId, []);
-        }
-        store.columnTaskOrder[columnId].push(id);
+        addTaskToColumnOrder(id, columnId);
 
         persist();
+        return id;
     },
 
     moveTask(taskId, sourceColId, targetColId, newIndex) {
@@ -288,35 +365,123 @@ export const mutations = {
     },
 
     setActiveTask(taskId) {
+        if (!taskId || !store.tasks[taskId]) {
+            this.closeTaskModal();
+            return;
+        }
         store.activeTaskId = taskId;
+        store.taskModalMode = 'edit';
+        store.taskModalDraft = null;
+    },
+
+    openTaskModalForCreate(draft = {}) {
+        const input = draft && typeof draft === 'object' ? draft : {};
+        const requestedColumnId = typeof input.columnId === 'string' ? input.columnId : null;
+        const columnWorkspaceId = requestedColumnId ? getColumnWorkspaceId(requestedColumnId) : null;
+
+        let workspaceId = input.workspaceId || columnWorkspaceId || store.currentWorkspaceId;
+        if (!workspaceId || !getWorkspace(workspaceId)) {
+            workspaceId = store.currentWorkspaceId;
+        }
+
+        let columnId = requestedColumnId && store.columns[requestedColumnId] ? requestedColumnId : null;
+        if (columnId && workspaceId) {
+            const column = store.columns[columnId];
+            if (!column || column.workspaceId !== workspaceId) {
+                columnId = null;
+            }
+        }
+        if (!columnId) {
+            columnId = getDefaultColumnId(workspaceId);
+        }
+
+        store.activeTaskId = null;
+        store.taskModalMode = 'create';
+        store.taskModalDraft = {
+            workspaceId: workspaceId || null,
+            title: typeof input.title === 'string' ? input.title : '',
+            description: typeof input.description === 'string' ? input.description : '',
+            dueDate: input.dueDate || null,
+            priority: normalizePriority(input.priority),
+            color: typeof input.color === 'string' && input.color ? input.color : 'gray',
+            tags: normalizeTagList(input.tags || []),
+            columnId: columnId || null
+        };
+    },
+
+    closeTaskModal() {
+        store.activeTaskId = null;
+        store.taskModalMode = null;
+        store.taskModalDraft = null;
     },
 
     updateTask(taskId, updates) {
         const task = store.tasks[taskId];
-        if (!task) return;
+        if (!task || !updates || typeof updates !== 'object') return;
 
-        // Apply updates
+        const sourceColumnId = task.columnId;
+        let targetColumnId = sourceColumnId;
+        let hasChanges = false;
+
         Object.keys(updates).forEach(key => {
-            // Handle tags updates if title changed? 
-            // For now, assume title update parses tags elsewhere or we do it here if needed.
-            // If the modal updates title, it should probably re-parse tags?
-            // PRD says: "Title: Editable text". behavior of parsing tags in modal isn't explicitly detailed 
-            // but for consistency, if user types #tag in modal title, it should probably be parsed.
-            // However, Feature 3.1 just says "Title (single-line)". 
-            // Let's just update the fields provided.
+            if (key === 'columnId') {
+                const nextColumnId = updates[key];
+                if (
+                    typeof nextColumnId === 'string' &&
+                    store.columns[nextColumnId] &&
+                    nextColumnId !== sourceColumnId
+                ) {
+                    targetColumnId = nextColumnId;
+                }
+                return;
+            }
+
+            if (key === 'title') {
+                const nextTitle = typeof updates[key] === 'string' ? updates[key].trim() : '';
+                if (!nextTitle || nextTitle === task.title) return;
+                Vue.set(task, key, nextTitle);
+                hasChanges = true;
+                return;
+            }
+
             if (key === 'tags') {
                 Vue.set(task, key, normalizeTagList(updates[key]));
-            } else if (key === 'priority') {
-                Vue.set(task, key, normalizePriority(updates[key]));
-            } else {
-                Vue.set(task, key, updates[key]);
+                hasChanges = true;
+                return;
             }
+
+            if (key === 'priority') {
+                Vue.set(task, key, normalizePriority(updates[key]));
+                hasChanges = true;
+                return;
+            }
+
+            if (key === 'description') {
+                Vue.set(task, key, typeof updates[key] === 'string' ? updates[key] : '');
+                hasChanges = true;
+                return;
+            }
+
+            if (key === 'dueDate') {
+                Vue.set(task, key, updates[key] || null);
+                hasChanges = true;
+                return;
+            }
+
+            Vue.set(task, key, updates[key]);
+            hasChanges = true;
         });
 
-        // If title was updated, we might want to re-parse tags, but let's stick to simple updates for now.
-        // If the implementation plan implies simple editing, we do exactly that.
+        if (targetColumnId !== sourceColumnId) {
+            removeTaskFromColumnOrder(taskId, sourceColumnId);
+            addTaskToColumnOrder(taskId, targetColumnId);
+            Vue.set(task, 'columnId', targetColumnId);
+            hasChanges = true;
+        }
 
-        persist();
+        if (hasChanges) {
+            persist();
+        }
     },
 
     deleteTask(taskId) {
@@ -338,7 +503,7 @@ export const mutations = {
 
         // If it was active, close modal
         if (store.activeTaskId === taskId) {
-            store.activeTaskId = null;
+            this.closeTaskModal();
         }
 
         persist();
@@ -476,6 +641,8 @@ export function hydrate(inputData = null) {
             store.theme = data.theme || 'light';
             store.currentWorkspaceId = data.currentWorkspaceId;
             store.activeTaskId = null;
+            store.taskModalMode = null;
+            store.taskModalDraft = null;
 
             const legacyTags = Array.isArray(data.activeFilter) ? data.activeFilter : [];
             const nextActiveFilters = data.activeFilters || {};
@@ -518,18 +685,68 @@ export function hydrate(inputData = null) {
                     if (task.completedAt === undefined) {
                         task.completedAt = null;
                     }
+                    if (!Array.isArray(task.tags)) {
+                        task.tags = [];
+                    }
+                    if (task.description === undefined || task.description === null) {
+                        task.description = '';
+                    }
+                    if (!Array.isArray(task.subtasks)) {
+                        task.subtasks = [];
+                    }
+                    if (task.color === undefined || task.color === null || task.color === '') {
+                        task.color = 'gray';
+                    }
+                    if (!task.title || typeof task.title !== 'string') {
+                        task.title = 'Untitled Task';
+                    }
                     task.priority = normalizePriority(task.priority);
+                    task.tags = normalizeTagList(task.tags);
                     Vue.set(store.tasks, key, task);
                 });
             }
 
-            // ColumnTaskOrder
-            store.columnTaskOrder = {};
+            const fallbackColumnId = getDefaultColumnId(store.currentWorkspaceId) || getDefaultColumnId();
+            Object.keys(store.tasks).forEach(taskId => {
+                const task = store.tasks[taskId];
+                if (!store.columns[task.columnId]) {
+                    task.columnId = fallbackColumnId;
+                }
+            });
+
+            // ColumnTaskOrder: rebuild from valid columns/tasks to keep tasks tied to real columns.
+            const rebuiltOrder = {};
+            Object.keys(store.columns).forEach(columnId => {
+                rebuiltOrder[columnId] = [];
+            });
+
+            const seenTaskIds = new Set();
             if (data.columnTaskOrder) {
-                Object.keys(data.columnTaskOrder).forEach(key => {
-                    Vue.set(store.columnTaskOrder, key, data.columnTaskOrder[key]);
+                Object.keys(data.columnTaskOrder).forEach(columnId => {
+                    if (!rebuiltOrder[columnId]) return;
+                    const rawOrder = Array.isArray(data.columnTaskOrder[columnId]) ? data.columnTaskOrder[columnId] : [];
+                    rawOrder.forEach(taskId => {
+                        if (typeof taskId !== 'string' || seenTaskIds.has(taskId)) return;
+                        const task = store.tasks[taskId];
+                        if (!task || task.columnId !== columnId) return;
+                        rebuiltOrder[columnId].push(taskId);
+                        seenTaskIds.add(taskId);
+                    });
                 });
             }
+
+            Object.keys(store.tasks).forEach(taskId => {
+                if (seenTaskIds.has(taskId)) return;
+                const task = store.tasks[taskId];
+                if (!task || !task.columnId || !rebuiltOrder[task.columnId]) return;
+                rebuiltOrder[task.columnId].push(taskId);
+                seenTaskIds.add(taskId);
+            });
+
+            store.columnTaskOrder = {};
+            Object.keys(rebuiltOrder).forEach(columnId => {
+                Vue.set(store.columnTaskOrder, columnId, rebuiltOrder[columnId]);
+            });
 
         } else {
             initializeDefaultData();

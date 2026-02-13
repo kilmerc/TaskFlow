@@ -25,7 +25,10 @@ const BASELINE_STATE = {
     activeFilters: {
         tags: [],
         priorities: []
-    }
+    },
+    activeTaskId: null,
+    taskModalMode: null,
+    taskModalDraft: null
 };
 
 describe('Store', () => {
@@ -50,6 +53,17 @@ describe('Store', () => {
         expect(store.columns[ws.columns[0]].title).to.equal('To Do');
     });
 
+    it('should return the new column id from addColumn', () => {
+        const workspaceId = store.currentWorkspaceId;
+        const columnId = mutations.addColumn(workspaceId, 'Backlog');
+
+        expect(columnId).to.be.a('string');
+        expect(store.columns[columnId]).to.exist;
+        expect(store.columns[columnId].title).to.equal('Backlog');
+        expect(store.columnTaskOrder[columnId]).to.deep.equal([]);
+        expect(store.workspaces[0].columns).to.include(columnId);
+    });
+
     it('should delete a workspace', () => {
         mutations.addWorkspace('WS1');
         const id = store.workspaces[store.workspaces.length - 1].id;
@@ -70,6 +84,41 @@ describe('Store', () => {
         expect(task.title).to.equal('New Task');
         expect(task.tags).to.include('test');
         expect(task.priority).to.equal(null);
+    });
+
+    it('should reject invalid createTask payloads and create valid tasks', () => {
+        const colId = store.workspaces[0].columns[0];
+
+        expect(mutations.createTask({ title: '', columnId: colId })).to.equal(null);
+        expect(mutations.createTask({ title: 'Missing Column', columnId: 'col_missing' })).to.equal(null);
+
+        const taskId = mutations.createTask({
+            title: 'Created Task',
+            columnId: colId,
+            tags: ['Created', 'created'],
+            priority: null
+        });
+
+        expect(taskId).to.be.a('string');
+        expect(store.tasks[taskId]).to.exist;
+        expect(store.tasks[taskId].title).to.equal('Created Task');
+        expect(store.tasks[taskId].isCompleted).to.equal(false);
+        expect(store.tasks[taskId].completedAt).to.equal(null);
+        expect(store.columnTaskOrder[colId]).to.include(taskId);
+    });
+
+    it('should create tasks with due date and priority from createTask payload', () => {
+        const colId = store.workspaces[0].columns[0];
+        const taskId = mutations.createTask({
+            title: 'Scheduled Priority Task',
+            columnId: colId,
+            dueDate: '2026-02-20',
+            priority: 'III'
+        });
+
+        expect(taskId).to.be.a('string');
+        expect(store.tasks[taskId].dueDate).to.equal('2026-02-20');
+        expect(store.tasks[taskId].priority).to.equal('III');
     });
 
     it('should normalize and dedupe tags on updateTask', () => {
@@ -96,6 +145,20 @@ describe('Store', () => {
         expect(store.columnTaskOrder[col1]).to.have.lengthOf(0);
         expect(store.columnTaskOrder[col2]).to.have.lengthOf(1);
         expect(store.tasks[taskId].columnId).to.equal(col2);
+    });
+
+    it('should move a task when updateTask changes columnId', () => {
+        const col1 = store.workspaces[0].columns[0];
+        const col2 = store.workspaces[0].columns[1];
+
+        mutations.addTask(col1, 'Editable Column Task');
+        const taskId = store.columnTaskOrder[col1][0];
+
+        mutations.updateTask(taskId, { columnId: col2 });
+
+        expect(store.tasks[taskId].columnId).to.equal(col2);
+        expect(store.columnTaskOrder[col1]).to.not.include(taskId);
+        expect(store.columnTaskOrder[col2]).to.include(taskId);
     });
 
     it('should delete a task', () => {
@@ -261,5 +324,44 @@ describe('Store', () => {
         expect(store.activeFilters.priorities).to.deep.equal([]);
         expect(store.tasks.task_1.priority).to.equal(null);
         expect(store.tasks.task_2.priority).to.equal(null);
+    });
+
+    it('should normalize invalid task columnId and rebuild columnTaskOrder on hydrate', () => {
+        hydrate({
+            appVersion: '1.1',
+            theme: 'light',
+            currentWorkspaceId: 'ws_base',
+            workspaces: BASELINE_STATE.workspaces,
+            columns: BASELINE_STATE.columns,
+            columnTaskOrder: {
+                col_todo: [],
+                col_inprogress: ['task_orphan'],
+                col_done: []
+            },
+            tasks: {
+                task_orphan: {
+                    id: 'task_orphan',
+                    columnId: 'col_missing',
+                    title: 'Orphan Task',
+                    tags: [],
+                    priority: null,
+                    description: '',
+                    color: 'gray',
+                    dueDate: null,
+                    subtasks: [],
+                    isCompleted: false,
+                    completedAt: null,
+                    createdAt: new Date().toISOString()
+                }
+            },
+            activeFilters: {
+                tags: [],
+                priorities: []
+            }
+        });
+
+        expect(store.tasks.task_orphan.columnId).to.equal('col_todo');
+        expect(store.columnTaskOrder.col_todo).to.include('task_orphan');
+        expect(store.columnTaskOrder.col_inprogress).to.not.include('task_orphan');
     });
 });

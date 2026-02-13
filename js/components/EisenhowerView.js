@@ -28,9 +28,21 @@ Vue.component('eisenhower-view', {
                         class="matrix-task-card"
                         @click="openTask(task.id)"
                     >
-                        <span class="task-title">{{ task.title }}</span>
-                        <div class="task-tags" v-if="task.tags && task.tags.length">
-                            <span v-for="tag in task.tags" :key="tag" class="tag-pill">{{ tag }}</span>
+                        <div class="matrix-task-row">
+                            <input
+                                type="checkbox"
+                                class="task-checkbox matrix-task-checkbox"
+                                :checked="task.isCompleted"
+                                @click.stop
+                                @change="toggleTaskCompletion(task.id)"
+                                title="Mark as complete"
+                            >
+                            <div class="task-content">
+                                <span class="task-title">{{ task.title }}</span>
+                                <div class="task-tags" v-if="task.tags && task.tags.length">
+                                    <span v-for="tag in task.tags" :key="tag" class="tag-pill">{{ tag }}</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -44,6 +56,9 @@ Vue.component('eisenhower-view', {
                 <div class="eisenhower-quadrant q1">
                     <div class="quadrant-header">
                         <h4>I Urgent & Important (Necessity)</h4>
+                        <button class="matrix-add-btn" @click.stop="openCreateModal('I')" title="Add task to Quadrant I">
+                            <i class="fas fa-plus"></i>
+                        </button>
                     </div>
                     <draggable
                         class="eisenhower-list"
@@ -58,9 +73,21 @@ Vue.component('eisenhower-view', {
                             class="matrix-task-card"
                             @click="openTask(task.id)"
                         >
-                            <span class="task-title">{{ task.title }}</span>
-                            <div class="task-tags" v-if="task.tags && task.tags.length">
-                                <span v-for="tag in task.tags" :key="tag" class="tag-pill">{{ tag }}</span>
+                            <div class="matrix-task-row">
+                                <input
+                                    type="checkbox"
+                                    class="task-checkbox matrix-task-checkbox"
+                                    :checked="task.isCompleted"
+                                    @click.stop
+                                    @change="toggleTaskCompletion(task.id)"
+                                    title="Mark as complete"
+                                >
+                                <div class="task-content">
+                                    <span class="task-title">{{ task.title }}</span>
+                                    <div class="task-tags" v-if="task.tags && task.tags.length">
+                                        <span v-for="tag in task.tags" :key="tag" class="tag-pill">{{ tag }}</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </draggable>
@@ -69,6 +96,9 @@ Vue.component('eisenhower-view', {
                 <div class="eisenhower-quadrant q2">
                     <div class="quadrant-header">
                         <h4>II Not Urgent & Important (Effective)</h4>
+                        <button class="matrix-add-btn" @click.stop="openCreateModal('II')" title="Add task to Quadrant II">
+                            <i class="fas fa-plus"></i>
+                        </button>
                     </div>
                     <draggable
                         class="eisenhower-list"
@@ -83,9 +113,21 @@ Vue.component('eisenhower-view', {
                             class="matrix-task-card"
                             @click="openTask(task.id)"
                         >
-                            <span class="task-title">{{ task.title }}</span>
-                            <div class="task-tags" v-if="task.tags && task.tags.length">
-                                <span v-for="tag in task.tags" :key="tag" class="tag-pill">{{ tag }}</span>
+                            <div class="matrix-task-row">
+                                <input
+                                    type="checkbox"
+                                    class="task-checkbox matrix-task-checkbox"
+                                    :checked="task.isCompleted"
+                                    @click.stop
+                                    @change="toggleTaskCompletion(task.id)"
+                                    title="Mark as complete"
+                                >
+                                <div class="task-content">
+                                    <span class="task-title">{{ task.title }}</span>
+                                    <div class="task-tags" v-if="task.tags && task.tags.length">
+                                        <span v-for="tag in task.tags" :key="tag" class="tag-pill">{{ tag }}</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </draggable>
@@ -94,6 +136,9 @@ Vue.component('eisenhower-view', {
                 <div class="eisenhower-quadrant q3">
                     <div class="quadrant-header">
                         <h4>III Urgent & Not Important (Distraction)</h4>
+                        <button class="matrix-add-btn" @click.stop="openCreateModal('III')" title="Add task to Quadrant III">
+                            <i class="fas fa-plus"></i>
+                        </button>
                     </div>
                     <draggable
                         class="eisenhower-list"
@@ -108,9 +153,21 @@ Vue.component('eisenhower-view', {
                             class="matrix-task-card"
                             @click="openTask(task.id)"
                         >
-                            <span class="task-title">{{ task.title }}</span>
-                            <div class="task-tags" v-if="task.tags && task.tags.length">
-                                <span v-for="tag in task.tags" :key="tag" class="tag-pill">{{ tag }}</span>
+                            <div class="matrix-task-row">
+                                <input
+                                    type="checkbox"
+                                    class="task-checkbox matrix-task-checkbox"
+                                    :checked="task.isCompleted"
+                                    @click.stop
+                                    @change="toggleTaskCompletion(task.id)"
+                                    title="Mark as complete"
+                                >
+                                <div class="task-content">
+                                    <span class="task-title">{{ task.title }}</span>
+                                    <div class="task-tags" v-if="task.tags && task.tags.length">
+                                        <span v-for="tag in task.tags" :key="tag" class="tag-pill">{{ tag }}</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </draggable>
@@ -119,6 +176,9 @@ Vue.component('eisenhower-view', {
                 <div class="eisenhower-quadrant q4">
                     <div class="quadrant-header">
                         <h4>IV Not Urgent & Not Important (Waste)</h4>
+                        <button class="matrix-add-btn" @click.stop="openCreateModal('IV')" title="Add task to Quadrant IV">
+                            <i class="fas fa-plus"></i>
+                        </button>
                     </div>
                     <draggable
                         class="eisenhower-list"
@@ -133,9 +193,21 @@ Vue.component('eisenhower-view', {
                             class="matrix-task-card"
                             @click="openTask(task.id)"
                         >
-                            <span class="task-title">{{ task.title }}</span>
-                            <div class="task-tags" v-if="task.tags && task.tags.length">
-                                <span v-for="tag in task.tags" :key="tag" class="tag-pill">{{ tag }}</span>
+                            <div class="matrix-task-row">
+                                <input
+                                    type="checkbox"
+                                    class="task-checkbox matrix-task-checkbox"
+                                    :checked="task.isCompleted"
+                                    @click.stop
+                                    @change="toggleTaskCompletion(task.id)"
+                                    title="Mark as complete"
+                                >
+                                <div class="task-content">
+                                    <span class="task-title">{{ task.title }}</span>
+                                    <div class="task-tags" v-if="task.tags && task.tags.length">
+                                        <span v-for="tag in task.tags" :key="tag" class="tag-pill">{{ tag }}</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </draggable>
@@ -172,7 +244,7 @@ Vue.component('eisenhower-view', {
                 .filter(task => !!task);
         },
         filteredWorkspaceTasks() {
-            return this.workspaceTasks.filter(task => taskMatchesFilters(task, this.activeFilters));
+            return this.workspaceTasks.filter(task => !task.isCompleted && taskMatchesFilters(task, this.activeFilters));
         },
         priorityBuckets() {
             const buckets = {
@@ -210,6 +282,15 @@ Vue.component('eisenhower-view', {
             if (event.added && event.added.element) {
                 mutations.setTaskPriority(event.added.element.id, null);
             }
+        },
+        toggleTaskCompletion(taskId) {
+            mutations.toggleTaskCompletion(taskId);
+        },
+        openCreateModal(priority) {
+            mutations.openTaskModalForCreate({
+                workspaceId: this.workspace.id,
+                priority
+            });
         },
         openTask(taskId) {
             mutations.setActiveTask(taskId);
