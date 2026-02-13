@@ -55,7 +55,10 @@ Vue.component('eisenhower-view', {
             <section class="eisenhower-grid">
                 <div class="eisenhower-quadrant q1">
                     <div class="quadrant-header">
-                        <h4>I Urgent & Important (Necessity)</h4>
+                        <h4 class="quadrant-title">
+                            <span class="quadrant-roman">I</span>
+                            <span class="quadrant-title-text">Urgent & Important (Necessity)</span>
+                        </h4>
                         <button class="matrix-add-btn" @click.stop="openCreateModal('I')" title="Add task to Quadrant I">
                             <i class="fas fa-plus"></i>
                         </button>
@@ -95,7 +98,10 @@ Vue.component('eisenhower-view', {
 
                 <div class="eisenhower-quadrant q2">
                     <div class="quadrant-header">
-                        <h4>II Not Urgent & Important (Effective)</h4>
+                        <h4 class="quadrant-title">
+                            <span class="quadrant-roman">II</span>
+                            <span class="quadrant-title-text">Not Urgent & Important (Effective)</span>
+                        </h4>
                         <button class="matrix-add-btn" @click.stop="openCreateModal('II')" title="Add task to Quadrant II">
                             <i class="fas fa-plus"></i>
                         </button>
@@ -135,7 +141,10 @@ Vue.component('eisenhower-view', {
 
                 <div class="eisenhower-quadrant q3">
                     <div class="quadrant-header">
-                        <h4>III Urgent & Not Important (Distraction)</h4>
+                        <h4 class="quadrant-title">
+                            <span class="quadrant-roman">III</span>
+                            <span class="quadrant-title-text">Urgent & Not Important (Distraction)</span>
+                        </h4>
                         <button class="matrix-add-btn" @click.stop="openCreateModal('III')" title="Add task to Quadrant III">
                             <i class="fas fa-plus"></i>
                         </button>
@@ -175,7 +184,10 @@ Vue.component('eisenhower-view', {
 
                 <div class="eisenhower-quadrant q4">
                     <div class="quadrant-header">
-                        <h4>IV Not Urgent & Not Important (Waste)</h4>
+                        <h4 class="quadrant-title">
+                            <span class="quadrant-roman">IV</span>
+                            <span class="quadrant-title-text">Not Urgent & Not Important (Waste)</span>
+                        </h4>
                         <button class="matrix-add-btn" @click.stop="openCreateModal('IV')" title="Add task to Quadrant IV">
                             <i class="fas fa-plus"></i>
                         </button>

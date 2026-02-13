@@ -168,7 +168,7 @@ Vue.component('task-modal', {
                                     aria-label="Drag to reorder subtask"
                                     :disabled="!canDragSubtasks"
                                 ><i class="fas fa-grip-vertical" aria-hidden="true"></i></button>
-                                <input type="checkbox" :checked="st.done" @change="toggleSubtask(index, $event.target.checked)" title="Mark as done">
+                                <input type="checkbox" class="subtask-checkbox" :checked="st.done" @change="toggleSubtask(index, $event.target.checked)" title="Mark as done">
                                 <input
                                     type="text"
                                     :value="st.text"
