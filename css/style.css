@@ -404,7 +404,7 @@ button:hover {
   flex: 1;
   min-height: 50px;
   /* Drop zone */
-  padding: 0 0.5rem 0.5rem;
+  padding: 0.5rem 0.5rem 0.5rem;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
