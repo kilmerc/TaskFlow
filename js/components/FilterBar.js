@@ -4,17 +4,26 @@ import { PRIORITY_VALUES } from '../utils/taskFilters.js';
 Vue.component('filter-bar', {
     data() {
         return {
-            isOpen: false
+            isOpen: false,
+            dropdownId: `filter-dropdown-${Math.random().toString(36).slice(2)}`
         };
     },
     template: `
         <div class="filter-bar" v-click-outside="closeDropdown">
-            <button class="filter-btn" @click="toggleDropdown" :class="{ 'has-filters': activeFilterCount > 0 }" title="Filter Tasks">
+            <button
+                class="filter-btn"
+                @click="toggleDropdown"
+                :class="{ 'has-filters': activeFilterCount > 0 }"
+                title="Filter Tasks"
+                :aria-expanded="isOpen ? 'true' : 'false'"
+                :aria-controls="dropdownId"
+                aria-haspopup="menu"
+            >
                 <i class="fas fa-filter"></i>
                 <span v-if="activeFilterCount > 0" class="filter-badge">{{ activeFilterCount }}</span>
             </button>
             
-            <div class="filter-dropdown" v-if="isOpen">
+            <div class="filter-dropdown" v-if="isOpen" :id="dropdownId">
                 <div class="filter-header">
                     <span>Filters</span>
                     <button v-if="activeFilterCount > 0" @click="clearFilters" class="btn-text-sm" title="Clear all filters">Clear</button>
@@ -61,8 +70,13 @@ Vue.component('filter-bar', {
         },
         allTags() {
             const tags = new Set();
+            const workspaceId = store.currentWorkspaceId;
             Object.values(store.tasks).forEach(task => {
                 if (task.tags && task.tags.length) {
+                    const column = store.columns[task.columnId];
+                    if (!workspaceId || !column || column.workspaceId !== workspaceId) {
+                        return;
+                    }
                     task.tags.forEach(tag => tags.add(tag));
                 }
             });

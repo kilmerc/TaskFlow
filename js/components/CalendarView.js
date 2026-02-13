@@ -43,7 +43,11 @@ Vue.component('calendar-view', {
                             'other-month': !cell.isCurrentMonth,
                             'today': cell.isToday
                         }"
+                        tabindex="0"
+                        role="button"
+                        :aria-label="'Create task on ' + cell.dateStr"
                         @click="onCellClick(cell, $event)"
+                        @keydown="onCellKeydown(cell, $event)"
                     >
                         <div class="cal-cell-header">
                             <span class="day-number">{{ cell.dayNumber }}</span>
@@ -56,11 +60,13 @@ Vue.component('calendar-view', {
                             @change="onTaskDrop($event, cell.dateStr)"
                             class="cal-task-list"
                         >
-                            <div 
+                            <button
                                 v-for="task in cell.tasks" 
                                 :key="task.id"
                                 class="cal-task-pill"
                                 :class="'task-color-' + (task.color || 'gray')"
+                                type="button"
+                                :aria-label="'Open task ' + task.title"
                                 @click.stop="openTask(task)"
                             >
                                 <input
@@ -72,7 +78,7 @@ Vue.component('calendar-view', {
                                     title="Mark as complete"
                                 >
                                 <span class="pill-title">{{ task.title }}</span>
-                            </div>
+                            </button>
                         </draggable>
                     </div>
                 </div>
@@ -212,6 +218,15 @@ Vue.component('calendar-view', {
                 dueDate: cell.dateStr,
                 priority: null
             });
+        },
+        onCellKeydown(cell, event) {
+            if (!event || !['Enter', ' '].includes(event.key)) return;
+            const target = event.target;
+            if (target && target.closest && (target.closest('.cal-task-pill') || target.closest('.cal-task-checkbox'))) {
+                return;
+            }
+            event.preventDefault();
+            this.onCellClick(cell, event);
         },
         toggleTaskCompletion(taskId) {
             mutations.toggleTaskCompletion(taskId);

@@ -45,7 +45,7 @@ test.describe('Kanban Board', () => {
         await firstColumn.locator('.add-actions .btn-primary').click();
 
         // Open modal
-        await page.locator('.task-card').filter({ hasText: 'Task to Edit' }).click();
+        await page.locator('.task-card').filter({ hasText: 'Task to Edit' }).locator('.task-open-btn').click();
 
         // .modal-content
         await expect(page.locator('.modal-content')).toBeVisible();
@@ -81,11 +81,9 @@ test.describe('Kanban Board', () => {
 
         await expect(page.locator('.task-card')).toHaveCount(1);
 
-        page.on('dialog', async dialog => {
-            await dialog.accept();
-        });
-
         await page.locator('button[title="Delete All Data (Reset App)"]').click();
+        await expect(page.locator('.app-dialog-panel')).toBeVisible();
+        await page.locator('.app-dialog-panel .btn-danger').click();
 
         await expect(page.locator('.task-card')).toHaveCount(0);
         await expect(page.locator('.kanban-column').filter({ hasText: 'To Do' })).toBeVisible();

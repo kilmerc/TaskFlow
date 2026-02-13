@@ -1,4 +1,4 @@
-import { store, mutations } from '../store.js';
+import { MAX_COLUMN_NAME, MAX_TASK_TITLE, store, mutations } from '../store.js';
 import { PRIORITY_VALUES } from '../utils/taskFilters.js';
 import { normalizeTag } from '../utils/tagParser.js';
 import { getWorkspaceTags } from '../utils/tagAutocomplete.js';
@@ -21,6 +21,7 @@ Vue.component('task-modal', {
                             class="modal-title-input"
                             :class="{ 'title-completed': isEdit && task.isCompleted }"
                             v-model="localTitle"
+                            :maxlength="MAX_TASK_TITLE"
                             @blur="onTitleBlur"
                             @keyup.enter="$event.target.blur()"
                             placeholder="Task Title *"
@@ -30,7 +31,7 @@ Vue.component('task-modal', {
                 </header>
 
                 <div class="modal-body">
-                    <div v-if="showTitleError" class="form-error">Title is required.</div>
+                    <div v-if="showTitleError" class="form-error">{{ titleErrorMessage }}</div>
 
                     <div class="form-group">
                         <label>Column <span class="required-marker">*</span></label>
@@ -40,6 +41,7 @@ Vue.component('task-modal', {
                                 type="text"
                                 class="column-combobox-input"
                                 v-model="localColumnInput"
+                                :maxlength="MAX_COLUMN_NAME"
                                 placeholder="Select or create a column..."
                                 @focus="openColumnMenu"
                                 @input="onColumnInput"
@@ -66,7 +68,7 @@ Vue.component('task-modal', {
                                 <div class="column-combobox-empty">No matching columns</div>
                             </div>
                         </div>
-                        <div v-if="showColumnError" class="form-error">Column is required.</div>
+                        <div v-if="showColumnError" class="form-error">{{ columnErrorMessage }}</div>
                     </div>
 
                     <div class="form-group">
@@ -136,6 +138,7 @@ Vue.component('task-modal', {
                                 <button
                                     v-for="color in colors"
                                     :key="color"
+                                    type="button"
                                     class="color-dot"
                                     :class="['bg-' + color, { selected: localColor === color }]"
                                     @click="saveColor(color)"
@@ -177,7 +180,7 @@ Vue.component('task-modal', {
                                     :class="{ completed: st.done }"
                                     placeholder="Subtask..."
                                 >
-                                <button class="delete-subtask-btn" @click="deleteSubtask(index)" title="Delete Subtask"><i class="fas fa-trash-alt"></i></button>
+                                <button type="button" class="delete-subtask-btn" @click="deleteSubtask(index)" title="Delete Subtask"><i class="fas fa-trash-alt"></i></button>
                             </li>
                         </draggable>
                         <div class="add-subtask">
@@ -223,8 +226,12 @@ Vue.component('task-modal', {
             subtaskKeyMap: typeof WeakMap === 'function' ? new WeakMap() : null,
             showTitleError: false,
             showColumnError: false,
+            titleErrorMessage: 'Task title is required.',
+            columnErrorMessage: 'Column is required.',
             colors: ['gray', 'red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink'],
-            priorities: PRIORITY_VALUES
+            priorities: PRIORITY_VALUES,
+            MAX_TASK_TITLE,
+            MAX_COLUMN_NAME
         };
     },
     computed: {
@@ -306,6 +313,8 @@ Vue.component('task-modal', {
         resetFromContext() {
             this.showTitleError = false;
             this.showColumnError = false;
+            this.titleErrorMessage = 'Task title is required.';
+            this.columnErrorMessage = 'Column is required.';
             this.localTagInput = '';
             this.closeTagMenu();
             this.closeColumnMenu();
@@ -350,14 +359,20 @@ Vue.component('task-modal', {
             this.close();
         },
         onTitleBlur() {
-            const trimmed = (this.localTitle || '').trim();
+            const trimmed = (this.localTitle || '').replace(/\s+/g, ' ').trim();
+            this.localTitle = trimmed;
             if (this.isEdit && this.task) {
-                if (!trimmed) { this.localTitle = this.task.title; return; }
-                this.localTitle = trimmed;
-                if (trimmed !== this.task.title) mutations.updateTask(this.task.id, { title: trimmed });
+                if (trimmed === this.task.title) return;
+                const result = mutations.updateTask(this.task.id, { title: trimmed });
+                if (!result.ok) {
+                    this.showTitleError = true;
+                    this.titleErrorMessage = result.error.message;
+                    this.localTitle = this.task.title;
+                    return;
+                }
+                this.showTitleError = false;
                 return;
             }
-            this.localTitle = trimmed;
         },
         saveDescription() { if (this.isEdit && this.localDescription !== this.task.description) mutations.updateTask(this.task.id, { description: this.localDescription }); },
         saveDueDate() { if (this.isEdit) mutations.updateTask(this.task.id, { dueDate: this.localDueDate }); },
@@ -371,6 +386,7 @@ Vue.component('task-modal', {
             const exact = this.workspaceColumns.find(col => col.title.toLowerCase() === query);
             this.localColumnId = exact ? exact.id : null;
             this.showColumnError = false;
+            this.columnErrorMessage = 'Column is required.';
             this.openColumnMenu();
             this.activeColumnIndex = 0;
         },
@@ -392,28 +408,52 @@ Vue.component('task-modal', {
             if (this.isEdit) this.saveColumn();
         },
         resolveColumnIdForSubmit() {
-            if (this.localColumnId && store.columns[this.localColumnId]) return this.localColumnId;
+            if (this.localColumnId && store.columns[this.localColumnId]) {
+                return { ok: true, columnId: this.localColumnId };
+            }
             const title = this.localColumnInput.trim();
-            if (!title) return null;
+            if (!title) {
+                return { ok: false, error: { message: 'Column is required.' } };
+            }
             const existing = this.workspaceColumns.find(col => col.title.toLowerCase() === title.toLowerCase());
-            if (existing) return existing.id;
+            if (existing) {
+                return { ok: true, columnId: existing.id };
+            }
             const workspaceId = this.workspaceId || store.currentWorkspaceId;
-            if (!workspaceId) return null;
-            return mutations.addColumn(workspaceId, title);
+            if (!workspaceId) {
+                return { ok: false, error: { message: 'Target workspace does not exist.' } };
+            }
+
+            const result = mutations.addColumn(workspaceId, title);
+            if (!result.ok) {
+                return { ok: false, error: result.error };
+            }
+            return { ok: true, columnId: result.data.columnId };
         },
         saveColumn() {
             if (!this.isEdit || !this.task) return;
-            const columnId = this.resolveColumnIdForSubmit();
-            if (!columnId) {
+            const result = this.resolveColumnIdForSubmit();
+            if (!result.ok) {
                 this.showColumnError = true;
+                this.columnErrorMessage = result.error.message;
                 this.localColumnId = this.task.columnId;
                 this.localColumnInput = this.getColumnTitle(this.task.columnId);
                 return;
             }
             this.showColumnError = false;
+            this.columnErrorMessage = 'Column is required.';
+            const columnId = result.columnId;
             this.localColumnId = columnId;
             this.localColumnInput = this.getColumnTitle(columnId);
-            if (columnId !== this.task.columnId) mutations.updateTask(this.task.id, { columnId });
+            if (columnId !== this.task.columnId) {
+                const updateResult = mutations.updateTask(this.task.id, { columnId });
+                if (!updateResult.ok) {
+                    this.showColumnError = true;
+                    this.columnErrorMessage = updateResult.error.message;
+                    this.localColumnId = this.task.columnId;
+                    this.localColumnInput = this.getColumnTitle(this.task.columnId);
+                }
+            }
         },
         focusTagInput() {
             this.openTagMenu();
@@ -438,16 +478,24 @@ Vue.component('task-modal', {
             if (!normalized) return;
             const current = this.selectedTags;
             if (current.includes(normalized)) { this.localTagInput = ''; this.closeTagMenu(); return; }
-            if (this.isEdit) mutations.updateTask(this.task.id, { tags: [...current, normalized] });
-            else this.localTags = [...current, normalized];
+            if (this.isEdit) {
+                const result = mutations.updateTask(this.task.id, { tags: [...current, normalized] });
+                if (!result.ok) return;
+            } else {
+                this.localTags = [...current, normalized];
+            }
             this.localTagInput = '';
             this.openTagMenu();
             this.$nextTick(() => { if (this.$refs.tagInput) this.$refs.tagInput.focus(); });
         },
         removeTag(tagToRemove) {
             const nextTags = this.selectedTags.filter(tag => tag !== tagToRemove);
-            if (this.isEdit) mutations.updateTask(this.task.id, { tags: nextTags });
-            else this.localTags = nextTags;
+            if (this.isEdit) {
+                const result = mutations.updateTask(this.task.id, { tags: nextTags });
+                if (!result.ok) return;
+            } else {
+                this.localTags = nextTags;
+            }
         },
         getTagStyle(tag) {
             let hash = 0;
@@ -465,29 +513,64 @@ Vue.component('task-modal', {
         onTagBackspace() {
             if (this.localTagInput.length > 0 || !this.selectedTags.length) return;
             const nextTags = this.selectedTags.slice(0, this.selectedTags.length - 1);
-            if (this.isEdit) mutations.updateTask(this.task.id, { tags: nextTags });
-            else this.localTags = nextTags;
+            if (this.isEdit) {
+                const result = mutations.updateTask(this.task.id, { tags: nextTags });
+                if (!result.ok) return;
+            } else {
+                this.localTags = nextTags;
+            }
         },
         submitModal() {
             if (!this.isCreate) { this.close(); return; }
-            const title = (this.localTitle || '').trim();
-            const columnId = this.resolveColumnIdForSubmit();
-            this.showTitleError = !title;
-            this.showColumnError = !columnId;
-            if (!title || !columnId) return;
-            const taskId = mutations.createTask({
-                title,
-                columnId,
+            const columnResult = this.resolveColumnIdForSubmit();
+            if (!columnResult.ok) {
+                this.showColumnError = true;
+                this.columnErrorMessage = columnResult.error.message;
+                return;
+            }
+
+            this.showColumnError = false;
+            this.columnErrorMessage = 'Column is required.';
+
+            const createResult = mutations.createTask({
+                title: this.localTitle,
+                columnId: columnResult.columnId,
                 description: this.localDescription,
                 dueDate: this.localDueDate || null,
                 priority: this.localPriority || null,
                 color: this.localColor,
                 tags: this.localTags
             });
-            if (!taskId) return;
+            if (!createResult.ok) {
+                if (createResult.error.field === 'column') {
+                    this.showColumnError = true;
+                    this.columnErrorMessage = createResult.error.message;
+                } else {
+                    this.showTitleError = true;
+                    this.titleErrorMessage = createResult.error.message;
+                }
+                return;
+            }
+
+            this.showTitleError = false;
+            this.titleErrorMessage = 'Task title is required.';
             mutations.closeTaskModal();
         },
-        deleteTask() { if (this.isEdit && confirm('Are you sure you want to delete this task?')) mutations.deleteTask(this.task.id); },
+        deleteTask() {
+            if (!this.isEdit) return;
+            mutations.openDialog({
+                variant: 'confirm',
+                title: 'Delete task?',
+                message: 'This task will be permanently deleted.',
+                confirmLabel: 'Delete task',
+                cancelLabel: 'Cancel',
+                destructive: true,
+                action: {
+                    type: 'task.delete',
+                    payload: { taskId: this.task.id }
+                }
+            });
+        },
         addSubtask() { if (this.isEdit && this.newSubtaskText.trim()) { mutations.addSubtask(this.task.id, this.newSubtaskText.trim()); this.newSubtaskText = ''; } },
         toggleSubtask(index, done) { if (this.isEdit) mutations.updateSubtask(this.task.id, index, { done }); },
         updateSubtaskText(index, text) { if (this.isEdit) mutations.updateSubtask(this.task.id, index, { text }); },

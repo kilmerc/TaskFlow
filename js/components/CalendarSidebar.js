@@ -26,7 +26,6 @@ Vue.component('calendar-sidebar', {
                     :key="task.id"
                     class="task-card"
                     :class="'task-color-' + (task.color || 'gray')"
-                    @click="openTask(task)"
                 >
                     <div class="task-card-row">
                         <input
@@ -37,19 +36,26 @@ Vue.component('calendar-sidebar', {
                             @change="toggleTaskCompletion(task.id)"
                             title="Mark as complete"
                         >
-                        <div class="task-content">
-                            <span class="task-title">{{ task.title }}</span>
-                            <div class="task-meta" v-if="task.subtasks && task.subtasks.length > 0">
-                                <span class="meta-item">
-                                    <i class="fas fa-check-square"></i> 
-                                    {{ task.subtasks.filter(s => s.done).length }}/{{ task.subtasks.length }}
-                                </span>
+                        <button
+                            type="button"
+                            class="task-open-btn"
+                            :aria-label="'Open task ' + task.title"
+                            @click="openTask(task)"
+                        >
+                            <div class="task-content">
+                                <span class="task-title">{{ task.title }}</span>
+                                <div class="task-meta" v-if="task.subtasks && task.subtasks.length > 0">
+                                    <span class="meta-item">
+                                        <i class="fas fa-check-square"></i> 
+                                        {{ task.subtasks.filter(s => s.done).length }}/{{ task.subtasks.length }}
+                                    </span>
+                                </div>
                             </div>
-                        </div>
+                        </button>
                     </div>
                 </div>
                 
-                <div v-if="unscheduledTasks.length === 0" style="color: var(--text-secondary); text-align: center; font-style: italic;">
+                <div v-if="unscheduledTasks.length === 0" class="empty-state-text">
                     All tasks scheduled!
                 </div>
             </draggable>

@@ -26,7 +26,6 @@ Vue.component('eisenhower-view', {
                         v-for="task in unassignedTasks"
                         :key="task.id"
                         class="matrix-task-card"
-                        @click="openTask(task.id)"
                     >
                         <div class="matrix-task-row">
                             <input
@@ -37,12 +36,19 @@ Vue.component('eisenhower-view', {
                                 @change="toggleTaskCompletion(task.id)"
                                 title="Mark as complete"
                             >
-                            <div class="task-content">
-                                <span class="task-title">{{ task.title }}</span>
-                                <div class="task-tags" v-if="task.tags && task.tags.length">
-                                    <span v-for="tag in task.tags" :key="tag" class="tag-pill" :style="getTagStyle(tag)">{{ tag }}</span>
+                            <button
+                                type="button"
+                                class="task-open-btn"
+                                :aria-label="'Open task ' + task.title"
+                                @click="openTask(task.id)"
+                            >
+                                <div class="task-content">
+                                    <span class="task-title">{{ task.title }}</span>
+                                    <div class="task-tags" v-if="task.tags && task.tags.length">
+                                        <span v-for="tag in task.tags" :key="tag" class="tag-pill" :style="getTagStyle(tag)">{{ tag }}</span>
+                                    </div>
                                 </div>
-                            </div>
+                            </button>
                         </div>
                     </div>
 
@@ -53,28 +59,38 @@ Vue.component('eisenhower-view', {
             </aside>
 
             <section class="eisenhower-grid">
-                <div class="eisenhower-quadrant q1">
+                <div
+                    v-for="quadrant in quadrants"
+                    :key="quadrant.priority"
+                    class="eisenhower-quadrant"
+                    :class="quadrant.className"
+                >
                     <div class="quadrant-header">
                         <h4 class="quadrant-title">
-                            <span class="quadrant-roman">I</span>
-                            <span class="quadrant-title-text">Urgent & Important (Necessity)</span>
+                            <span class="quadrant-roman">{{ quadrant.priority }}</span>
+                            <span class="quadrant-title-text">{{ quadrant.label }}</span>
                         </h4>
-                        <button class="matrix-add-btn" @click.stop="openCreateModal('I')" title="Add task to Quadrant I">
+                        <button
+                            class="matrix-add-btn"
+                            type="button"
+                            @click.stop="openCreateModal(quadrant.priority)"
+                            :title="'Add task to Quadrant ' + quadrant.priority"
+                            :aria-label="'Add task to Quadrant ' + quadrant.priority"
+                        >
                             <i class="fas fa-plus"></i>
                         </button>
                     </div>
                     <draggable
                         class="eisenhower-list"
-                        :list="quadrantTasks('I')"
+                        :list="quadrantTasks(quadrant.priority)"
                         :group="dragGroup"
                         :sort="false"
-                        @change="onQuadrantDrop($event, 'I')"
+                        @change="onQuadrantDrop($event, quadrant.priority)"
                     >
                         <div
-                            v-for="task in quadrantTasks('I')"
+                            v-for="task in quadrantTasks(quadrant.priority)"
                             :key="task.id"
                             class="matrix-task-card"
-                            @click="openTask(task.id)"
                         >
                             <div class="matrix-task-row">
                                 <input
@@ -85,141 +101,19 @@ Vue.component('eisenhower-view', {
                                     @change="toggleTaskCompletion(task.id)"
                                     title="Mark as complete"
                                 >
-                                <div class="task-content">
-                                    <span class="task-title">{{ task.title }}</span>
-                                    <div class="task-tags" v-if="task.tags && task.tags.length">
-                                        <span v-for="tag in task.tags" :key="tag" class="tag-pill" :style="getTagStyle(tag)">{{ tag }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </draggable>
-                </div>
-
-                <div class="eisenhower-quadrant q2">
-                    <div class="quadrant-header">
-                        <h4 class="quadrant-title">
-                            <span class="quadrant-roman">II</span>
-                            <span class="quadrant-title-text">Not Urgent & Important (Effective)</span>
-                        </h4>
-                        <button class="matrix-add-btn" @click.stop="openCreateModal('II')" title="Add task to Quadrant II">
-                            <i class="fas fa-plus"></i>
-                        </button>
-                    </div>
-                    <draggable
-                        class="eisenhower-list"
-                        :list="quadrantTasks('II')"
-                        :group="dragGroup"
-                        :sort="false"
-                        @change="onQuadrantDrop($event, 'II')"
-                    >
-                        <div
-                            v-for="task in quadrantTasks('II')"
-                            :key="task.id"
-                            class="matrix-task-card"
-                            @click="openTask(task.id)"
-                        >
-                            <div class="matrix-task-row">
-                                <input
-                                    type="checkbox"
-                                    class="task-checkbox matrix-task-checkbox"
-                                    :checked="task.isCompleted"
-                                    @click.stop
-                                    @change="toggleTaskCompletion(task.id)"
-                                    title="Mark as complete"
+                                <button
+                                    type="button"
+                                    class="task-open-btn"
+                                    :aria-label="'Open task ' + task.title"
+                                    @click="openTask(task.id)"
                                 >
-                                <div class="task-content">
-                                    <span class="task-title">{{ task.title }}</span>
-                                    <div class="task-tags" v-if="task.tags && task.tags.length">
-                                        <span v-for="tag in task.tags" :key="tag" class="tag-pill" :style="getTagStyle(tag)">{{ tag }}</span>
+                                    <div class="task-content">
+                                        <span class="task-title">{{ task.title }}</span>
+                                        <div class="task-tags" v-if="task.tags && task.tags.length">
+                                            <span v-for="tag in task.tags" :key="tag" class="tag-pill" :style="getTagStyle(tag)">{{ tag }}</span>
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
-                        </div>
-                    </draggable>
-                </div>
-
-                <div class="eisenhower-quadrant q3">
-                    <div class="quadrant-header">
-                        <h4 class="quadrant-title">
-                            <span class="quadrant-roman">III</span>
-                            <span class="quadrant-title-text">Urgent & Not Important (Distraction)</span>
-                        </h4>
-                        <button class="matrix-add-btn" @click.stop="openCreateModal('III')" title="Add task to Quadrant III">
-                            <i class="fas fa-plus"></i>
-                        </button>
-                    </div>
-                    <draggable
-                        class="eisenhower-list"
-                        :list="quadrantTasks('III')"
-                        :group="dragGroup"
-                        :sort="false"
-                        @change="onQuadrantDrop($event, 'III')"
-                    >
-                        <div
-                            v-for="task in quadrantTasks('III')"
-                            :key="task.id"
-                            class="matrix-task-card"
-                            @click="openTask(task.id)"
-                        >
-                            <div class="matrix-task-row">
-                                <input
-                                    type="checkbox"
-                                    class="task-checkbox matrix-task-checkbox"
-                                    :checked="task.isCompleted"
-                                    @click.stop
-                                    @change="toggleTaskCompletion(task.id)"
-                                    title="Mark as complete"
-                                >
-                                <div class="task-content">
-                                    <span class="task-title">{{ task.title }}</span>
-                                    <div class="task-tags" v-if="task.tags && task.tags.length">
-                                        <span v-for="tag in task.tags" :key="tag" class="tag-pill" :style="getTagStyle(tag)">{{ tag }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </draggable>
-                </div>
-
-                <div class="eisenhower-quadrant q4">
-                    <div class="quadrant-header">
-                        <h4 class="quadrant-title">
-                            <span class="quadrant-roman">IV</span>
-                            <span class="quadrant-title-text">Not Urgent & Not Important (Waste)</span>
-                        </h4>
-                        <button class="matrix-add-btn" @click.stop="openCreateModal('IV')" title="Add task to Quadrant IV">
-                            <i class="fas fa-plus"></i>
-                        </button>
-                    </div>
-                    <draggable
-                        class="eisenhower-list"
-                        :list="quadrantTasks('IV')"
-                        :group="dragGroup"
-                        :sort="false"
-                        @change="onQuadrantDrop($event, 'IV')"
-                    >
-                        <div
-                            v-for="task in quadrantTasks('IV')"
-                            :key="task.id"
-                            class="matrix-task-card"
-                            @click="openTask(task.id)"
-                        >
-                            <div class="matrix-task-row">
-                                <input
-                                    type="checkbox"
-                                    class="task-checkbox matrix-task-checkbox"
-                                    :checked="task.isCompleted"
-                                    @click.stop
-                                    @change="toggleTaskCompletion(task.id)"
-                                    title="Mark as complete"
-                                >
-                                <div class="task-content">
-                                    <span class="task-title">{{ task.title }}</span>
-                                    <div class="task-tags" v-if="task.tags && task.tags.length">
-                                        <span v-for="tag in task.tags" :key="tag" class="tag-pill" :style="getTagStyle(tag)">{{ tag }}</span>
-                                    </div>
-                                </div>
+                                </button>
                             </div>
                         </div>
                     </draggable>
@@ -233,7 +127,13 @@ Vue.component('eisenhower-view', {
                 name: 'eisenhower',
                 pull: 'clone',
                 put: true
-            }
+            },
+            quadrants: [
+                { priority: 'I', className: 'q1', label: 'Urgent & Important (Necessity)' },
+                { priority: 'II', className: 'q2', label: 'Not Urgent & Important (Effective)' },
+                { priority: 'III', className: 'q3', label: 'Urgent & Not Important (Distraction)' },
+                { priority: 'IV', className: 'q4', label: 'Not Urgent & Not Important (Waste)' }
+            ]
         };
     },
     computed: {

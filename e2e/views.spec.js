@@ -15,7 +15,7 @@ test.describe('Views & Filtering', () => {
         await firstColumn.locator('.add-actions .btn-primary').click();
 
         // Open modal to set date
-        await page.locator('.task-card').filter({ hasText: 'Scheduled Task' }).click();
+        await page.locator('.task-card').filter({ hasText: 'Scheduled Task' }).locator('.task-open-btn').click();
 
         // input[type="date"]
         await page.locator('.modal-content input[type="date"]').fill(new Date().toISOString().split('T')[0]); // Set to today
@@ -37,7 +37,7 @@ test.describe('Views & Filtering', () => {
     test('should show tasks in eisenhower matrix', async ({ page }) => {
         // Assign priority first
         await page.locator('button[title="Kanban Board"]').click();
-        await page.locator('.task-card').filter({ hasText: 'Scheduled Task' }).click();
+        await page.locator('.task-card').filter({ hasText: 'Scheduled Task' }).locator('.task-open-btn').click();
 
         // Select priority using value 'I'
         await page.locator('.modal-content select').first().selectOption('I'); // Urgent & Important
@@ -72,5 +72,35 @@ test.describe('Views & Filtering', () => {
         // Normal Task should be hidden because filter is active
         await expect(page.locator('.task-card').filter({ hasText: 'Normal Task' })).toBeHidden();
         await expect(page.locator('.task-card').filter({ hasText: 'Scheduled Task' })).toBeVisible();
+    });
+
+    test('should scope tag filters to active workspace and clear invalid tags on switch', async ({ page }) => {
+        await page.locator('.ws-current-btn').click();
+        await page.locator('.ws-create').click();
+        await page.locator('.app-dialog-input').fill('Second Workspace');
+        await page.locator('.app-dialog-panel .btn-primary').click();
+
+        const firstColumn = page.locator('.kanban-column').first();
+        await firstColumn.locator('.quick-add-btn').click();
+        await firstColumn.locator('.quick-add-input-wrapper textarea').fill('Second task #personal');
+        await firstColumn.locator('.add-actions .btn-primary').click();
+
+        await page.locator('.ws-current-btn').click();
+        await page.locator('.ws-item-btn', { hasText: 'My Workspace' }).click();
+
+        await page.locator('.filter-btn').click();
+        await expect(page.locator('.filter-item').filter({ hasText: 'work' })).toBeVisible();
+        await expect(page.locator('.filter-item').filter({ hasText: 'personal' })).toHaveCount(0);
+        await page.locator('.filter-item').filter({ hasText: 'work' }).locator('input').check();
+        await page.locator('.filter-btn').click();
+        await expect(page.locator('.filter-badge')).toHaveText('1');
+
+        await page.locator('.ws-current-btn').click();
+        await page.locator('.ws-item-btn', { hasText: 'Second Workspace' }).click();
+
+        await expect(page.locator('.filter-badge')).toHaveCount(0);
+        await page.locator('.filter-btn').click();
+        await expect(page.locator('.filter-item').filter({ hasText: 'personal' })).toBeVisible();
+        await expect(page.locator('.filter-item').filter({ hasText: 'work' })).toHaveCount(0);
     });
 });

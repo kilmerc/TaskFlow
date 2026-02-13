@@ -8,7 +8,7 @@ Vue.component('task-card', {
         }
     },
     template: `
-        <div class="task-card" :class="[colorClass, { 'task-completed': task.isCompleted }]" @click="openTask">
+        <div class="task-card" :class="[colorClass, { 'task-completed': task.isCompleted }]">
             <div class="task-card-row">
                 <input
                     type="checkbox"
@@ -17,25 +17,32 @@ Vue.component('task-card', {
                     @click.stop="toggleCompleted"
                     title="Mark as complete"
                 >
-                <div class="task-content">
-                    <span class="task-title">{{ task.title }}</span>
-                    
-                    <div class="task-meta" v-if="hasMeta">
-                        <span v-if="task.priority" class="priority-pill" :class="priorityClass">{{ task.priority }}</span>
-                        <span v-if="task.dueDate" class="meta-item due-date" :class="{ overdue: isOverdue }">
-                            <i class="far fa-clock"></i> {{ formattedDate }}
-                        </span>
-                        <span v-if="subtaskCount > 0" class="meta-item subtasks" :class="{ completed: allSubtasksDone }">
-                            <i class="fas fa-check-square"></i> {{ completedSubtasks }}/{{ subtaskCount }}
-                        </span>
-                    </div>
+                <button
+                    type="button"
+                    class="task-open-btn"
+                    :aria-label="'Open task ' + task.title"
+                    @click="openTask"
+                >
+                    <div class="task-content">
+                        <span class="task-title">{{ task.title }}</span>
 
-                    <div class="task-tags" v-if="task.tags && task.tags.length">
-                        <span v-for="tag in task.tags" :key="tag" class="tag-pill" :style="getTagStyle(tag)">
-                            {{ tag }}
-                        </span>
+                        <div class="task-meta" v-if="hasMeta">
+                            <span v-if="task.priority" class="priority-pill" :class="priorityClass">{{ task.priority }}</span>
+                            <span v-if="task.dueDate" class="meta-item due-date" :class="{ overdue: isOverdue }">
+                                <i class="far fa-clock"></i> {{ formattedDate }}
+                            </span>
+                            <span v-if="subtaskCount > 0" class="meta-item subtasks" :class="{ completed: allSubtasksDone }">
+                                <i class="fas fa-check-square"></i> {{ completedSubtasks }}/{{ subtaskCount }}
+                            </span>
+                        </div>
+
+                        <div class="task-tags" v-if="task.tags && task.tags.length">
+                            <span v-for="tag in task.tags" :key="tag" class="tag-pill" :style="getTagStyle(tag)">
+                                {{ tag }}
+                            </span>
+                        </div>
                     </div>
-                </div>
+                </button>
             </div>
         </div>
     `,

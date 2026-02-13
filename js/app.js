@@ -12,6 +12,8 @@ import './components/TaskCard.js'; // Placeholder
 import './components/TaskModal.js'; // Placeholder
 import './components/FilterBar.js'; // Placeholder
 import './components/ThemeToggle.js'; // Placeholder
+import './components/AppDialog.js';
+import './components/AppToast.js';
 
 // Global error handler for Vue
 Vue.config.errorHandler = function (err, vm, info) {
@@ -69,11 +71,17 @@ new Vue({
             event.target.value = '';
         },
         confirmDeleteAll() {
-            if (confirm("Are you sure you want to delete ALL data? This cannot be undone.")) {
-                if (confirm("Are you REALLY sure? All workspaces and tasks will be permanently lost.")) {
-                    mutations.deleteAllData();
+            mutations.openDialog({
+                variant: 'confirm',
+                title: 'Delete all data?',
+                message: 'This will permanently remove all workspaces and tasks.',
+                confirmLabel: 'Delete all data',
+                cancelLabel: 'Cancel',
+                destructive: true,
+                action: {
+                    type: 'app.resetAll'
                 }
-            }
+            });
         }
     }
 });

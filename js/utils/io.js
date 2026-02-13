@@ -1,9 +1,27 @@
-import { store, hydrate, persist } from '../store.js';
+import { store, hydrate, persist, mutations } from '../store.js';
+
+function validateBackupData(data) {
+    if (!data || typeof data !== 'object') {
+        return { ok: false, code: 'unsupported_structure', message: 'Backup format is unsupported.' };
+    }
+
+    if (!Array.isArray(data.workspaces)) {
+        return { ok: false, code: 'missing_required_fields', message: 'Backup is missing required fields.' };
+    }
+
+    if (!data.columns || typeof data.columns !== 'object') {
+        return { ok: false, code: 'missing_required_fields', message: 'Backup is missing required fields.' };
+    }
+
+    if (!data.tasks || typeof data.tasks !== 'object') {
+        return { ok: false, code: 'missing_required_fields', message: 'Backup is missing required fields.' };
+    }
+
+    return { ok: true };
+}
 
 export function exportData() {
     try {
-        // Create a dedicated snapshot object to avoid vue-observer clutter if any
-        // JSON.stringify handles observables fine, but let's be explicit about what we save
         const snapshot = {
             appVersion: store.appVersion,
             theme: store.theme,
@@ -26,43 +44,69 @@ export function exportData() {
         document.body.appendChild(a);
         a.click();
 
-        // Cleanup
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+        mutations.pushToast({
+            variant: 'success',
+            message: 'Backup exported successfully.'
+        });
     } catch (e) {
         console.error('Export failed:', e);
-        alert('Failed to export data. See console for details.');
+        mutations.pushToast({
+            variant: 'error',
+            message: 'Export failed. Please try again.'
+        });
     }
 }
 
 export function importData(file) {
-    if (!file) return;
+    if (!file) return false;
 
     const reader = new FileReader();
     reader.onload = (e) => {
         try {
             const content = e.target.result;
-            const data = JSON.parse(content);
-
-            // Basic validation
-            if (!data.appVersion || !data.workspaces || !Array.isArray(data.workspaces)) {
-                throw new Error('Invalid TaskFlow backup file structure.');
+            let data = null;
+            try {
+                data = JSON.parse(content);
+            } catch (jsonError) {
+                mutations.pushToast({
+                    variant: 'error',
+                    message: 'Invalid backup JSON file.'
+                });
+                return;
             }
 
-            // Hydrate store with new data
+            const validation = validateBackupData(data);
+            if (!validation.ok) {
+                mutations.pushToast({
+                    variant: 'error',
+                    message: validation.message
+                });
+                return;
+            }
+
             hydrate(data);
-
-            // Persist immediately to save the imported state
             persist();
-
-            // Re-apply theme
             document.documentElement.setAttribute('data-theme', store.theme);
-
-            alert('Import successful!');
+            mutations.pushToast({
+                variant: 'success',
+                message: 'Import successful.'
+            });
         } catch (err) {
             console.error('Import failed:', err);
-            alert('Import failed: ' + err.message);
+            mutations.pushToast({
+                variant: 'error',
+                message: 'Import failed. Backup format is unsupported.'
+            });
         }
     };
+    reader.onerror = () => {
+        mutations.pushToast({
+            variant: 'error',
+            message: 'Import failed while reading the selected file.'
+        });
+    };
     reader.readAsText(file);
+    return true;
 }

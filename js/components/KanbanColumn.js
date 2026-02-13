@@ -1,4 +1,4 @@
-import { store, mutations } from '../store.js';
+import { MAX_COLUMN_NAME, store, mutations } from '../store.js';
 import { printColumn } from '../utils/print.js';
 import { hasActiveFilters, taskMatchesFilters } from '../utils/taskFilters.js';
 import { normalizeTag } from '../utils/tagParser.js';
@@ -14,25 +14,50 @@ Vue.component('kanban-column', {
     template: `
         <div class="kanban-column">
             <div class="column-header">
-                <div class="column-title" v-if="!isRenaming" @dblclick="startRenaming">
+                <button
+                    v-if="!isRenaming"
+                    type="button"
+                    class="column-title column-title-btn"
+                    @dblclick="startRenaming"
+                    @keydown.enter.prevent="startRenaming"
+                    @keydown.space.prevent="startRenaming"
+                    :aria-label="'Rename column ' + column.title"
+                >
                     {{ column.title }}
-                </div>
+                </button>
                 <input
                     v-else
                     ref="renameInput"
                     v-model="renameValue"
+                    :maxlength="MAX_COLUMN_NAME"
                     @blur="finishRenaming"
                     @keyup.enter="finishRenaming"
                     @keyup.esc="cancelRenaming"
                     class="column-title-input"
+                    aria-label="Column name"
                 >
+                <div v-if="isRenaming && renameError" class="form-error">{{ renameError }}</div>
                 <div class="column-actions">
                     <div class="dropdown" :class="{ active: isMenuOpen }" v-click-outside="closeMenu">
-                        <i class="fas fa-ellipsis-h" @click="toggleMenu" title="Column Actions"></i>
-                        <div class="dropdown-menu" v-if="isMenuOpen">
-                            <div class="menu-item" @click="startRenaming">Rename</div>
-                            <div class="menu-item" @click="printList">Print List</div>
-                            <div class="menu-item delete" @click="deleteColumn">Delete</div>
+                        <button
+                            ref="menuTrigger"
+                            type="button"
+                            class="column-menu-trigger"
+                            aria-label="Column actions"
+                            aria-haspopup="menu"
+                            :aria-expanded="isMenuOpen ? 'true' : 'false'"
+                            :aria-controls="menuId"
+                            @click="toggleMenu"
+                            @keydown.down.prevent="openMenuAndFocus(0)"
+                            @keydown.up.prevent="openMenuAndFocus(getMenuItems().length - 1)"
+                            @keydown.esc.prevent="closeMenu(true)"
+                        >
+                            <i class="fas fa-ellipsis-h" aria-hidden="true"></i>
+                        </button>
+                        <div class="dropdown-menu" v-if="isMenuOpen" :id="menuId" role="menu" @keydown="onMenuKeydown">
+                            <button class="menu-item" role="menuitem" type="button" @click="startRenaming">Rename</button>
+                            <button class="menu-item" role="menuitem" type="button" @click="printList">Print List</button>
+                            <button class="menu-item delete" role="menuitem" type="button" @click="deleteColumn">Delete</button>
                         </div>
                     </div>
                 </div>
@@ -57,9 +82,15 @@ Vue.component('kanban-column', {
                 </draggable>
 
                 <div class="quick-add-container">
-                    <div v-if="!isAddingTask" class="quick-add-btn" @click="startAddingTask" title="Add a Task">
+                    <button
+                        v-if="!isAddingTask"
+                        type="button"
+                        class="quick-add-btn"
+                        aria-label="Add a task"
+                        @click.stop="startAddingTask"
+                    >
                         <i class="fas fa-plus"></i> Add
-                    </div>
+                    </button>
                     <div v-else class="quick-add-input-wrapper" v-click-outside="finishAddingTask">
                         <textarea
                             ref="addTaskInput"
@@ -74,7 +105,10 @@ Vue.component('kanban-column', {
                             @click="refreshQuickAddTagMenu"
                             @keyup="onQuickAddKeyup"
                             rows="2"
+                            :maxlength="200"
+                            aria-label="Task title"
                         ></textarea>
+                        <div v-if="quickAddError" class="form-error">{{ quickAddError }}</div>
 
                         <div
                             v-if="isTagMenuOpen && tagMenuItems.length"
@@ -95,16 +129,16 @@ Vue.component('kanban-column', {
 
                         <div class="add-actions">
                             <button class="btn-primary" @mousedown.prevent="confirmAddTask" title="Add Card">Add Card</button>
-                            <button class="btn-text" @mousedown.prevent="cancelAddingTask" title="Cancel"><i class="fas fa-times"></i></button>
+                            <button class="btn-text" @mousedown.prevent="cancelAddingTask" aria-label="Cancel add task"><i class="fas fa-times"></i></button>
                         </div>
                     </div>
                 </div>
 
                 <div v-if="completedCount > 0" class="completed-section">
-                    <div class="completed-toggle" @click="toggleShowCompleted">
+                    <button type="button" class="completed-toggle" @click="toggleShowCompleted" :aria-expanded="showCompleted ? 'true' : 'false'">
                         <i class="fas" :class="showCompleted ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
                         <span>{{ completedCount }} completed</span>
-                    </div>
+                    </button>
                     <div v-if="showCompleted" class="completed-tasks-list">
                         <task-card
                             v-for="taskId in completedTasks"
@@ -121,9 +155,12 @@ Vue.component('kanban-column', {
             sharedStore: store,
             isRenaming: false,
             renameValue: '',
+            renameError: '',
             isMenuOpen: false,
+            menuId: `column-menu-${Math.random().toString(36).slice(2)}`,
             isAddingTask: false,
             newTaskTitle: '',
+            quickAddError: '',
             isTagMenuOpen: false,
             tagMenuItems: [],
             activeTagIndex: 0,
@@ -132,7 +169,8 @@ Vue.component('kanban-column', {
                 top: 0,
                 left: 0
             },
-            maxTagSuggestions: 8
+            maxTagSuggestions: 8,
+            MAX_COLUMN_NAME
         };
     },
     computed: {
@@ -207,6 +245,7 @@ Vue.component('kanban-column', {
         startAddingTask() {
             this.isAddingTask = true;
             this.newTaskTitle = '';
+            this.quickAddError = '';
             this.closeQuickAddTagMenu();
             this.$nextTick(() => {
                 if (this.$refs.addTaskInput) {
@@ -216,6 +255,7 @@ Vue.component('kanban-column', {
         },
         cancelAddingTask() {
             this.isAddingTask = false;
+            this.quickAddError = '';
             this.closeQuickAddTagMenu();
         },
         finishAddingTask() {
@@ -226,10 +266,12 @@ Vue.component('kanban-column', {
             }
         },
         confirmAddTask() {
-            const title = this.newTaskTitle.trim();
-            if (title) {
-                mutations.addTask(this.columnId, title);
+            const result = mutations.addTask(this.columnId, this.newTaskTitle);
+            if (!result.ok) {
+                this.quickAddError = result.error.message;
+                return;
             }
+            this.quickAddError = '';
             this.newTaskTitle = '';
             this.closeQuickAddTagMenu();
             this.$nextTick(() => {
@@ -426,13 +468,69 @@ Vue.component('kanban-column', {
             return coordinates;
         },
         toggleMenu() {
-            this.isMenuOpen = !this.isMenuOpen;
+            if (this.isMenuOpen) {
+                this.closeMenu(false);
+                return;
+            }
+            this.openMenuAndFocus(0);
         },
-        closeMenu() {
+        openMenuAndFocus(index = 0) {
+            this.isMenuOpen = true;
+            this.$nextTick(() => {
+                const items = this.getMenuItems();
+                if (!items.length) return;
+                const bounded = Math.max(0, Math.min(index, items.length - 1));
+                items[bounded].focus();
+            });
+        },
+        closeMenu(restoreTrigger = false) {
             this.isMenuOpen = false;
+            if (restoreTrigger === true) {
+                this.$nextTick(() => {
+                    if (this.$refs.menuTrigger) {
+                        this.$refs.menuTrigger.focus();
+                    }
+                });
+            }
+        },
+        getMenuItems() {
+            return Array.from(this.$el.querySelectorAll('.dropdown-menu .menu-item'));
+        },
+        onMenuKeydown(event) {
+            const items = this.getMenuItems();
+            if (!items.length) return;
+            const currentIndex = items.indexOf(document.activeElement);
+
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                const next = currentIndex < 0 ? 0 : (currentIndex + 1) % items.length;
+                items[next].focus();
+                return;
+            }
+            if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                const next = currentIndex < 0 ? items.length - 1 : (currentIndex - 1 + items.length) % items.length;
+                items[next].focus();
+                return;
+            }
+            if (event.key === 'Home') {
+                event.preventDefault();
+                items[0].focus();
+                return;
+            }
+            if (event.key === 'End') {
+                event.preventDefault();
+                items[items.length - 1].focus();
+                return;
+            }
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                this.closeMenu(true);
+            }
         },
         startRenaming() {
             this.isMenuOpen = false;
+            this.renameError = '';
             this.renameValue = this.column.title;
             this.isRenaming = true;
             this.$nextTick(() => {
@@ -442,14 +540,17 @@ Vue.component('kanban-column', {
         },
         finishRenaming() {
             if (!this.isRenaming) return;
-            const newVal = this.renameValue.trim();
-            if (newVal && newVal !== this.column.title) {
-                mutations.updateColumn(this.columnId, newVal);
+            const result = mutations.updateColumn(this.columnId, this.renameValue);
+            if (!result.ok) {
+                this.renameError = result.error.message;
+                return;
             }
+            this.renameError = '';
             this.isRenaming = false;
         },
         cancelRenaming() {
             this.isRenaming = false;
+            this.renameError = '';
         },
         printList() {
             this.isMenuOpen = false;
@@ -463,12 +564,22 @@ Vue.component('kanban-column', {
         deleteColumn() {
             this.isMenuOpen = false;
             const taskCount = (this.sharedStore.columnTaskOrder[this.columnId] || []).length;
-            if (taskCount > 0) {
-                if (!confirm(`This column has ${taskCount} tasks. Delete it and all tasks?`)) {
-                    return;
+            const message = taskCount > 0
+                ? `This column has ${taskCount} tasks. Delete it and all tasks?`
+                : 'Delete this column?';
+
+            mutations.openDialog({
+                variant: 'confirm',
+                title: 'Delete column?',
+                message,
+                confirmLabel: 'Delete column',
+                cancelLabel: 'Cancel',
+                destructive: true,
+                action: {
+                    type: 'column.delete',
+                    payload: { columnId: this.columnId }
                 }
-            }
-            mutations.deleteColumn(this.columnId);
+            });
         },
         onTaskDrop() {
             // Most logic handled by v-model setter and watcher.

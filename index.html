@@ -24,8 +24,7 @@
 
 <body>
     <div id="app" v-cloak>
-        <div v-if="store.storageWarning"
-            style="background: #fee2e2; color: #b91c1c; padding: 0.75rem; text-align: center; font-weight: bold; border-bottom: 1px solid #ef4444;">
+        <div v-if="store.storageWarning" class="app-notice app-notice-warning" role="status" aria-live="polite">
             <i class="fas fa-exclamation-triangle"></i> {{ store.storageWarning }}
         </div>
         <header>
@@ -34,16 +33,19 @@
                 <h2 class="app-title">TaskFlow</h2>
                 <workspace-switcher v-if="currentWorkspace"></workspace-switcher>
 
-                <div class="view-toggle" style="display: flex; gap: 0.5rem; margin-left: 1rem;">
+                <div class="view-toggle">
                     <button :class="{ active: currentView === 'kanban' }" @click="currentView = 'kanban'"
+                        aria-label="Switch to Kanban Board"
                         title="Kanban Board">
                         <i class="fas fa-columns"></i>
                     </button>
                     <button :class="{ active: currentView === 'calendar' }" @click="currentView = 'calendar'"
+                        aria-label="Switch to Calendar View"
                         title="Calendar View">
                         <i class="fas fa-calendar-alt"></i>
                     </button>
                     <button :class="{ active: currentView === 'eisenhower' }" @click="currentView = 'eisenhower'"
+                        aria-label="Switch to Eisenhower Matrix View"
                         title="Eisenhower Matrix View">
                         <i class="fas fa-table-cells"></i>
                     </button>
@@ -52,20 +54,19 @@
 
             <div class="header-actions">
                 <filter-bar></filter-bar>
-                <button @click="confirmDeleteAll" title="Delete All Data (Reset App)" class="icon-btn delete-btn"
-                    style="color: #ef4444;">
+                <button @click="confirmDeleteAll" title="Delete All Data (Reset App)" aria-label="Delete all data" class="icon-btn delete-btn">
                     <i class="fas fa-trash-alt"></i>
                 </button>
-                <div style="display: flex; gap: 0.5rem; margin-right: 1rem;">
-                    <button @click="downloadBackup" title="Export Data" class="icon-btn">
+                <div class="header-icon-group">
+                    <button @click="downloadBackup" title="Export Data" aria-label="Export data" class="icon-btn">
                         <i class="fas fa-download"></i>
                     </button>
-                    <button @click="triggerImport" title="Import Data" class="icon-btn">
+                    <button @click="triggerImport" title="Import Data" aria-label="Import data" class="icon-btn">
                         <i class="fas fa-upload"></i>
                     </button>
                     <input type="file" ref="fileInput" @change="handleImport" accept=".json" style="display: none;">
                 </div>
-                <button @click="toggleTheme" title="Toggle Theme">
+                <button @click="toggleTheme" title="Toggle Theme" aria-label="Toggle theme">
                     <i class="fas" :class="appTheme === 'dark' ? 'fa-sun' : 'fa-moon'"></i>
                 </button>
             </div>
@@ -81,13 +82,14 @@
             <eisenhower-view v-else-if="currentView === 'eisenhower' && currentWorkspace"
                 :workspace="currentWorkspace"></eisenhower-view>
 
-            <div v-else-if="!currentWorkspace"
-                style="text-align: center; margin-top: 5rem; color: var(--text-secondary);">
+            <div v-else-if="!currentWorkspace" class="empty-workspace-state">
                 No workspace selected. Please create one.
             </div>
         </main>
 
         <task-modal></task-modal>
+        <app-dialog></app-dialog>
+        <app-toast></app-toast>
     </div>
 
     <!-- Dependency Check -->

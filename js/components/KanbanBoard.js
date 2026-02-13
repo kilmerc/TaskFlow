@@ -1,4 +1,4 @@
-import { store, mutations } from '../store.js';
+import { MAX_COLUMN_NAME, store, mutations } from '../store.js';
 
 Vue.component('kanban-board', {
     props: {
@@ -25,20 +25,29 @@ Vue.component('kanban-board', {
             </draggable>
             
             <div class="add-column-container">
-                <div v-if="!isAdding" class="add-column-btn" @click="startAdding" title="Add a new column">
+                <button
+                    v-if="!isAdding"
+                    type="button"
+                    class="add-column-btn"
+                    aria-label="Add a new column"
+                    @click.stop="startAdding"
+                >
                     <i class="fas fa-plus"></i> Add Column
-                </div>
+                </button>
                 <div v-else class="add-column-input-wrapper" v-click-outside="cancelAdding">
                     <input 
                         ref="addInput"
                         v-model="newColumnTitle" 
                         placeholder="Column title..."
+                        :maxlength="MAX_COLUMN_NAME"
+                        aria-label="Column title"
                         @keyup.enter="confirmAdd"
                         @keyup.esc="cancelAdding"
                     >
+                    <div v-if="addError" class="form-error">{{ addError }}</div>
                     <div class="add-actions">
                         <button class="btn-primary" @click="confirmAdd" title="Add Column">Add</button>
-                        <button class="btn-text" @click="cancelAdding" title="Cancel"><i class="fas fa-times"></i></button>
+                        <button class="btn-text" @click="cancelAdding" aria-label="Cancel add column"><i class="fas fa-times"></i></button>
                     </div>
                 </div>
             </div>
@@ -47,7 +56,9 @@ Vue.component('kanban-board', {
     data() {
         return {
             isAdding: false,
-            newColumnTitle: ''
+            newColumnTitle: '',
+            addError: '',
+            MAX_COLUMN_NAME
         };
     },
     computed: {
@@ -75,18 +86,22 @@ Vue.component('kanban-board', {
         startAdding() {
             this.isAdding = true;
             this.newColumnTitle = '';
+            this.addError = '';
             this.$nextTick(() => {
                 this.$refs.addInput.focus();
             });
         },
         cancelAdding() {
             this.isAdding = false;
+            this.addError = '';
         },
         confirmAdd() {
-            const title = this.newColumnTitle.trim();
-            if (title) {
-                mutations.addColumn(this.workspace.id, title);
+            const result = mutations.addColumn(this.workspace.id, this.newColumnTitle);
+            if (!result.ok) {
+                this.addError = result.error.message;
+                return;
             }
+            this.addError = '';
             this.isAdding = false;
         }
     },
