@@ -46,6 +46,9 @@ new Vue({
         console.log('App Initializing...');
         hydrate();
     },
+    mounted() {
+        document.getElementById('app')?.removeAttribute('v-cloak');
+    },
     methods: {
         toggleTheme() {
             this.store.theme = this.store.theme === 'dark' ? 'light' : 'dark';

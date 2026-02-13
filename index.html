@@ -12,12 +12,18 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vuedraggable@2.24.3/dist/vuedraggable.umd.min.js"></script>
 
+    <style>
+        [v-cloak] {
+            display: none !important;
+        }
+    </style>
+
     <link rel="icon" type="image/png" href="img/favicon.png">
     <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
-    <div id="app">
+    <div id="app" v-cloak>
         <div v-if="store.storageWarning"
             style="background: #fee2e2; color: #b91c1c; padding: 0.75rem; text-align: center; font-weight: bold; border-bottom: 1px solid #ef4444;">
             <i class="fas fa-exclamation-triangle"></i> {{ store.storageWarning }}
@@ -96,6 +102,7 @@
 
             const appDiv = document.getElementById('app');
             if (appDiv) {
+                appDiv.removeAttribute('v-cloak');
                 appDiv.innerHTML = `
                     <div style="padding: 2rem; color: red; background: #fee2e2; border: 1px solid red;">
                         <h2>Critical Error</h2>
