@@ -45,12 +45,14 @@ taskflow/
 │   │   ├── TaskModal.js
 │   │   ├── CalendarView.js
 │   │   ├── CalendarSidebar.js
+│   │   ├── EisenhowerView.js
 │   │   ├── WorkspaceSwitcher.js
 │   │   ├── FilterBar.js
 │   │   └── ThemeToggle.js
 │   └── utils/
 │       ├── id.js       # ID generation (nanoid-style or UUID v4 lite)
 │       ├── tagParser.js # Inline #tag extraction from task titles
+│       ├── taskFilters.js # Shared tag+priority filtering utilities
 │       ├── print.js    # Column print-list logic
 │       └── io.js       # JSON export / import helpers
 └── assets/
@@ -104,14 +106,17 @@ Instead of Vuex (which would add another CDN dependency), state is managed via a
 ```js
 // store.js
 const store = Vue.observable({
-  appVersion: '1.0',
+  appVersion: '1.1',
   theme: 'dark',
   currentWorkspaceId: null,
   workspaces: [],
   columns: {},
   tasks: {},
   columnTaskOrder: {},
-  activeFilter: null, // tag string or null
+  activeFilters: {
+    tags: [],
+    priorities: [], // I | II | III | IV
+  },
 });
 ```
 
@@ -157,8 +162,8 @@ All components are registered globally via `Vue.component()` so they can be refe
 App (root instance)
 ├── AppHeader
 │   ├── WorkspaceSwitcher        ← dropdown / tab bar
-│   ├── ViewToggle               ← Kanban | Calendar
-│   ├── FilterBar                ← tag filter dropdown
+│   ├── ViewToggle               ← Kanban | Calendar | Eisenhower
+│   ├── FilterBar                ← tag + priority multi-select
 │   ├── ThemeToggle              ← dark/light switch
 │   └── SettingsMenu             ← export, import, about
 │
@@ -177,11 +182,20 @@ App (root instance)
 │       └── UnscheduledTaskList
 │           └── TaskCard (v-for) ← draggable into calendar
 │
+├── EisenhowerView               ← shown when view === 'eisenhower'
+│   ├── UnassignedSidebar        ← tasks with priority = null
+│   └── Quadrants
+│       ├── I Urgent & Important (Necessity)
+│       ├── II Not Urgent & Important (Effective)
+│       ├── III Urgent & Not Important (Distraction)
+│       └── IV Not Urgent & Not Important (Waste)
+│
 └── TaskModal                    ← teleported / appended to body
     ├── TitleEditor
     ├── DescriptionEditor
     ├── SubtaskChecklist
     ├── DueDatePicker
+    ├── PriorityPicker
     ├── ColorSelector
     └── DeleteButton
 ```
@@ -358,8 +372,19 @@ The JS flow: clone the target column's task list into a print-ready container, t
 
 ```js
 function exportData() {
+  const snapshot = {
+    appVersion: store.appVersion,
+    theme: store.theme,
+    currentWorkspaceId: store.currentWorkspaceId,
+    workspaces: store.workspaces,
+    columns: store.columns,
+    tasks: store.tasks,
+    columnTaskOrder: store.columnTaskOrder,
+    activeFilters: store.activeFilters
+  };
+
   const blob = new Blob(
-    [JSON.stringify(store.getSnapshot(), null, 2)],
+    [JSON.stringify(snapshot, null, 2)],
     { type: 'application/json' }
   );
   const url = URL.createObjectURL(blob);
@@ -400,6 +425,9 @@ On import, the app validates:
 - `workspaces` is a non-empty array
 - All `columnId` references in tasks point to existing columns
 - All `columnTaskOrder` entries reference existing tasks
+- `activeFilters` shape if present (`{ tags: string[], priorities: string[] }`)
+- Backward compatibility: if legacy `activeFilter` is present, map it to `activeFilters.tags`
+- Task `priority` values normalized to `null | I | II | III | IV`
 
 Invalid references are silently dropped with a console warning rather than blocking the entire import.
 

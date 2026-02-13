@@ -1,4 +1,5 @@
 import { store, mutations } from '../store.js';
+import { taskMatchesFilters } from '../utils/taskFilters.js';
 
 Vue.component('calendar-sidebar', {
     props: {
@@ -46,6 +47,9 @@ Vue.component('calendar-sidebar', {
         store() {
             return store;
         },
+        activeFilters() {
+            return this.store.activeFilters || { tags: [], priorities: [] };
+        },
         unscheduledTasks() {
             // Return tasks in the active workspace where dueDate is null.
             const allTasks = Object.values(this.store.tasks);
@@ -58,11 +62,7 @@ Vue.component('calendar-sidebar', {
                     return false;
                 }
 
-                if (!this.store.activeFilter || this.store.activeFilter.length === 0) {
-                    return true;
-                }
-
-                return t.tags && t.tags.some(tag => this.store.activeFilter.includes(tag));
+                return taskMatchesFilters(t, this.activeFilters);
             });
         }
     },

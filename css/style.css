@@ -503,11 +503,75 @@ button:hover {
   gap: 0.25rem;
 }
 
+.task-priority-row {
+  margin-bottom: 0.5rem;
+}
+
 .tag-pill {
   font-size: 0.7rem;
   padding: 0.1rem 0.4rem;
   border-radius: 999px;
   font-weight: 500;
+}
+
+.priority-pill {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-weight: 700;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+}
+
+.priority-i {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-color: #93c5fd;
+}
+
+.priority-ii {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #86efac;
+}
+
+.priority-iii {
+  background: #fef9c3;
+  color: #854d0e;
+  border-color: #fde047;
+}
+
+.priority-iv {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+
+[data-theme="dark"] .priority-i {
+  background: #1e3a8a;
+  color: #dbeafe;
+  border-color: #3b82f6;
+}
+
+[data-theme="dark"] .priority-ii {
+  background: #14532d;
+  color: #dcfce7;
+  border-color: #22c55e;
+}
+
+[data-theme="dark"] .priority-iii {
+  background: #713f12;
+  color: #fef9c3;
+  border-color: #facc15;
+}
+
+[data-theme="dark"] .priority-iv {
+  background: #7f1d1d;
+  color: #fecaca;
+  border-color: #ef4444;
 }
 
 /* --- Quick Add --- */
@@ -559,6 +623,10 @@ button:hover {
   pointer-events: none;
 }
 
+.quick-add-input-wrapper {
+  position: relative;
+}
+
 .quick-add-input-wrapper textarea {
   width: 100%;
   border: none;
@@ -570,6 +638,39 @@ button:hover {
   background: transparent;
   color: var(--text-primary);
   margin-bottom: 0.5rem;
+}
+
+.quick-add-tag-menu {
+  position: absolute;
+  min-width: 220px;
+  max-width: 260px;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--card-shadow);
+  z-index: 40;
+}
+
+.quick-add-tag-item {
+  padding: 0.45rem 0.65rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.quick-add-tag-item:hover,
+.quick-add-tag-item.active {
+  background: var(--bg-tertiary);
+}
+
+.quick-add-tag-item.is-create {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+[data-theme="dark"] .quick-add-tag-item.is-create {
+  color: #93c5fd;
 }
 
 /* --- Task Colors (Left Border) --- */
@@ -797,6 +898,116 @@ input[type="date"] {
   font-family: inherit;
   width: 100%;
   outline: none;
+}
+
+select {
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: inherit;
+  width: 100%;
+  outline: none;
+}
+
+.tag-combobox {
+  position: relative;
+}
+
+.tag-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  min-height: 42px;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  cursor: text;
+}
+
+.tag-chip-list:focus-within {
+  border-color: var(--task-color-blue);
+  background: var(--bg-primary);
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+.tag-chip-remove {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 0;
+  min-height: 0;
+  line-height: 1;
+  font-size: 0.72rem;
+}
+
+.tag-chip-remove:hover {
+  color: var(--text-primary);
+}
+
+.tag-combobox-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.9rem;
+  min-width: 130px;
+  flex: 1 1 130px;
+}
+
+.tag-combobox-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 0.35rem);
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--card-shadow);
+  z-index: 60;
+}
+
+.tag-combobox-item {
+  padding: 0.5rem 0.65rem;
+  font-size: 0.86rem;
+  cursor: pointer;
+}
+
+.tag-combobox-item:hover,
+.tag-combobox-item.active {
+  background: var(--bg-tertiary);
+}
+
+.tag-combobox-item.is-create {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+[data-theme="dark"] .tag-combobox-item.is-create {
+  color: #93c5fd;
+}
+
+.tag-combobox-empty {
+  padding: 0.6rem 0.7rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
 }
 
 /* Color Picker */
@@ -1391,6 +1602,105 @@ input[type="date"] {
   border-left-width: 4px;
 }
 
+/* --- Eisenhower Matrix --- */
+.eisenhower-layout {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+}
+
+.eisenhower-sidebar {
+  width: 280px;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+}
+
+.eisenhower-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  overflow: auto;
+}
+
+.eisenhower-quadrant {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+}
+
+.quadrant-header {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.quadrant-header h4 {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.eisenhower-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.matrix-task-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem;
+  box-shadow: var(--card-shadow);
+  cursor: grab;
+}
+
+.matrix-task-card .task-tags {
+  margin-top: 0.35rem;
+}
+
+.matrix-task-card .tag-pill {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.matrix-task-card:active {
+  cursor: grabbing;
+}
+
+.matrix-empty {
+  color: var(--text-secondary);
+  text-align: center;
+  font-style: italic;
+  padding: 0.5rem;
+}
+
+.q1 {
+  border-top: 4px solid #3b82f6;
+}
+
+.q2 {
+  border-top: 4px solid #22c55e;
+}
+
+.q3 {
+  border-top: 4px solid #eab308;
+}
+
+.q4 {
+  border-top: 4px solid #ef4444;
+}
+
 
 /* --- Responsive Design --- */
 
@@ -1462,6 +1772,17 @@ input[type="date"] {
     padding: 1rem;
   }
 
+  .quick-add-tag-menu {
+    left: 0 !important;
+    right: 0;
+    max-width: none;
+    width: 100%;
+  }
+
+  .tag-combobox-menu {
+    max-height: 180px;
+  }
+
   /* Ensure touch targets are large enough */
   button,
   .icon-btn,
@@ -1504,6 +1825,22 @@ input[type="date"] {
   .cal-day-header {
     display: none;
     /* Hide M T W T F S headers in list view */
+  }
+
+  .eisenhower-layout {
+    flex-direction: column;
+  }
+
+  .eisenhower-sidebar {
+    width: 100%;
+    max-height: 180px;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .eisenhower-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(4, minmax(220px, auto));
   }
 }
 
@@ -1667,7 +2004,7 @@ input[type="date"] {
   position: absolute;
   top: 110%;
   right: 0;
-  width: 260px;
+  width: 280px;
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
@@ -1676,6 +2013,23 @@ input[type="date"] {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+.filter-section {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.filter-section:last-child {
+  border-bottom: none;
+}
+
+.filter-section-title {
+  padding: 0.6rem 1rem 0.2rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
 }
 
 .filter-header {
@@ -1690,7 +2044,7 @@ input[type="date"] {
 }
 
 .filter-list {
-  max-height: 300px;
+  max-height: 180px;
   overflow-y: auto;
   padding: 0.5rem 0;
 }
@@ -1717,6 +2071,11 @@ input[type="date"] {
 
 .tag-text {
   font-size: 0.9rem;
+}
+
+.priority-filter-pill {
+  min-width: 1.5rem;
+  text-align: center;
 }
 
 .empty-filters {

@@ -7,6 +7,7 @@ import './components/KanbanBoard.js';
 import './components/KanbanColumn.js';
 import './components/CalendarView.js'; // Placeholder
 import './components/CalendarSidebar.js'; // Placeholder
+import './components/EisenhowerView.js';
 import './components/TaskCard.js'; // Placeholder
 import './components/TaskModal.js'; // Placeholder
 import './components/FilterBar.js'; // Placeholder

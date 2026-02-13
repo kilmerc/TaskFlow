@@ -1,4 +1,5 @@
 import { store, mutations } from '../store.js';
+import { taskMatchesFilters } from '../utils/taskFilters.js';
 
 Vue.component('calendar-view', {
     props: {
@@ -80,6 +81,9 @@ Vue.component('calendar-view', {
         store() {
             return store;
         },
+        activeFilters() {
+            return this.store.activeFilters || { tags: [], priorities: [] };
+        },
         currentMonthYear() {
             return this.currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
         },
@@ -98,12 +102,7 @@ Vue.component('calendar-view', {
                     return;
                 }
 
-                // Add filter logic here if activeFilter is present
-                const filters = this.store.activeFilter || [];
-                if (filters.length > 0) {
-                    const hasMatch = task.tags && task.tags.some(tag => filters.includes(tag));
-                    if (!hasMatch) return;
-                }
+                if (!taskMatchesFilters(task, this.activeFilters)) return;
 
                 if (!map[task.dueDate]) {
                     map[task.dueDate] = [];

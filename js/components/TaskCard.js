@@ -19,6 +19,10 @@ Vue.component('task-card', {
                 >
                 <div class="task-content">
                     <span class="task-title">{{ task.title }}</span>
+
+                    <div class="task-priority-row" v-if="task.priority">
+                        <span class="priority-pill" :class="priorityClass">{{ task.priority }}</span>
+                    </div>
                     
                     <div class="task-meta" v-if="hasMeta">
                         <span v-if="task.dueDate" class="meta-item due-date" :class="{ overdue: isOverdue }">
@@ -44,6 +48,10 @@ Vue.component('task-card', {
         },
         colorClass() {
             return `task-color-${this.task.color || 'gray'}`;
+        },
+        priorityClass() {
+            if (!this.task.priority) return '';
+            return `priority-${String(this.task.priority).toLowerCase()}`;
         },
         hasMeta() {
             return this.task.dueDate || (this.task.subtasks && this.task.subtasks.length > 0);

@@ -12,7 +12,7 @@
 
 ## **1\. Executive Summary**
 
-The goal is to build a lightweight, "no-build" personal task management application. It serves as a centralized hub for organizing tasks across different life areas (Workspaces). The app features a dual-view interface (Kanban Board and Calendar), inline tag creation, sub-task checklists, and robust local data persistence with JSON export capabilities. The design aesthetic is clean, modern, and supports both Dark and Light modes.
+The goal is to build a lightweight, "no-build" personal task management application. It serves as a centralized hub for organizing tasks across different life areas (Workspaces). The app features a three-view interface (Kanban Board, Calendar, and Eisenhower Matrix), inline tag creation, sub-task checklists, and robust local data persistence with JSON export capabilities. The design aesthetic is clean, modern, and supports both Dark and Light modes.
 
 ## **2\. Technical Constraints & Architecture**
 
@@ -33,7 +33,7 @@ The goal is to build a lightweight, "no-build" personal task management applicat
 * **Concept:** Top-level containers (e.g., "Personal", "Work", "Hobby Project").  
 * **Functionality:**  
   * User can create, rename, and delete workspaces.  
-  * Switching workspaces completely swaps the Kanban/Calendar views.  
+  * Switching workspaces completely swaps the Kanban/Calendar/Eisenhower views.  
   * Data is isolated per workspace.
 
 ### **3.2. View 1: Kanban Board**
@@ -66,7 +66,22 @@ The goal is to build a lightweight, "no-build" personal task management applicat
     * Colors match the task's assigned color.  
 * **Sync:** Moving a task here updates the Kanban view immediately.
 
-### **3.4. Task Details (Modal)**
+### **3.4. View 3: Eisenhower Matrix**
+
+* **Layout:**  
+  * **Left Sidebar:** "Unassigned Tasks" (tasks with `priority = null`).  
+  * **Main Area:** 2x2 matrix quadrants:
+    * I Urgent & Important (Necessity)
+    * II Not Urgent & Important (Effective)
+    * III Urgent & Not Important (Distraction)
+    * IV Not Urgent & Not Important (Waste)
+* **Functionality:**  
+  * Drag task from Unassigned to a quadrant to set `task.priority` to I/II/III/IV.
+  * Drag between quadrants to reassign priority.
+  * Drag from a quadrant back to Unassigned to clear priority (`null`).
+* **Sync:** Priority changes are reflected in Kanban cards and persisted.
+
+### **3.5. Task Details (Modal)**
 
 Clicking a task card opens a modal with:
 
@@ -79,20 +94,24 @@ Clicking a task card opens a modal with:
   * Delete subtask line.  
   * *Note:* Subtasks are for tracking only; they do not have their own dates/tags.  
 * **Due Date:** Date picker input.  
+* **Priority:** Select control with options Unassigned, I, II, III, IV.  
 * **Color Coding:**  
   * Selector for 8 preset colors.  
   * Colors must be theme-aware (see UI/UX section).  
 * **Actions:** Delete Task, Close Modal.
 
-### **3.5. Filtering**
+### **3.6. Filtering**
 
-* **Global Filter Bar:** Input/Dropdown to select a Tag.  
+* **Global Filter Bar:** Multi-select filters for Tags and Priorities.  
 * **Behavior:**  
-  * When a tag is selected (e.g., "Design"), only tasks containing that tag remain visible.  
+  * Tag filters are OR'ed with each other.
+  * Priority filters are OR'ed with each other.
+  * Tag and Priority groups are AND'ed together.
+  * When filters are active, matching tasks remain visible across Kanban, Calendar, and Eisenhower views.  
   * Columns containing 0 matching tasks **remain visible** (do not hide empty columns).  
   * "Clear Filter" button restores all tasks.
 
-### **3.6. Printing**
+### **3.7. Printing**
 
 * **Trigger:** "Three-dots" menu on a Column Header \-\> "Print List".  
 * **Output:**  
@@ -101,7 +120,7 @@ Clicking a task card opens a modal with:
   * **Format:** Title of Column at top. List of tasks with physical checkboxes \[ \] for paper ticking.  
   * Hides all other UI elements (Sidebar, other columns, buttons).
 
-### **3.7. Data Management**
+### **3.8. Data Management**
 
 * **Auto-Save:** Every action triggers a save to localStorage.  
 * **Backup:**  
@@ -140,7 +159,7 @@ Clicking a task card opens a modal with:
 The application state should resemble this structure:
 
 {  
-  "appVersion": "1.0",  
+  "appVersion": "1.1",  
   "theme": "dark",  
   "currentWorkspaceId": "ws\_1",  
   "workspaces": \[  
@@ -162,6 +181,7 @@ The application state should resemble this structure:
       "title": "Buy Groceries",  
       "description": "Milk, Eggs, Bread",  
       "tags": \["personal", "urgent"\],  
+      "priority": "II",  
       "color": "blue", // references a CSS variable index  
       "dueDate": "2023-11-01",  
       "isCompleted": false,  
@@ -173,6 +193,10 @@ The application state should resemble this structure:
   },  
   "columnTaskOrder": {  
      "col\_1": \["task\_abc", "task\_xyz"\] // Maintain sort order in column  
+  },
+  "activeFilters": {
+     "tags": \["urgent"\],
+     "priorities": \["I", "II"\]
   }  
 }
 

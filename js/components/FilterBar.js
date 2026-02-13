@@ -1,4 +1,5 @@
 import { store, mutations } from '../store.js';
+import { PRIORITY_VALUES } from '../utils/taskFilters.js';
 
 Vue.component('filter-bar', {
     data() {
@@ -15,25 +16,48 @@ Vue.component('filter-bar', {
             
             <div class="filter-dropdown" v-if="isOpen">
                 <div class="filter-header">
-                    <span>Filter by Tag</span>
+                    <span>Filters</span>
                     <button v-if="activeFilterCount > 0" @click="clearFilters" class="btn-text-sm" title="Clear all filters">Clear</button>
                 </div>
-                <div class="filter-list">
-                    <label v-for="tag in allTags" :key="tag" class="filter-item">
-                        <input type="checkbox" :checked="isTagActive(tag)" @change="toggleTag(tag)">
-                        <span class="tag-text">#{{ tag }}</span>
-                    </label>
-                    <div v-if="allTags.length === 0" class="empty-filters">No tags found</div>
+
+                <div class="filter-section">
+                    <div class="filter-section-title">Priority</div>
+                    <div class="filter-list">
+                        <label v-for="priority in allPriorities" :key="priority" class="filter-item">
+                            <input type="checkbox" :checked="isPriorityActive(priority)" @change="togglePriority(priority)">
+                            <span class="priority-filter-pill" :class="'priority-' + priority.toLowerCase()">{{ priority }}</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <div class="filter-section-title">Tags</div>
+                    <div class="filter-list">
+                        <label v-for="tag in allTags" :key="tag" class="filter-item">
+                            <input type="checkbox" :checked="isTagActive(tag)" @change="toggleTag(tag)">
+                            <span class="tag-text">#{{ tag }}</span>
+                        </label>
+                        <div v-if="allTags.length === 0" class="empty-filters">No tags found</div>
+                    </div>
                 </div>
             </div>
         </div>
     `,
     computed: {
-        activeFilter() {
-            return store.activeFilter || [];
+        activeFilters() {
+            return store.activeFilters || { tags: [], priorities: [] };
+        },
+        activeTagFilters() {
+            return this.activeFilters.tags || [];
+        },
+        activePriorityFilters() {
+            return this.activeFilters.priorities || [];
         },
         activeFilterCount() {
-            return this.activeFilter.length;
+            return this.activeTagFilters.length + this.activePriorityFilters.length;
+        },
+        allPriorities() {
+            return PRIORITY_VALUES;
         },
         allTags() {
             const tags = new Set();
@@ -53,10 +77,16 @@ Vue.component('filter-bar', {
             this.isOpen = false;
         },
         toggleTag(tag) {
-            mutations.toggleFilter(tag);
+            mutations.toggleTagFilter(tag);
+        },
+        togglePriority(priority) {
+            mutations.togglePriorityFilter(priority);
         },
         isTagActive(tag) {
-            return this.activeFilter.includes(tag);
+            return this.activeTagFilters.includes(tag);
+        },
+        isPriorityActive(priority) {
+            return this.activePriorityFilters.includes(priority);
         },
         clearFilters() {
             mutations.clearFilters();

@@ -1,4 +1,4 @@
-import { parseTagsFromTitle } from '../../js/utils/tagParser.js';
+import { parseTagsFromTitle, normalizeTag, normalizeTagList } from '../../js/utils/tagParser.js';
 
 const expect = chai.expect;
 
@@ -36,5 +36,14 @@ describe('tagParser', () => {
         const result = parseTagsFromTitle('');
         expect(result.title).to.equal('');
         expect(result.tags).to.be.empty;
+    });
+
+    it('should normalize a raw tag', () => {
+        expect(normalizeTag('  #Type Meeting!!  ')).to.equal('type-meeting');
+    });
+
+    it('should normalize and dedupe a tag list', () => {
+        const normalized = normalizeTagList([' #Team Ops ', 'team-ops', 'TEAM_ops', '']);
+        expect(normalized).to.have.members(['team-ops', 'team_ops']);
     });
 });

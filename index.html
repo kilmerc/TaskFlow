@@ -37,6 +37,10 @@
                         title="Calendar View">
                         <i class="fas fa-calendar-alt"></i>
                     </button>
+                    <button :class="{ active: currentView === 'eisenhower' }" @click="currentView = 'eisenhower'"
+                        title="Eisenhower Matrix View">
+                        <i class="fas fa-table-cells"></i>
+                    </button>
                 </div>
             </div>
 
@@ -67,6 +71,9 @@
 
             <calendar-view v-else-if="currentView === 'calendar' && currentWorkspace"
                 :workspace="currentWorkspace"></calendar-view>
+
+            <eisenhower-view v-else-if="currentView === 'eisenhower' && currentWorkspace"
+                :workspace="currentWorkspace"></eisenhower-view>
 
             <div v-else-if="!currentWorkspace"
                 style="text-align: center; margin-top: 5rem; color: var(--text-secondary);">

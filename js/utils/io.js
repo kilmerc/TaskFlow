@@ -12,7 +12,7 @@ export function exportData() {
             columns: store.columns,
             tasks: store.tasks,
             columnTaskOrder: store.columnTaskOrder,
-            activeFilter: store.activeFilter
+            activeFilters: store.activeFilters
         };
 
         const json = JSON.stringify(snapshot, null, 2);

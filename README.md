@@ -1,12 +1,14 @@
 # TaskFlow
 
-TaskFlow is a lightweight, "no-build" personal task management application. It features a Kanban board, Calendar view, and robust local persistence.
+TaskFlow is a lightweight, "no-build" personal task management application. It features Kanban, Calendar, and Eisenhower Matrix views with robust local persistence.
 
 ## Features
 
 -   **Workspaces**: Organize tasks into separate areas (Personal, Work, etc.).
 -   **Kanban Board**: Drag-and-drop tasks, custom columns, and inline tagging (`#urgent`).
 -   **Calendar View**: Schedule tasks by dragging them onto dates. Week and Month views.
+-   **Eisenhower Matrix**: Drag tasks into quadrants I-IV (or back to Unassigned) to set and clear priority.
+-   **Dual Filters**: Multi-select by tags and priorities (I/II/III/IV) across all views.
 -   **Data Privacy**: All data is stored in your browser's `localStorage`. No server required.
 -   **Import/Export**: Backup your data to JSON and restore it anytime.
 -   **Themes**: Light and Dark mode support.

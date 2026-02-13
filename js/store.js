@@ -1,18 +1,22 @@
 import { generateId } from './utils/id.js';
-import { parseTagsFromTitle } from './utils/tagParser.js';
+import { parseTagsFromTitle, normalizeTagList } from './utils/tagParser.js';
+import { PRIORITY_VALUES, normalizePriority } from './utils/taskFilters.js';
 
 
 const STORAGE_KEY = 'taskflow_data';
 
 export const store = Vue.observable({
-    appVersion: '1.0',
+    appVersion: '1.1',
     theme: 'light',
     currentWorkspaceId: null,
     workspaces: [],
     columns: {},
     tasks: {},
     columnTaskOrder: {},
-    activeFilter: [],
+    activeFilters: {
+        tags: [],
+        priorities: []
+    },
     activeTaskId: null,
     storageWarning: null // Message if limit approached/exceeded
 });
@@ -51,6 +55,8 @@ export const persist = debounce(() => {
 }, 300);
 
 function initializeDefaultData() {
+    store.appVersion = '1.1';
+
     const wsId = generateId('ws');
     const col1 = generateId('col');
     const col2 = generateId('col');
@@ -77,6 +83,11 @@ function initializeDefaultData() {
     };
 
     store.tasks = {};
+    store.activeFilters = {
+        tags: [],
+        priorities: []
+    };
+    store.activeTaskId = null;
     persist();
 }
 
@@ -203,6 +214,7 @@ export const mutations = {
             columnId,
             title,
             tags,
+            priority: null,
             description: '',
             color: 'gray',
             dueDate: null,
@@ -292,7 +304,13 @@ export const mutations = {
             // but for consistency, if user types #tag in modal title, it should probably be parsed.
             // However, Feature 3.1 just says "Title (single-line)". 
             // Let's just update the fields provided.
-            Vue.set(task, key, updates[key]);
+            if (key === 'tags') {
+                Vue.set(task, key, normalizeTagList(updates[key]));
+            } else if (key === 'priority') {
+                Vue.set(task, key, normalizePriority(updates[key]));
+            } else {
+                Vue.set(task, key, updates[key]);
+            }
         });
 
         // If title was updated, we might want to re-parse tags, but let's stick to simple updates for now.
@@ -368,22 +386,55 @@ export const mutations = {
         }
     },
 
-    toggleFilter(tag) {
-        if (!store.activeFilter) {
-            Vue.set(store, 'activeFilter', []);
+    setTaskPriority(taskId, priorityOrNull) {
+        const task = store.tasks[taskId];
+        if (!task) return;
+
+        const normalized = normalizePriority(priorityOrNull);
+        Vue.set(task, 'priority', normalized);
+        persist();
+    },
+
+    toggleTagFilter(tag) {
+        if (!store.activeFilters || !Array.isArray(store.activeFilters.tags)) {
+            Vue.set(store, 'activeFilters', { tags: [], priorities: [] });
         }
 
-        const index = store.activeFilter.indexOf(tag);
+        const index = store.activeFilters.tags.indexOf(tag);
         if (index > -1) {
-            store.activeFilter.splice(index, 1);
+            store.activeFilters.tags.splice(index, 1);
         } else {
-            store.activeFilter.push(tag);
+            store.activeFilters.tags.push(tag);
         }
         persist();
     },
 
+    togglePriorityFilter(priority) {
+        if (!PRIORITY_VALUES.includes(priority)) return;
+
+        if (!store.activeFilters || !Array.isArray(store.activeFilters.priorities)) {
+            Vue.set(store, 'activeFilters', { tags: [], priorities: [] });
+        }
+
+        const index = store.activeFilters.priorities.indexOf(priority);
+        if (index > -1) {
+            store.activeFilters.priorities.splice(index, 1);
+        } else {
+            store.activeFilters.priorities.push(priority);
+        }
+        persist();
+    },
+
+    // Backward-compat alias for legacy component calls.
+    toggleFilter(tag) {
+        this.toggleTagFilter(tag);
+    },
+
     clearFilters() {
-        store.activeFilter = [];
+        store.activeFilters = {
+            tags: [],
+            priorities: []
+        };
         persist();
     },
 
@@ -408,10 +459,22 @@ export function hydrate(inputData = null) {
         if (data) {
 
             // Restore top-level primitives
-            store.appVersion = data.appVersion;
-            store.theme = data.theme;
+            store.appVersion = '1.1';
+            store.theme = data.theme || 'light';
             store.currentWorkspaceId = data.currentWorkspaceId;
-            store.activeFilter = Array.isArray(data.activeFilter) ? data.activeFilter : [];
+            store.activeTaskId = null;
+
+            const legacyTags = Array.isArray(data.activeFilter) ? data.activeFilter : [];
+            const nextActiveFilters = data.activeFilters || {};
+            const rawTags = Array.isArray(nextActiveFilters.tags) ? nextActiveFilters.tags : legacyTags;
+            const nextTags = [...new Set(rawTags.filter(tag => typeof tag === 'string' && tag.length > 0))];
+            const rawPriorities = Array.isArray(nextActiveFilters.priorities) ? nextActiveFilters.priorities : [];
+            const nextPriorities = [...new Set(rawPriorities.filter(priority => PRIORITY_VALUES.includes(priority)))];
+
+            store.activeFilters = {
+                tags: nextTags,
+                priorities: nextPriorities
+            };
 
             // Restore workspaces (array is reactive)
             store.workspaces = data.workspaces || [];
@@ -442,6 +505,7 @@ export function hydrate(inputData = null) {
                     if (task.completedAt === undefined) {
                         task.completedAt = null;
                     }
+                    task.priority = normalizePriority(task.priority);
                     Vue.set(store.tasks, key, task);
                 });
             }
