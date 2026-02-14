@@ -1,12 +1,13 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
+const { gotoWithDependencies } = require('./helpers');
 
 test.describe('Views & Filtering', () => {
     test.beforeEach(async ({ page }) => {
         await page.addInitScript(() => {
             window.localStorage.clear();
         });
-        await page.goto('/');
+        await gotoWithDependencies(page, '/');
 
         // Setup: Create a task with date and tag
         const firstColumn = page.locator('.kanban-column').first();

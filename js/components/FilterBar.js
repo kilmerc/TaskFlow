@@ -1,6 +1,6 @@
 import { store, mutations } from '../store.js';
 import { PRIORITY_VALUES } from '../utils/taskFilters.js';
-import { getTagStyle as computeTagStyle } from '../utils/tagStyle.js';
+import { getTagToneClass as computeTagToneClass } from '../utils/tagStyle.js';
 
 Vue.component('filter-bar', {
     data() {
@@ -45,7 +45,7 @@ Vue.component('filter-bar', {
                     <div class="filter-list">
                         <label v-for="tag in allTags" :key="tag" class="filter-item">
                             <input type="checkbox" :checked="isTagActive(tag)" @change="toggleTag(tag)">
-                            <span class="tag-pill" :style="getTagStyle(tag)">{{ tag }}</span>
+                            <span class="tag-pill" :class="getTagToneClass(tag)">{{ tag }}</span>
                         </label>
                         <div v-if="allTags.length === 0" class="empty-filters">No tags found</div>
                     </div>
@@ -103,8 +103,8 @@ Vue.component('filter-bar', {
         isPriorityActive(priority) {
             return this.activePriorityFilters.includes(priority);
         },
-        getTagStyle(tag) {
-            return computeTagStyle(tag);
+        getTagToneClass(tag) {
+            return computeTagToneClass(tag);
         },
         clearFilters() {
             mutations.clearFilters();

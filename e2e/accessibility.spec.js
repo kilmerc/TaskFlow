@@ -1,18 +1,13 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
+const { gotoWithDependencies } = require('./helpers');
 
 test.describe('Accessibility', () => {
     test.beforeEach(async ({ page }) => {
         await page.addInitScript(() => {
             window.localStorage.clear();
         });
-        let loaded = false;
-        for (let attempt = 0; attempt < 3; attempt += 1) {
-            await page.goto('/');
-            loaded = await page.evaluate(() => window.__DEPENDENCIES_LOADED__ === true);
-            if (loaded) break;
-        }
-        expect(loaded).toBeTruthy();
+        await gotoWithDependencies(page, '/');
     });
 
     test('should support keyboard navigation for workspace and column menus', async ({ page }) => {

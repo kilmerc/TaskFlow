@@ -35,4 +35,17 @@ describe('tagAutocomplete', () => {
         expect(result.text).to.equal('Plan #meeting tomorrow');
         expect(result.caretIndex).to.equal(13);
     });
+
+    it('should return null when there is no active hash token', () => {
+        const token = getActiveHashToken('No tag here', 5);
+        expect(token).to.equal(null);
+    });
+
+    it('should preserve input when replacement range is missing', () => {
+        const input = 'Plan #meeting tomorrow';
+        const result = replaceHashToken(input, null, 'ops');
+
+        expect(result.text).to.equal(input);
+        expect(result.caretIndex).to.equal(input.length);
+    });
 });

@@ -1,5 +1,6 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
+const { gotoWithDependencies } = require('./helpers');
 
 test.describe('Core Features', () => {
     test.beforeEach(async ({ page }) => {
@@ -7,7 +8,7 @@ test.describe('Core Features', () => {
         await page.addInitScript(() => {
             window.localStorage.clear();
         });
-        await page.goto('/');
+        await gotoWithDependencies(page, '/');
     });
 
     test('should load the application with default state', async ({ page }) => {

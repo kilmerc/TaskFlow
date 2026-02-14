@@ -1,12 +1,13 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
+const { gotoWithDependencies } = require('./helpers');
 
 test.describe('Kanban Board', () => {
     test.beforeEach(async ({ page }) => {
         await page.addInitScript(() => {
             window.localStorage.clear();
         });
-        await page.goto('/');
+        await gotoWithDependencies(page, '/');
     });
 
     test('should add a new column', async ({ page }) => {

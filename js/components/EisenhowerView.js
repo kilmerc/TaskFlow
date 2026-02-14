@@ -1,6 +1,6 @@
 import { store, mutations } from '../store.js';
 import { taskMatchesFilters } from '../utils/taskFilters.js';
-import { getTagStyle as computeTagStyle } from '../utils/tagStyle.js';
+import { getTagToneClass as computeTagToneClass } from '../utils/tagStyle.js';
 
 Vue.component('eisenhower-view', {
     props: {
@@ -46,7 +46,7 @@ Vue.component('eisenhower-view', {
                                 <div class="task-content">
                                     <span class="task-title">{{ task.title }}</span>
                                     <div class="task-tags" v-if="task.tags && task.tags.length">
-                                        <span v-for="tag in task.tags" :key="tag" class="tag-pill" :style="getTagStyle(tag)">{{ tag }}</span>
+                                        <span v-for="tag in task.tags" :key="tag" class="tag-pill" :class="getTagToneClass(tag)">{{ tag }}</span>
                                     </div>
                                 </div>
                             </button>
@@ -111,7 +111,7 @@ Vue.component('eisenhower-view', {
                                     <div class="task-content">
                                         <span class="task-title">{{ task.title }}</span>
                                         <div class="task-tags" v-if="task.tags && task.tags.length">
-                                            <span v-for="tag in task.tags" :key="tag" class="tag-pill" :style="getTagStyle(tag)">{{ tag }}</span>
+                                            <span v-for="tag in task.tags" :key="tag" class="tag-pill" :class="getTagToneClass(tag)">{{ tag }}</span>
                                         </div>
                                     </div>
                                 </button>
@@ -208,8 +208,8 @@ Vue.component('eisenhower-view', {
         openTask(taskId) {
             mutations.setActiveTask(taskId);
         },
-        getTagStyle(tag) {
-            return computeTagStyle(tag);
+        getTagToneClass(tag) {
+            return computeTagToneClass(tag);
         }
     }
 });

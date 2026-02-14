@@ -4,22 +4,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-eval'; style-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline'; font-src 'self' https://cdnjs.cloudflare.com data:; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'">
     <title>TaskFlow</title>
 
     <!-- CDNs -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vuedraggable@2.24.3/dist/vuedraggable.umd.min.js"></script>
-
-    <style>
-        [v-cloak] {
-            display: none !important;
-        }
-    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+        integrity="sha384-t1nt8BQoYMLFN5p42tRAtuAAFQaCQODekUVeKKZrEnEyp4H2R0RHFz0KWpmj7i8g" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.js"
+        integrity="sha384-smVS78N63G0uFpVH9bKdb+2YIW7Q9eFrle79imo+AWW6YLluQxAEK7kxLOt1bNex"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"
+        integrity="sha384-BSxuMLxX+FCbTdYec3TbXlnMGEEM2QXTFdtDaveen71o+jswm2J36+xFqp8k4VHM"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vuedraggable@2.24.3/dist/vuedraggable.umd.min.js"
+        integrity="sha384-qUA1xXJiX23E4GOeW/XHtsBkV9MUcHLSjhi3FzO08mv8+W8bv5AQ1cwqLskycOTs"
+        crossorigin="anonymous"></script>
 
     <link rel="icon" type="image/png" href="img/favicon.png">
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components/workspace.css">
+    <link rel="stylesheet" href="css/components/kanban-modal.css">
+    <link rel="stylesheet" href="css/components/polish.css">
 </head>
 
 <body>
@@ -64,7 +71,7 @@
                     <button @click="triggerImport" title="Import Data" aria-label="Import data" class="icon-btn">
                         <i class="fas fa-upload"></i>
                     </button>
-                    <input type="file" ref="fileInput" @change="handleImport" accept=".json" style="display: none;">
+                    <input type="file" ref="fileInput" @change="handleImport" accept=".json" class="hidden-file-input">
                 </div>
                 <button @click="toggleTheme" title="Toggle Theme" aria-label="Toggle theme">
                     <i class="fas" :class="appTheme === 'dark' ? 'fa-sun' : 'fa-moon'"></i>
@@ -92,34 +99,8 @@
         <app-toast></app-toast>
     </div>
 
-    <!-- Dependency Check -->
-    <script>
-        // Check for Vue, Sortable, and vuedraggable
-        // vuedraggable UMD registers as window.vuedraggable
-        if (!window.Vue || !window.Sortable || !window.vuedraggable) {
-            console.error("Dependencies failed to load");
-            console.error("Vue:", !!window.Vue);
-            console.error("Sortable:", !!window.Sortable);
-            console.error("vuedraggable:", !!window.vuedraggable);
-
-            const appDiv = document.getElementById('app');
-            if (appDiv) {
-                appDiv.removeAttribute('v-cloak');
-                appDiv.innerHTML = `
-                    <div style="padding: 2rem; color: red; background: #fee2e2; border: 1px solid red;">
-                        <h2>Critical Error</h2>
-                        <p>Failed to load required libraries. Please check your internet connection.</p>
-                    </div>
-                `;
-            }
-            window.__DEPENDENCIES_LOADED__ = false;
-        } else {
-            window.__DEPENDENCIES_LOADED__ = true;
-        }
-    </script>
-
-    <!-- App Entry -->
-    <script type="module" src="js/app.js"></script>
+    <script src="js/bootstrap/dependencyCheck.js"></script>
+    <script type="module" src="js/bootstrap/startApp.js"></script>
 </body>
 
 </html>

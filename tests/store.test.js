@@ -177,6 +177,34 @@ describe('Store', () => {
         expect(store.columnTaskOrder[col2]).to.include(taskId);
     });
 
+    it('should reject moveTask when target column is invalid and keep state unchanged', () => {
+        const col1 = store.workspaces[0].columns[0];
+        mutations.addTask(col1, 'Unmovable Task');
+        const taskId = store.columnTaskOrder[col1][0];
+
+        const beforeOrder = [...store.columnTaskOrder[col1]];
+        const result = mutations.moveTask(taskId, col1, 'col_missing', 0);
+
+        expect(result.ok).to.equal(false);
+        expect(store.tasks[taskId].columnId).to.equal(col1);
+        expect(store.columnTaskOrder[col1]).to.deep.equal(beforeOrder);
+    });
+
+    it('should clamp moveTask index to valid bounds', () => {
+        const col1 = store.workspaces[0].columns[0];
+        const col2 = store.workspaces[0].columns[1];
+
+        mutations.addTask(col1, 'Task A');
+        mutations.addTask(col2, 'Task B');
+        const taskAId = store.columnTaskOrder[col1][0];
+
+        const result = mutations.moveTask(taskAId, col1, col2, 999);
+
+        expect(result.ok).to.equal(true);
+        expect(store.columnTaskOrder[col1]).to.not.include(taskAId);
+        expect(store.columnTaskOrder[col2][store.columnTaskOrder[col2].length - 1]).to.equal(taskAId);
+    });
+
     it('should delete a task', () => {
         const colId = store.workspaces[0].columns[0];
         mutations.addTask(colId, 'Task to delete');
@@ -264,6 +292,30 @@ describe('Store', () => {
         expect(switchResult.ok).to.equal(true);
         expect(store.activeFilters.tags).to.deep.equal([]);
         expect(store.activeFilters.priorities).to.deep.equal(['I']);
+    });
+
+    it('should preserve shared tag filters across workspace transitions', () => {
+        const baseColumnId = store.workspaces[0].columns[0];
+        mutations.addTask(baseColumnId, 'Base Task #shared');
+
+        const workspaceResult = mutations.addWorkspace('Second');
+        expect(workspaceResult.ok).to.equal(true);
+        const secondWorkspaceId = workspaceResult.data.workspaceId;
+        const secondColumnId = store.workspaces.find(ws => ws.id === secondWorkspaceId).columns[0];
+        const secondTaskResult = mutations.addTask(secondColumnId, 'Second Task #shared');
+        expect(secondTaskResult.ok).to.equal(true);
+
+        const toBase = mutations.switchWorkspace(store.workspaces[0].id);
+        expect(toBase.ok).to.equal(true);
+        mutations.toggleTagFilter('shared');
+        mutations.togglePriorityFilter('II');
+        expect(store.activeFilters.tags).to.deep.equal(['shared']);
+        expect(store.activeFilters.priorities).to.deep.equal(['II']);
+
+        const toSecond = mutations.switchWorkspace(secondWorkspaceId);
+        expect(toSecond.ok).to.equal(true);
+        expect(store.activeFilters.tags).to.deep.equal(['shared']);
+        expect(store.activeFilters.priorities).to.deep.equal(['II']);
     });
 
     it('should delete all data and persist reset snapshot immediately', () => {
@@ -501,6 +553,20 @@ describe('Store', () => {
             expect(parsed).to.not.have.property('toasts');
             expect(parsed).to.not.have.property('taskModalMode');
         });
+
+        it('should keep persisted snapshot schema stable after transient mutations', () => {
+            const initialKeys = Object.keys(buildPersistedSnapshot()).sort();
+
+            mutations.pushToast({ message: 'Transient', variant: 'info' });
+            mutations.openDialog({
+                variant: 'confirm',
+                title: 'Transient',
+                action: { type: 'app.resetAll' }
+            });
+
+            const nextKeys = Object.keys(buildPersistedSnapshot()).sort();
+            expect(nextKeys).to.deep.equal(initialKeys);
+        });
     });
 
     describe('hydrate migration', () => {
@@ -511,8 +577,23 @@ describe('Store', () => {
                 currentWorkspaceId: 'ws_base',
                 workspaces: [{ id: 'ws_base', name: 'Base', columns: ['col_todo'] }],
                 columns: { col_todo: { id: 'col_todo', workspaceId: 'ws_base', title: 'To Do' } },
-                tasks: {},
-                columnTaskOrder: { col_todo: [] },
+                tasks: {
+                    task_legacy: {
+                        id: 'task_legacy',
+                        columnId: 'col_todo',
+                        title: 'Legacy Task',
+                        tags: ['legacy-tag'],
+                        priority: null,
+                        description: '',
+                        color: 'gray',
+                        dueDate: null,
+                        subtasks: [],
+                        isCompleted: false,
+                        completedAt: null,
+                        createdAt: new Date().toISOString()
+                    }
+                },
+                columnTaskOrder: { col_todo: ['task_legacy'] },
                 activeFilter: ['legacy-tag']
             });
 

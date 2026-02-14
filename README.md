@@ -1,43 +1,77 @@
 # TaskFlow
 
-TaskFlow is a lightweight, "no-build" personal task management application. It features Kanban, Calendar, and Eisenhower Matrix views with robust local persistence.
+TaskFlow is a lightweight, no-build personal task management app (Kanban, Calendar, Eisenhower) with local-first persistence.
 
-## Features
+## Runtime
 
--   **Workspaces**: Organize tasks into separate areas (Personal, Work, etc.).
--   **Kanban Board**: Drag-and-drop tasks, custom columns, and inline tagging (`#urgent`).
--   **Calendar View**: Schedule tasks by dragging them onto dates. Week and Month views.
--   **Eisenhower Matrix**: Drag tasks into quadrants I-IV (or back to Unassigned) to set and clear priority.
--   **Dual Filters**: Multi-select by tags and priorities (I/II/III/IV) across all views.
--   **Data Privacy**: All data is stored in your browser's `localStorage`. No server required.
--   **Import/Export**: Backup your data to JSON and restore it anytime.
--   **Themes**: Light and Dark mode support.
--   **Responsive**: Works on Desktop, Tablet, and Mobile.
+- Vue 2.7 (CDN)
+- SortableJS + Vue.Draggable (CDN)
+- Font Awesome (CDN)
+- Static HTML/CSS/JS (no bundler)
 
-## Quick Start
+## Local Setup
 
-1.  Clone this repository or download the files.
-2.  Open `index.html` in your web browser.
-3.  Start organizing!
+1. Install dependencies:
+   ```bash
+   npm ci
+   ```
+2. Install Playwright browser binaries:
+   ```bash
+   npx playwright install chromium
+   ```
+3. Start the app locally:
+   ```bash
+   npm run serve
+   ```
+4. Open `http://localhost:3000`.
 
-## Deployment
+## Test Commands
 
-Since TaskFlow uses no build system, deployment is simple:
+- Unit harness (browser-Mocha via Playwright):
+  ```bash
+  npm run test:unit
+  ```
+  Expected: Playwright reports one `@unit` suite passing and zero failures.
 
-### GitHub Pages
-1.  Push this repository to GitHub.
-2.  Go to **Settings > Pages**.
-3.  Select the `main` branch and `/` (root) folder.
-4.  Save. Your site will be live at `https://<username>.github.io/<repository-name>/`.
+- E2E test suite:
+  ```bash
+  npm run test:e2e
+  ```
+  Expected: Playwright runs all non-`@unit` specs in Chromium.
 
-### Other Static Hosts
-Upload the entire folder `index.html`, `css/`, `js/`, `assets/` to any static hosting provider (Netlify, Vercel, etc.).
+- Optional local Edge smoke run:
+  ```bash
+  $env:PW_EDGE='1'; npm run test:e2e
+  ```
+  Expected: Same E2E suite runs in Chromium + Microsoft Edge.
 
-## Tech Stack
--   **Vue.js 2.7** (CDN)
--   **SortableJS / Vue.Draggable** (CDN)
--   **FontAwesome** (CDN)
--   **Vanilla CSS** (Variables, Grid, Flexbox)
+- Full local gate (unit then e2e):
+  ```bash
+  npm run test
+  ```
+  Expected: `test:unit` completes first, then `test:e2e`, with no manual steps between.
 
-## License
-MIT
+- CI-equivalent run:
+  ```bash
+  npm run test:ci
+  ```
+  Expected: Chromium-only run with line + HTML reporting.
+
+## CI
+
+GitHub Actions uses:
+
+1. `npm ci`
+2. `npx playwright install --with-deps chromium`
+3. `npm run test:ci`
+
+On failure, CI uploads:
+
+- `playwright-report/`
+- `test-results/`
+
+## Data Notes
+
+- Persisted data key: `taskflow_data`
+- Snapshot persistence uses `buildPersistedSnapshot()` and excludes transient UI state (`dialog`, `toasts`, active modal state).
+- Current hydrated schema target version is `appVersion: '1.2'`.

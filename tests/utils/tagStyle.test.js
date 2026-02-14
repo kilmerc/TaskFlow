@@ -1,36 +1,33 @@
-import { getTagStyle } from '../../js/utils/tagStyle.js';
+import { getTagToneClass } from '../../js/utils/tagStyle.js';
 
 const expect = chai.expect;
 
 describe('tagStyle', () => {
-    it('should return an object with backgroundColor, color, and border', () => {
-        const style = getTagStyle('urgent');
-        expect(style).to.have.property('backgroundColor');
-        expect(style).to.have.property('color');
-        expect(style).to.have.property('border');
+    it('should return a tag tone class name', () => {
+        const toneClass = getTagToneClass('urgent');
+        expect(toneClass).to.match(/^tag-tone-\d+$/);
     });
 
     it('should be deterministic (same input produces same output)', () => {
-        const a = getTagStyle('feature');
-        const b = getTagStyle('feature');
+        const a = getTagToneClass('feature');
+        const b = getTagToneClass('feature');
         expect(a).to.deep.equal(b);
     });
 
-    it('should produce different hues for different tags', () => {
-        const a = getTagStyle('bug');
-        const b = getTagStyle('enhancement');
-        expect(a.backgroundColor).to.not.equal(b.backgroundColor);
+    it('should return a safe fallback for invalid inputs', () => {
+        expect(getTagToneClass('')).to.equal('tag-tone-0');
+        expect(getTagToneClass(null)).to.equal('tag-tone-0');
     });
 
     it('should handle single-character tags', () => {
-        const style = getTagStyle('a');
-        expect(style.backgroundColor).to.be.a('string');
+        const toneClass = getTagToneClass('a');
+        expect(toneClass).to.match(/^tag-tone-\d+$/);
     });
 
-    it('should return valid HSL color strings', () => {
-        const style = getTagStyle('design');
-        expect(style.backgroundColor).to.match(/^hsl\(\d+, 70%, 90%\)$/);
-        expect(style.color).to.match(/^hsl\(\d+, 80%, 25%\)$/);
-        expect(style.border).to.match(/^1px solid hsl\(\d+, 60%, 80%\)$/);
+    it('should map different tags to known tone classes', () => {
+        const seen = new Set(['bug', 'enhancement', 'design'].map(tag => getTagToneClass(tag)));
+        for (const toneClass of seen) {
+            expect(toneClass).to.match(/^tag-tone-(?:[0-9]|1[0-1])$/);
+        }
     });
 });

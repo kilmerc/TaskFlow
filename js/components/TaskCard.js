@@ -1,5 +1,5 @@
 import { store, mutations } from '../store.js';
-import { getTagStyle as computeTagStyle } from '../utils/tagStyle.js';
+import { getTagToneClass as computeTagToneClass } from '../utils/tagStyle.js';
 
 Vue.component('task-card', {
     props: {
@@ -38,7 +38,7 @@ Vue.component('task-card', {
                         </div>
 
                         <div class="task-tags" v-if="task.tags && task.tags.length">
-                            <span v-for="tag in task.tags" :key="tag" class="tag-pill" :style="getTagStyle(tag)">
+                            <span v-for="tag in task.tags" :key="tag" class="tag-pill" :class="getTagToneClass(tag)">
                                 {{ tag }}
                             </span>
                         </div>
@@ -94,8 +94,8 @@ Vue.component('task-card', {
         openTask() {
             mutations.setActiveTask(this.taskId);
         },
-        getTagStyle(tag) {
-            return computeTagStyle(tag);
+        getTagToneClass(tag) {
+            return computeTagToneClass(tag);
         }
     }
 });

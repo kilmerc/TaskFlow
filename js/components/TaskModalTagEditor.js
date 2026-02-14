@@ -1,5 +1,5 @@
 import { normalizeTag } from '../utils/tagParser.js';
-import { getTagStyle as computeTagStyle } from '../utils/tagStyle.js';
+import { getTagToneClass as computeTagToneClass } from '../utils/tagStyle.js';
 
 Vue.component('task-modal-tag-editor', {
     props: {
@@ -11,7 +11,7 @@ Vue.component('task-modal-tag-editor', {
             <label>Tags</label>
             <div class="tag-combobox" v-click-outside="closeTagMenu">
                 <div class="tag-chip-list" @click="focusTagInput">
-                    <span v-for="tag in selectedTags" :key="tag" class="tag-chip tag-pill" :style="getTagStyle(tag)">
+                    <span v-for="tag in selectedTags" :key="tag" class="tag-chip tag-pill" :class="getTagToneClass(tag)">
                         {{ tag }}
                         <button type="button" class="tag-chip-remove" @click.stop="removeTag(tag)" title="Remove tag">
                             <i class="fas fa-times"></i>
@@ -112,8 +112,8 @@ Vue.component('task-modal-tag-editor', {
         removeTag(tagToRemove) {
             this.$emit('remove-tag', tagToRemove);
         },
-        getTagStyle(tag) {
-            return computeTagStyle(tag);
+        getTagToneClass(tag) {
+            return computeTagToneClass(tag);
         },
         onTagBackspace() {
             if (this.localTagInput.length > 0 || !this.selectedTags.length) return;

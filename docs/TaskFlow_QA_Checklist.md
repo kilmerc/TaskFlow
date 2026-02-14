@@ -1,60 +1,86 @@
 # TaskFlow Manual QA Checklist
 
 ## Browser Coverage
-- [ ] **Chrome/Edge** (Primary)
-- [ ] **Firefox** (Secondary)
-- [ ] **Mobile View** (DevTools Device Mode: iPhone 12/14)
+- [ ] Chrome (primary local)
+- [ ] Edge (optional local smoke)
+- [ ] Mobile viewport (DevTools, iPhone 12/14)
 
-## 1. Workspace Management
-- [ ] **Create Workspace**: Add a new workspace named "Test Work" -> Ensure it switches to it.
-- [ ] **Switch Workspace**: Switch back to "Personal" -> Ensure view updates.
-- [ ] **Rename Workspace**: Rename "Test Work" to "Renamed" -> Verify update in dropdown.
-- [ ] **Delete Workspace**: Delete "Renamed" -> Verify switch to remaining workspace.
-- [ ] **Isolation**: Create task in Workspace A -> Switch to Workspace B -> Verify task is NOT visible.
+## 1. Workspace + Dialog System
+- [ ] Create workspace from workspace menu.
+- [ ] Rename active workspace using app prompt dialog.
+- [ ] Delete workspace using app confirm dialog.
+- [ ] Verify no native browser `alert/confirm/prompt` appears.
 
-## 2. Kanban Board & Columns
-- [ ] **Add Column**: Click "+ Add Column", type "QA", press Enter -> Verify column appears.
-- [ ] **Rename Column**: Click column menu -> Rename -> Verify title update.
-- [ ] **Delete Empty Column**: Delete "QA" -> Verify removal.
-- [ ] **Delete Populated Column**: Add task to "QA", try delete -> Verify confirmation alert -> Confirm -> Verify removal.
-- [ ] **Reorder Columns**: Drag "To Do" to right of "Done" -> Refresh page -> Verify order persists.
+Automated coverage:
+- `e2e/dialogs.spec.js`
+- `e2e/accessibility.spec.js`
+- `e2e/quality.spec.js`
 
-## 3. Task Lifecycle
-- [ ] **Quick Add**: Type "Test task #urgent" in column input -> Verify clean title "Test task", tag "urgent".
-- [ ] **Move Task (Same Column)**: Reorder tasks vertically -> Refresh -> Verify order.
-- [ ] **Move Task (Cross Column)**: Drag from "To Do" to "Done" -> Verify move.
-- [ ] **Edit Task (Modal)**: Click task -> Edit title, desc, color -> Close -> Verify card update.
-- [ ] **Subtasks**: Add subtask, toggle check -> Verify "1/1" progress on card.
-- [ ] **Delete Task**: Delete via modal -> Verify removal.
+## 2. Kanban + Movement Persistence
+- [ ] Add column and add task from quick-add.
+- [ ] Move task between columns.
+- [ ] Reload and verify moved task stays in destination column.
 
-## 4. Calendar View & Scheduling
-- [ ] **View Switch**: Toggle to Calendar -> Verify Month view renders.
-- [ ] **Navigation**: Click Next/Prev month -> Verify date updates.
-- [ ] **Drag to Schedule**: Drag task from Sidebar to a Day Cell -> Verify task appears on day.
-- [ ] **Reschedule**: Drag task from Day A to Day B -> Verify move.
-- [ ] **Sync**: Change date in Calendar -> Switch to Kanban -> Verify due date badge.
+Automated coverage:
+- `e2e/kanban.spec.js`
+- `e2e/quality.spec.js`
+- `tests/store.test.js` (movement invariants)
 
-## 5. Filtering & Search
-- [ ] **Filter by Tag**: Select "urgent" in filter bar -> Verify only "urgent" tasks show.
-- [ ] **Empty State**: Filter by non-existent tag -> Verify columns empty but visible.
-- [ ] **Clear Filter**: Click "Clear" -> Verify all tasks return.
+## 3. Task Modal + Keyboard Flow
+- [ ] Open task modal from keyboard (`Enter` on task open button).
+- [ ] Edit title and save.
+- [ ] Confirm destructive reset dialog from keyboard.
 
-## 6. Data Management
-- [ ] **Export**: Click "Export JSON" -> Verify download.
-- [ ] **Import**: Click "Import" -> Select valid file -> Verify data restoration.
-- [ ] **Theme Persistence**: Toggle Dark Mode -> Refresh -> Verify dark mode stays.
+Automated coverage:
+- `e2e/accessibility.spec.js`
+- `e2e/quality.spec.js`
 
-## 7. Responsive & Mobile
-- [ ] **Mobile Layout (<768px)**:
-    - [ ] Kanban columns scroll horizontally.
-    - [ ] Task Modal is full screen.
-    - [ ] Workspace switcher text truncates correctly.
-- [ ] **Tablet Layout (768-1024px)**:
-    - [ ] Kanban board fits or scrolls as needed.
-- [ ] **Touch Interactions**:
-    - [ ] Buttons are tappable size.
-    - [ ] Drag and drop works (or has touch equivalent fallback if implemented).
+## 4. Calendar + Eisenhower Views
+- [ ] Calendar view shows scheduled tasks.
+- [ ] Eisenhower view shows prioritized tasks.
+- [ ] View toggles preserve task integrity.
 
-## 8. Reliability
-- [ ] **Console Errors**: Open DevTools -> Use app -> Verify no red errors.
-- [ ] **LocalStorage**: Inspect `taskflow_data` key -> Verify updates on change.
+Automated coverage:
+- `e2e/views.spec.js`
+
+## 5. Filtering
+- [ ] Apply tag filter and confirm non-matching tasks are hidden.
+- [ ] Switch workspace and verify invalid tag filters are cleared.
+- [ ] Confirm shared tags remain usable where valid.
+
+Automated coverage:
+- `e2e/views.spec.js`
+- `tests/store.test.js`
+
+## 6. Import/Export + Toast Feedback
+- [ ] Export backup and verify success toast.
+- [ ] Import valid backup and verify restoration.
+- [ ] Import invalid JSON and verify error toast.
+
+Automated coverage:
+- `e2e/dialogs.spec.js`
+- `e2e/quality.spec.js`
+
+## 7. Print Flow
+- [ ] Trigger `Print List` from column menu.
+- [ ] Verify print container appears and is cleaned up.
+
+Automated coverage:
+- `e2e/quality.spec.js`
+
+## 8. Persistence + Schema Boundary
+- [ ] Inspect `taskflow_data` in `localStorage`.
+- [ ] Confirm persisted payload excludes transient UI state (`dialog`, `toasts`, modal transient fields).
+- [ ] Verify app hydrates to schema target `appVersion: 1.2`.
+
+Automated coverage:
+- `tests/store.test.js`
+
+## 9. Security Baseline
+- [ ] Verify CDN assets include `integrity` and `crossorigin`.
+- [ ] Verify CSP meta is present in `index.html`.
+- [ ] Verify app boot still succeeds when dependencies load.
+
+Automated coverage:
+- Partially automated by E2E boot checks (`e2e/accessibility.spec.js`)
+- Static verification via code review of `index.html`

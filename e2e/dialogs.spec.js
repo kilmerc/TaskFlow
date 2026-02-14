@@ -1,12 +1,13 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
+const { gotoWithDependencies } = require('./helpers');
 
 test.describe('Dialogs and Toasts', () => {
     test.beforeEach(async ({ page }) => {
         await page.addInitScript(() => {
             window.localStorage.clear();
         });
-        await page.goto('/');
+        await gotoWithDependencies(page, '/');
     });
 
     test('should use app dialog for delete-all and avoid native browser dialogs', async ({ page }) => {

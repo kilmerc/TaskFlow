@@ -1,0 +1,186 @@
+:root {
+  /* Surface & text */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f3f4f6;
+  --bg-tertiary: #e5e7eb;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --border-color: #d1d5db;
+
+  /* Task colors (light mode — pastel) */
+  --task-color-red: #fee2e2;
+  --task-color-orange: #ffedd5;
+  --task-color-yellow: #fef9c3;
+  --task-color-green: #d1fae5;
+  --task-color-blue: #dbeafe;
+  --task-color-purple: #ede9fe;
+  --task-color-pink: #fce7f3;
+  --task-color-gray: #f3f4f6;
+
+  /* Shadows, radii, transitions */
+  --card-shadow: 0 10px 24px -20px rgba(15, 23, 42, 0.45);
+  --card-shadow-hover: 0 18px 30px -22px rgba(15, 23, 42, 0.55);
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-card: 14px;
+  --transition-fast: 150ms ease;
+  --checkbox-radius: 6px;
+  --checkbox-bg: #f8fafc;
+  --checkbox-border: #94a3b8;
+  --checkbox-checked-bg: #2563eb;
+  --checkbox-checked-border: #2563eb;
+  --checkbox-check: #ffffff;
+  --checkbox-focus-ring: rgba(37, 99, 235, 0.35);
+
+  --header-height: 60px;
+}
+
+[data-theme="dark"] {
+  --bg-primary: #111827;
+  --bg-secondary: #1f2937;
+  --bg-tertiary: #374151;
+  --text-primary: #f9fafb;
+  --text-secondary: #9ca3af;
+  --border-color: #4b5563;
+
+  /* Task colors (dark mode — muted/deeper) */
+  --task-color-red: #7f1d1d;
+  --task-color-orange: #7c2d12;
+  --task-color-yellow: #713f12;
+  --task-color-green: #065f46;
+  --task-color-blue: #1e3a5f;
+  --task-color-purple: #4c1d95;
+  --task-color-pink: #831843;
+  --task-color-gray: #374151;
+
+  --card-shadow: 0 16px 30px -24px rgba(0, 0, 0, 0.78);
+  --card-shadow-hover: 0 22px 36px -24px rgba(0, 0, 0, 0.9);
+  --checkbox-bg: #1f2a3b;
+  --checkbox-border: #91a1b7;
+  --checkbox-checked-bg: #60a5fa;
+  --checkbox-checked-border: #60a5fa;
+  --checkbox-check: #0f172a;
+  --checkbox-focus-ring: rgba(96, 165, 250, 0.35);
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+header {
+  height: var(--header-height);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+  justify-content: space-between;
+}
+
+.app-brand {
+  display: flex;
+  align-items: center;
+}
+
+.app-logo {
+  width: 28px;
+  height: 28px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-right: 0.75rem;
+}
+
+.app-title {
+  margin: 0;
+  margin-right: 1.5rem;
+}
+
+main {
+  flex: 1;
+  overflow: hidden;
+  padding: 1rem;
+}
+
+button {
+  cursor: pointer;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
+}
+
+button:hover {
+  background: var(--bg-tertiary);
+}
+
+.icon-btn {
+  padding: 0.5rem;
+  font-size: 1rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+[v-cloak] {
+  display: none !important;
+}
+
+.hidden-file-input {
+  display: none;
+}
+
+.dependency-error-banner {
+  margin: 2rem;
+  padding: 2rem;
+  color: #b91c1c;
+  background: #fee2e2;
+  border: 1px solid #dc2626;
+  border-radius: var(--radius-md);
+}
+
+.tag-pill[class*="tag-tone-"] {
+  background: var(--tag-bg);
+  color: var(--tag-color);
+  border-color: var(--tag-border);
+}
+
+.tag-tone-0 { --tag-bg: hsl(0, 70%, 90%); --tag-color: hsl(0, 80%, 25%); --tag-border: hsl(0, 60%, 80%); }
+.tag-tone-1 { --tag-bg: hsl(30, 70%, 90%); --tag-color: hsl(30, 80%, 25%); --tag-border: hsl(30, 60%, 80%); }
+.tag-tone-2 { --tag-bg: hsl(60, 70%, 90%); --tag-color: hsl(60, 80%, 22%); --tag-border: hsl(60, 55%, 74%); }
+.tag-tone-3 { --tag-bg: hsl(90, 70%, 90%); --tag-color: hsl(90, 80%, 20%); --tag-border: hsl(90, 55%, 76%); }
+.tag-tone-4 { --tag-bg: hsl(120, 70%, 90%); --tag-color: hsl(120, 80%, 22%); --tag-border: hsl(120, 60%, 80%); }
+.tag-tone-5 { --tag-bg: hsl(150, 70%, 90%); --tag-color: hsl(150, 80%, 20%); --tag-border: hsl(150, 60%, 76%); }
+.tag-tone-6 { --tag-bg: hsl(180, 70%, 90%); --tag-color: hsl(180, 80%, 22%); --tag-border: hsl(180, 60%, 78%); }
+.tag-tone-7 { --tag-bg: hsl(210, 70%, 90%); --tag-color: hsl(210, 80%, 25%); --tag-border: hsl(210, 60%, 80%); }
+.tag-tone-8 { --tag-bg: hsl(240, 70%, 92%); --tag-color: hsl(240, 80%, 28%); --tag-border: hsl(240, 60%, 82%); }
+.tag-tone-9 { --tag-bg: hsl(270, 70%, 92%); --tag-color: hsl(270, 80%, 28%); --tag-border: hsl(270, 60%, 82%); }
+.tag-tone-10 { --tag-bg: hsl(300, 70%, 92%); --tag-color: hsl(300, 80%, 26%); --tag-border: hsl(300, 60%, 80%); }
+.tag-tone-11 { --tag-bg: hsl(330, 70%, 92%); --tag-color: hsl(330, 80%, 24%); --tag-border: hsl(330, 60%, 80%); }
+
+[data-theme="dark"] .tag-tone-0 { --tag-bg: hsl(0, 44%, 28%); --tag-color: hsl(0, 78%, 92%); --tag-border: hsl(0, 45%, 42%); }
+[data-theme="dark"] .tag-tone-1 { --tag-bg: hsl(30, 44%, 28%); --tag-color: hsl(30, 78%, 92%); --tag-border: hsl(30, 45%, 42%); }
+[data-theme="dark"] .tag-tone-2 { --tag-bg: hsl(60, 34%, 30%); --tag-color: hsl(60, 74%, 90%); --tag-border: hsl(60, 35%, 44%); }
+[data-theme="dark"] .tag-tone-3 { --tag-bg: hsl(90, 34%, 28%); --tag-color: hsl(90, 74%, 90%); --tag-border: hsl(90, 35%, 42%); }
+[data-theme="dark"] .tag-tone-4 { --tag-bg: hsl(120, 34%, 28%); --tag-color: hsl(120, 74%, 90%); --tag-border: hsl(120, 35%, 42%); }
+[data-theme="dark"] .tag-tone-5 { --tag-bg: hsl(150, 34%, 28%); --tag-color: hsl(150, 74%, 90%); --tag-border: hsl(150, 35%, 42%); }
+[data-theme="dark"] .tag-tone-6 { --tag-bg: hsl(180, 34%, 28%); --tag-color: hsl(180, 74%, 90%); --tag-border: hsl(180, 35%, 42%); }
+[data-theme="dark"] .tag-tone-7 { --tag-bg: hsl(210, 40%, 28%); --tag-color: hsl(210, 78%, 92%); --tag-border: hsl(210, 40%, 42%); }
+[data-theme="dark"] .tag-tone-8 { --tag-bg: hsl(240, 40%, 30%); --tag-color: hsl(240, 78%, 93%); --tag-border: hsl(240, 40%, 44%); }
+[data-theme="dark"] .tag-tone-9 { --tag-bg: hsl(270, 40%, 30%); --tag-color: hsl(270, 78%, 93%); --tag-border: hsl(270, 40%, 44%); }
+[data-theme="dark"] .tag-tone-10 { --tag-bg: hsl(300, 40%, 30%); --tag-color: hsl(300, 78%, 93%); --tag-border: hsl(300, 40%, 44%); }
+[data-theme="dark"] .tag-tone-11 { --tag-bg: hsl(330, 40%, 30%); --tag-color: hsl(330, 78%, 93%); --tag-border: hsl(330, 40%, 44%); }
+
