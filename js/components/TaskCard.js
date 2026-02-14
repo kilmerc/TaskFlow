@@ -1,7 +1,7 @@
 import { store, mutations } from '../store.js';
 import { getTagToneClass as computeTagToneClass } from '../utils/tagStyle.js';
 
-Vue.component('task-card', {
+const TaskCard = {
     props: {
         taskId: {
             type: String,
@@ -98,4 +98,7 @@ Vue.component('task-card', {
             return computeTagToneClass(tag);
         }
     }
-});
+};
+
+export default TaskCard;
+

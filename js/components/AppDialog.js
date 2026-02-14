@@ -1,6 +1,6 @@
 import { store, mutations } from '../store.js';
 
-Vue.component('app-dialog', {
+const AppDialog = {
     template: `
         <div v-if="isOpen" class="app-dialog-backdrop" @click.self="onCancel">
             <div
@@ -138,4 +138,7 @@ Vue.component('app-dialog', {
             }
         }
     }
-});
+};
+
+export default AppDialog;
+

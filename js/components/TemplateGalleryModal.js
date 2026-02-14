@@ -1,7 +1,7 @@
 import { MAX_TASK_TITLE, store, mutations } from '../store.js';
 import { PRIORITY_VALUES } from '../utils/taskFilters.js';
 
-Vue.component('template-gallery-modal', {
+const TemplateGalleryModal = {
     template: `
         <div v-if="isOpen" class="modal-backdrop template-gallery-backdrop" @click.self="close">
             <div class="modal-content template-gallery-modal">
@@ -310,4 +310,7 @@ Vue.component('template-gallery-modal', {
             });
         }
     }
-});
+};
+
+export default TemplateGalleryModal;
+

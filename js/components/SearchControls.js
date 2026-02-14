@@ -1,6 +1,6 @@
 import { store, mutations } from '../store.js';
 
-Vue.component('search-controls', {
+const SearchControls = {
     data() {
         return {
             searchInput: '',
@@ -91,4 +91,7 @@ Vue.component('search-controls', {
             mutations.setWorkspaceSearchQuery(this.currentWorkspaceId, '');
         }
     }
-});
+};
+
+export default SearchControls;
+

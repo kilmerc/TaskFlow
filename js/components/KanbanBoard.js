@@ -1,6 +1,6 @@
 import { MAX_COLUMN_NAME, store, mutations } from '../store.js';
 
-Vue.component('kanban-board', {
+const KanbanBoard = {
     props: {
         workspace: {
             type: Object,
@@ -107,4 +107,7 @@ Vue.component('kanban-board', {
             this.isAdding = false;
         }
     }
-});
+};
+
+export default KanbanBoard;
+

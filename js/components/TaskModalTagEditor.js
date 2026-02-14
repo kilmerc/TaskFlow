@@ -1,7 +1,7 @@
 import { normalizeTag } from '../utils/tagParser.js';
 import { getTagToneClass as computeTagToneClass } from '../utils/tagStyle.js';
 
-Vue.component('task-modal-tag-editor', {
+const TaskModalTagEditor = {
     props: {
         selectedTags: { type: Array, default: () => [] },
         workspaceTags: { type: Array, default: () => [] }
@@ -124,4 +124,7 @@ Vue.component('task-modal-tag-editor', {
             this.closeTagMenu();
         }
     }
-});
+};
+
+export default TaskModalTagEditor;
+

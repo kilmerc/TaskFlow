@@ -1,6 +1,6 @@
 import { MAX_WORKSPACE_NAME, store, mutations } from '../store.js';
 
-Vue.component('workspace-switcher', {
+const WorkspaceSwitcher = {
     template: `
         <div class="workspace-switcher" v-click-outside="onOutsideClick">
             <button
@@ -237,4 +237,7 @@ Vue.component('workspace-switcher', {
             });
         }
     }
-});
+};
+
+export default WorkspaceSwitcher;
+

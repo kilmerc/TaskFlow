@@ -1,7 +1,7 @@
 import { store, mutations } from '../store.js';
 import { taskMatchesFilters } from '../utils/taskFilters.js';
 
-Vue.component('calendar-sidebar', {
+const CalendarSidebar = {
     props: {
         workspace: {
             type: Object,
@@ -121,4 +121,7 @@ Vue.component('calendar-sidebar', {
             }
         }
     }
-});
+};
+
+export default CalendarSidebar;
+

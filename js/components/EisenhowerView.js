@@ -2,7 +2,7 @@ import { store, mutations } from '../store.js';
 import { taskMatchesFilters } from '../utils/taskFilters.js';
 import { getTagToneClass as computeTagToneClass } from '../utils/tagStyle.js';
 
-Vue.component('eisenhower-view', {
+const EisenhowerView = {
     props: {
         workspace: {
             type: Object,
@@ -228,4 +228,7 @@ Vue.component('eisenhower-view', {
             return computeTagToneClass(tag);
         }
     }
-});
+};
+
+export default EisenhowerView;
+

@@ -1,6 +1,6 @@
 import { store, mutations } from '../store.js';
 
-Vue.component('task-modal-subtasks', {
+const TaskModalSubtasks = {
     props: {
         taskId: { type: String, required: true }
     },
@@ -104,4 +104,7 @@ Vue.component('task-modal-subtasks', {
             return this.subtaskKeyMap.get(st);
         }
     }
-});
+};
+
+export default TaskModalSubtasks;
+

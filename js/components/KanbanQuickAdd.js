@@ -3,7 +3,7 @@ import { normalizeTag, parseTagsFromTitle } from '../utils/tagParser.js';
 import { getActiveHashToken, replaceHashToken, getWorkspaceTags } from '../utils/tagAutocomplete.js';
 import { getActiveSlashToken, replaceSlashToken, parseTemplateCommand } from '../utils/templateAutocomplete.js';
 
-Vue.component('kanban-quick-add', {
+const KanbanQuickAdd = {
     props: {
         columnId: { type: String, required: true },
         showTrigger: { type: Boolean, default: true },
@@ -371,4 +371,7 @@ Vue.component('kanban-quick-add', {
             return coordinates;
         }
     }
-});
+};
+
+export default KanbanQuickAdd;
+

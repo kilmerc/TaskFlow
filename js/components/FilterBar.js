@@ -2,7 +2,7 @@ import { store, mutations } from '../store.js';
 import { PRIORITY_VALUES } from '../utils/taskFilters.js';
 import { getTagToneClass as computeTagToneClass } from '../utils/tagStyle.js';
 
-Vue.component('filter-bar', {
+const FilterBar = {
     data() {
         return {
             isOpen: false,
@@ -110,4 +110,7 @@ Vue.component('filter-bar', {
             mutations.clearFilters();
         }
     }
-});
+};
+
+export default FilterBar;
+

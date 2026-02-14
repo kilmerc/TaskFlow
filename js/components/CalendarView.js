@@ -1,7 +1,7 @@
 import { store, mutations } from '../store.js';
 import { taskMatchesFilters } from '../utils/taskFilters.js';
 
-Vue.component('calendar-view', {
+const CalendarView = {
     props: {
         workspace: {
             type: Object,
@@ -256,4 +256,7 @@ Vue.component('calendar-view', {
             mutations.setActiveTask(task.id);
         }
     }
-});
+};
+
+export default CalendarView;
+

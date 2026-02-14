@@ -2,7 +2,7 @@ import { MAX_COLUMN_NAME, MAX_TASK_TITLE, store, mutations } from '../store.js';
 import { PRIORITY_VALUES } from '../utils/taskFilters.js';
 import { getWorkspaceTags } from '../utils/tagAutocomplete.js';
 
-Vue.component('task-modal', {
+const TaskModal = {
     template: `
         <div class="modal-backdrop" @click.self="close" v-if="isOpen">
             <div class="modal-content" :class="colorClass">
@@ -462,4 +462,7 @@ Vue.component('task-modal', {
             });
         }
     }
-});
+};
+
+export default TaskModal;
+

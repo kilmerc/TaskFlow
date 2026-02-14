@@ -1,6 +1,6 @@
 import { store, mutations } from '../store.js';
 
-Vue.component('app-toast', {
+const AppToast = {
     template: `
         <div class="app-toast-stack" aria-label="Notifications">
             <div
@@ -74,4 +74,7 @@ Vue.component('app-toast', {
             mutations.dismissToast(toastId);
         }
     }
-});
+};
+
+export default AppToast;
+

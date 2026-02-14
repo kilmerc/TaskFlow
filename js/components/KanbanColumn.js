@@ -2,7 +2,7 @@ import { store, mutations } from '../store.js';
 import { printColumn } from '../utils/print.js';
 import { hasActiveFilters, taskMatchesFilters } from '../utils/taskFilters.js';
 
-Vue.component('kanban-column', {
+const KanbanColumn = {
     props: {
         columnId: {
             type: String,
@@ -202,4 +202,7 @@ Vue.component('kanban-column', {
             printColumn(this.column, tasks);
         }
     }
-});
+};
+
+export default KanbanColumn;
+

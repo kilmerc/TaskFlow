@@ -1,6 +1,6 @@
 import { MAX_COLUMN_NAME, store, mutations } from '../store.js';
 
-Vue.component('kanban-column-header', {
+const KanbanColumnHeader = {
     props: {
         columnId: { type: String, required: true }
     },
@@ -190,4 +190,7 @@ Vue.component('kanban-column-header', {
             });
         }
     }
-});
+};
+
+export default KanbanColumnHeader;
+

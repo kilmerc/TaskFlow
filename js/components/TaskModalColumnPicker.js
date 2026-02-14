@@ -1,6 +1,6 @@
 import { MAX_COLUMN_NAME } from '../store.js';
 
-Vue.component('task-modal-column-picker', {
+const TaskModalColumnPicker = {
     props: {
         workspaceColumns: { type: Array, default: () => [] },
         columnId: { type: String, default: null },
@@ -106,4 +106,7 @@ Vue.component('task-modal-column-picker', {
             this.closeColumnMenu();
         }
     }
-});
+};
+
+export default TaskModalColumnPicker;
+
