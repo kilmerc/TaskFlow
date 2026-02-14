@@ -245,6 +245,7 @@ Vue.component('task-modal', {
             });
         },
         closeTaskActions(restoreTrigger = false) {
+            if (!this.isTaskActionsOpen) return;
             this.isTaskActionsOpen = false;
             if (restoreTrigger) {
                 this.$nextTick(() => {
