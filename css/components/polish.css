@@ -32,6 +32,62 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-width: 0;
+}
+
+.search-sort-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.workspace-search {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: 0.4rem 0.5rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+}
+
+.workspace-search-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-primary);
+  width: 220px;
+  min-width: 120px;
+  font: inherit;
+}
+
+.workspace-search-input::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+.workspace-search-clear {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 0.2rem;
+  min-height: 0;
+}
+
+.workspace-search-clear:hover {
+  color: var(--text-primary);
+  background: transparent;
+}
+
+.workspace-sort-select {
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.5rem;
+  font: inherit;
+  min-height: 0;
 }
 
 /* 3. Filter Dropdown */
@@ -541,7 +597,21 @@
   line-height: 1;
 }
 
+.column-quick-add-trigger {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 0.25rem;
+  line-height: 1;
+  min-height: 0;
+}
+
 .column-menu-trigger:hover {
+  color: var(--text-primary);
+  background: transparent;
+}
+
+.column-quick-add-trigger:hover {
   color: var(--text-primary);
   background: transparent;
 }
@@ -598,6 +668,31 @@
   align-items: center;
   justify-content: center;
   z-index: 1200;
+}
+
+@media (max-width: 1023px) {
+  .workspace-search-input {
+    width: 150px;
+  }
+}
+
+@media (max-width: 768px) {
+  .header-actions {
+    gap: 0.35rem;
+  }
+
+  .search-sort-controls {
+    max-width: 46vw;
+  }
+
+  .workspace-search-input {
+    width: 100px;
+    min-width: 70px;
+  }
+
+  .workspace-sort-select {
+    max-width: 110px;
+  }
 }
 
 .app-dialog-panel {

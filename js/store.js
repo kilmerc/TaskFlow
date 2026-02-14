@@ -1,6 +1,7 @@
 import { generateId } from './utils/id.js';
 import { parseTagsFromTitle, normalizeTagList } from './utils/tagParser.js';
 import { PRIORITY_VALUES, normalizePriority } from './utils/taskFilters.js';
+import { DEFAULT_SORT_MODE, normalizeSortMode } from './utils/taskSort.js';
 
 
 const STORAGE_KEY = 'taskflow_data';
@@ -13,6 +14,20 @@ function getDefaultActiveFilters() {
         tags: [],
         priorities: []
     };
+}
+
+function getDefaultWorkspaceViewState() {
+    return {
+        searchQuery: '',
+        sortMode: DEFAULT_SORT_MODE
+    };
+}
+
+function normalizeWorkspaceSearchQuery(value) {
+    if (typeof value !== 'string') {
+        return '';
+    }
+    return value.replace(/\s+/g, ' ').trim();
 }
 
 function getDefaultDialogState() {
@@ -74,7 +89,7 @@ function cloneDialogState(overrides = {}) {
 }
 
 export const store = Vue.observable({
-    appVersion: '1.2',
+    appVersion: '1.3',
     theme: 'light',
     currentWorkspaceId: null,
     workspaces: [],
@@ -82,6 +97,7 @@ export const store = Vue.observable({
     tasks: {},
     columnTaskOrder: {},
     activeFilters: getDefaultActiveFilters(),
+    workspaceViewState: {},
     activeTaskId: null,
     taskModalMode: null,
     taskModalDraft: null,
@@ -99,7 +115,8 @@ export function buildPersistedSnapshot() {
         columns: store.columns,
         tasks: store.tasks,
         columnTaskOrder: store.columnTaskOrder,
-        activeFilters: store.activeFilters
+        activeFilters: store.activeFilters,
+        workspaceViewState: store.workspaceViewState
     };
 }
 
@@ -217,14 +234,42 @@ function removeTaskFromColumnOrder(taskId, columnId) {
     }
 }
 
-function addTaskToColumnOrder(taskId, columnId) {
+function addTaskToColumnOrder(taskId, columnId, position = 'bottom') {
     if (!store.columns[columnId]) return false;
 
     ensureColumnTaskOrder(columnId);
-    if (!store.columnTaskOrder[columnId].includes(taskId)) {
-        store.columnTaskOrder[columnId].push(taskId);
+    const order = store.columnTaskOrder[columnId];
+    if (!order.includes(taskId)) {
+        if (position === 'top') {
+            order.unshift(taskId);
+        } else {
+            order.push(taskId);
+        }
     }
     return true;
+}
+
+function ensureWorkspaceViewState(workspaceId) {
+    if (!store.workspaceViewState || typeof store.workspaceViewState !== 'object') {
+        Vue.set(store, 'workspaceViewState', {});
+    }
+
+    if (!workspaceId) {
+        return getDefaultWorkspaceViewState();
+    }
+
+    const existing = store.workspaceViewState[workspaceId];
+    if (!existing || typeof existing !== 'object') {
+        Vue.set(store.workspaceViewState, workspaceId, getDefaultWorkspaceViewState());
+    } else {
+        const normalized = {
+            searchQuery: normalizeWorkspaceSearchQuery(existing.searchQuery),
+            sortMode: normalizeSortMode(existing.sortMode)
+        };
+        Vue.set(store.workspaceViewState, workspaceId, normalized);
+    }
+
+    return store.workspaceViewState[workspaceId];
 }
 
 function getColumnWorkspaceId(columnId) {
@@ -246,7 +291,7 @@ function resetDialogAndToasts() {
 }
 
 function initializeDefaultData() {
-    store.appVersion = '1.1';
+    store.appVersion = '1.3';
 
     const wsId = generateId('ws');
     const col1 = generateId('col');
@@ -275,6 +320,8 @@ function initializeDefaultData() {
 
     store.tasks = {};
     store.activeFilters = getDefaultActiveFilters();
+    store.workspaceViewState = {};
+    Vue.set(store.workspaceViewState, wsId, getDefaultWorkspaceViewState());
     store.activeTaskId = null;
     store.taskModalMode = null;
     store.taskModalDraft = null;
@@ -402,6 +449,7 @@ export const mutations = {
         Vue.set(store.columnTaskOrder, col1, []);
         Vue.set(store.columnTaskOrder, col2, []);
         Vue.set(store.columnTaskOrder, col3, []);
+        Vue.set(store.workspaceViewState, id, getDefaultWorkspaceViewState());
 
         store.currentWorkspaceId = id;
         pruneActiveTagFiltersForWorkspace(id);
@@ -430,6 +478,7 @@ export const mutations = {
             Vue.delete(store.columnTaskOrder, colId);
             Vue.delete(store.columns, colId);
         });
+        Vue.delete(store.workspaceViewState, workspaceId);
 
         store.workspaces.splice(wsIndex, 1);
 
@@ -440,6 +489,7 @@ export const mutations = {
         if (store.currentWorkspaceId === workspaceId) {
             store.currentWorkspaceId = store.workspaces.length ? store.workspaces[0].id : null;
         }
+        ensureWorkspaceViewState(store.currentWorkspaceId);
         pruneActiveTagFiltersForWorkspace(store.currentWorkspaceId);
         persist();
         return success();
@@ -471,6 +521,7 @@ export const mutations = {
         }
 
         store.currentWorkspaceId = workspaceId;
+        ensureWorkspaceViewState(workspaceId);
         pruneActiveTagFiltersForWorkspace(workspaceId);
         persist();
         return success();
@@ -559,7 +610,7 @@ export const mutations = {
         return success();
     },
 
-    addTask(columnId, rawTitle) {
+    addTask(columnId, rawTitle, options = {}) {
         const { title, tags } = parseTagsFromTitle(rawTitle);
         const validation = validateName('task', title);
         if (!validation.ok) {
@@ -569,7 +620,8 @@ export const mutations = {
         return this.createTask({
             columnId,
             title: validation.value,
-            tags
+            tags,
+            position: options.position
         });
     },
 
@@ -603,7 +655,8 @@ export const mutations = {
         };
 
         Vue.set(store.tasks, id, newTask);
-        addTaskToColumnOrder(id, columnId);
+        const insertionPosition = input.position === 'top' ? 'top' : 'bottom';
+        addTaskToColumnOrder(id, columnId, insertionPosition);
 
         persist();
         return success({ taskId: id });
@@ -961,6 +1014,38 @@ export const mutations = {
         return success();
     },
 
+    setWorkspaceSearchQuery(workspaceId, query) {
+        if (!getWorkspace(workspaceId)) {
+            return failure(buildValidationError('invalid_target', 'Workspace not found.', 'workspace'));
+        }
+
+        const workspaceViewState = ensureWorkspaceViewState(workspaceId);
+        const nextQuery = normalizeWorkspaceSearchQuery(query);
+        if (workspaceViewState.searchQuery === nextQuery) {
+            return success({ changed: false });
+        }
+
+        Vue.set(workspaceViewState, 'searchQuery', nextQuery);
+        persist();
+        return success({ changed: true });
+    },
+
+    setWorkspaceSortMode(workspaceId, sortMode) {
+        if (!getWorkspace(workspaceId)) {
+            return failure(buildValidationError('invalid_target', 'Workspace not found.', 'workspace'));
+        }
+
+        const workspaceViewState = ensureWorkspaceViewState(workspaceId);
+        const nextSortMode = normalizeSortMode(sortMode);
+        if (workspaceViewState.sortMode === nextSortMode) {
+            return success({ changed: false });
+        }
+
+        Vue.set(workspaceViewState, 'sortMode', nextSortMode);
+        persist();
+        return success({ changed: true });
+    },
+
     deleteAllData() {
         initializeDefaultData();
         persistNow();
@@ -1101,7 +1186,7 @@ export function hydrate(inputData = null) {
         if (data) {
 
             // Restore top-level primitives
-            store.appVersion = '1.2';
+            store.appVersion = '1.3';
             store.theme = data.theme || 'light';
             store.currentWorkspaceId = data.currentWorkspaceId;
 
@@ -1125,6 +1210,17 @@ export function hydrate(inputData = null) {
 
             // Restore workspaces (array is reactive)
             store.workspaces = data.workspaces || [];
+            store.workspaceViewState = {};
+            const rawWorkspaceViewState = data.workspaceViewState && typeof data.workspaceViewState === 'object'
+                ? data.workspaceViewState
+                : {};
+            store.workspaces.forEach(workspace => {
+                const rawWorkspaceState = rawWorkspaceViewState[workspace.id] || {};
+                Vue.set(store.workspaceViewState, workspace.id, {
+                    searchQuery: normalizeWorkspaceSearchQuery(rawWorkspaceState.searchQuery),
+                    sortMode: normalizeSortMode(rawWorkspaceState.sortMode)
+                });
+            });
 
             // Restore nested objects using Vue.set to ensure reactivity is maintained/re-established
             // Although Object.assign(store, data) might work, explicit Vue.set is safer for nested observers
@@ -1229,6 +1325,7 @@ export function hydrate(inputData = null) {
             initializeDefaultData();
         }
 
+        ensureWorkspaceViewState(store.currentWorkspaceId);
         pruneActiveTagFiltersForWorkspace(store.currentWorkspaceId);
         resetDialogAndToasts();
     } catch (e) {

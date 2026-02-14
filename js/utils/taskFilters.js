@@ -4,12 +4,36 @@ export function normalizePriority(priority) {
     return PRIORITY_VALUES.includes(priority) ? priority : null;
 }
 
-export function taskMatchesFilters(task, activeFilters) {
+function normalizeSearchQuery(searchQuery) {
+    if (typeof searchQuery !== 'string') {
+        return '';
+    }
+    return searchQuery.trim().toLowerCase();
+}
+
+function taskMatchesSearchQuery(task, normalizedQuery) {
+    if (!normalizedQuery) {
+        return true;
+    }
+
+    const title = typeof task.title === 'string' ? task.title.toLowerCase() : '';
+    const description = typeof task.description === 'string' ? task.description.toLowerCase() : '';
+    const tags = Array.isArray(task.tags)
+        ? task.tags.filter(tag => typeof tag === 'string').map(tag => tag.toLowerCase())
+        : [];
+
+    return title.includes(normalizedQuery)
+        || description.includes(normalizedQuery)
+        || tags.some(tag => tag.includes(normalizedQuery));
+}
+
+export function taskMatchesFilters(task, activeFilters, searchQuery = '') {
     if (!task) return false;
 
     const filters = activeFilters || {};
     const tags = Array.isArray(filters.tags) ? filters.tags : [];
     const priorities = Array.isArray(filters.priorities) ? filters.priorities : [];
+    const normalizedQuery = normalizeSearchQuery(searchQuery);
 
     const matchesTags = tags.length === 0 || (
         Array.isArray(task.tags) &&
@@ -21,7 +45,7 @@ export function taskMatchesFilters(task, activeFilters) {
         priorities.includes(task.priority)
     );
 
-    return matchesTags && matchesPriorities;
+    return matchesTags && matchesPriorities && taskMatchesSearchQuery(task, normalizedQuery);
 }
 
 export function hasActiveFilters(activeFilters) {

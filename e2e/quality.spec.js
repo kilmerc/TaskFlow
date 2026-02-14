@@ -15,11 +15,11 @@ test.describe('Quality System Coverage', () => {
         const firstColumn = page.locator('.kanban-column').first();
         const secondColumn = page.locator('.kanban-column').nth(1);
 
-        await firstColumn.locator('.quick-add-btn').click();
+        await firstColumn.locator('.column-quick-add-trigger').click();
         await firstColumn.locator('.quick-add-input-wrapper textarea').fill('Drag Persist Task');
         await firstColumn.locator('.add-actions .btn-primary').click();
 
-        await secondColumn.locator('.quick-add-btn').click();
+        await secondColumn.locator('.column-quick-add-trigger').click();
         await secondColumn.locator('.quick-add-input-wrapper textarea').fill('Drop Anchor Task');
         await secondColumn.locator('.add-actions .btn-primary').click();
 
@@ -37,9 +37,32 @@ test.describe('Quality System Coverage', () => {
         await expect(secondColumnAfterReload.locator('.task-card').filter({ hasText: 'Drag Persist Task' })).toBeVisible();
     });
 
+    test('should append to the bottom when dropped in lower column whitespace', async ({ page }) => {
+        const firstColumn = page.locator('.kanban-column').first();
+        const secondColumn = page.locator('.kanban-column').nth(1);
+
+        await firstColumn.locator('.column-quick-add-trigger').click();
+        await firstColumn.locator('.quick-add-input-wrapper textarea').fill('Whitespace Drop Task');
+        await firstColumn.locator('.add-actions .btn-primary').click();
+
+        await secondColumn.locator('.column-quick-add-trigger').click();
+        await secondColumn.locator('.quick-add-input-wrapper textarea').fill('Anchor One');
+        await secondColumn.locator('.add-actions .btn-primary').click();
+        await secondColumn.locator('.column-quick-add-trigger').click();
+        await secondColumn.locator('.quick-add-input-wrapper textarea').fill('Anchor Two');
+        await secondColumn.locator('.add-actions .btn-primary').click();
+
+        await firstColumn
+            .locator('.task-card')
+            .filter({ hasText: 'Whitespace Drop Task' })
+            .dragTo(secondColumn.locator('.column-drop-spacer'));
+
+        await expect(secondColumn.locator('.task-card .task-title').last()).toHaveText('Whitespace Drop Task');
+    });
+
     test('should export then import a valid backup and restore data', async ({ page }) => {
         const firstColumn = page.locator('.kanban-column').first();
-        await firstColumn.locator('.quick-add-btn').click();
+        await firstColumn.locator('.column-quick-add-trigger').click();
         await firstColumn.locator('.quick-add-input-wrapper textarea').fill('Backup Restore Task #ops');
         await firstColumn.locator('.add-actions .btn-primary').click();
         await expect(page.locator('.task-card').filter({ hasText: 'Backup Restore Task' })).toBeVisible();
@@ -96,7 +119,7 @@ test.describe('Quality System Coverage', () => {
     test('should support keyboard create, edit, and dialog confirmation flow', async ({ page }) => {
         const firstColumn = page.locator('.kanban-column').first();
 
-        await firstColumn.locator('.quick-add-btn').focus();
+        await firstColumn.locator('.column-quick-add-trigger').focus();
         await page.keyboard.press('Enter');
         await page.keyboard.type('Keyboard Flow Task');
         await page.keyboard.press('Enter');

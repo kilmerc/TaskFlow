@@ -1,5 +1,10 @@
 import { store, mutations } from '../store.js';
 import { taskMatchesFilters } from '../utils/taskFilters.js';
+import {
+    DEFAULT_SORT_MODE,
+    buildWorkspaceManualRankMap,
+    sortTaskObjects
+} from '../utils/taskSort.js';
 
 Vue.component('calendar-sidebar', {
     props: {
@@ -68,11 +73,27 @@ Vue.component('calendar-sidebar', {
         activeFilters() {
             return this.store.activeFilters || { tags: [], priorities: [] };
         },
+        workspaceViewState() {
+            if (!this.workspace || !this.workspace.id) {
+                return { searchQuery: '', sortMode: DEFAULT_SORT_MODE };
+            }
+            return this.store.workspaceViewState[this.workspace.id]
+                || { searchQuery: '', sortMode: DEFAULT_SORT_MODE };
+        },
+        searchQuery() {
+            return this.workspaceViewState.searchQuery || '';
+        },
+        sortMode() {
+            return this.workspaceViewState.sortMode || DEFAULT_SORT_MODE;
+        },
+        workspaceManualRankMap() {
+            return buildWorkspaceManualRankMap(this.workspace, this.store.columnTaskOrder);
+        },
         unscheduledTasks() {
             // Return tasks in the active workspace where dueDate is null.
             const allTasks = Object.values(this.store.tasks);
             const workspaceId = this.workspace ? this.workspace.id : null;
-            return allTasks.filter(t => {
+            const visibleTasks = allTasks.filter(t => {
                 if (t.dueDate) return false;
                 if (t.isCompleted) return false;
 
@@ -81,7 +102,12 @@ Vue.component('calendar-sidebar', {
                     return false;
                 }
 
-                return taskMatchesFilters(t, this.activeFilters);
+                return taskMatchesFilters(t, this.activeFilters, this.searchQuery);
+            });
+
+            return sortTaskObjects(visibleTasks, {
+                sortMode: this.sortMode,
+                manualRankMap: this.workspaceManualRankMap
             });
         }
     },

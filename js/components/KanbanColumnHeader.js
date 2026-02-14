@@ -1,5 +1,4 @@
 import { MAX_COLUMN_NAME, store, mutations } from '../store.js';
-import { printColumn } from '../utils/print.js';
 
 Vue.component('kanban-column-header', {
     props: {
@@ -31,6 +30,15 @@ Vue.component('kanban-column-header', {
             >
             <div v-if="isRenaming && renameError" class="form-error">{{ renameError }}</div>
             <div class="column-actions">
+                <button
+                    type="button"
+                    class="column-quick-add-trigger"
+                    aria-label="Quick add task"
+                    title="Quick add task"
+                    @click.stop="$emit('quick-add')"
+                >
+                    <i class="fas fa-plus" aria-hidden="true"></i>
+                </button>
                 <div class="dropdown" :class="{ active: isMenuOpen }" v-click-outside="closeMenu">
                     <button
                         ref="menuTrigger"

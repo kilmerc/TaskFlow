@@ -18,7 +18,7 @@ test.describe('Dialogs and Toasts', () => {
         });
 
         const firstColumn = page.locator('.kanban-column').first();
-        await firstColumn.locator('.quick-add-btn').click();
+        await firstColumn.locator('.column-quick-add-trigger').click();
         await firstColumn.locator('.quick-add-input-wrapper textarea').fill('Task to delete');
         await firstColumn.locator('.add-actions .btn-primary').click();
         await expect(page.locator('.task-card')).toHaveCount(1);

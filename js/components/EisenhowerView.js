@@ -1,6 +1,11 @@
 import { store, mutations } from '../store.js';
 import { taskMatchesFilters } from '../utils/taskFilters.js';
 import { getTagToneClass as computeTagToneClass } from '../utils/tagStyle.js';
+import {
+    DEFAULT_SORT_MODE,
+    buildWorkspaceManualRankMap,
+    sortTaskObjects
+} from '../utils/taskSort.js';
 
 Vue.component('eisenhower-view', {
     props: {
@@ -141,6 +146,22 @@ Vue.component('eisenhower-view', {
         activeFilters() {
             return store.activeFilters || { tags: [], priorities: [] };
         },
+        workspaceViewState() {
+            if (!this.workspace || !this.workspace.id) {
+                return { searchQuery: '', sortMode: DEFAULT_SORT_MODE };
+            }
+            return store.workspaceViewState[this.workspace.id]
+                || { searchQuery: '', sortMode: DEFAULT_SORT_MODE };
+        },
+        searchQuery() {
+            return this.workspaceViewState.searchQuery || '';
+        },
+        sortMode() {
+            return this.workspaceViewState.sortMode || DEFAULT_SORT_MODE;
+        },
+        workspaceManualRankMap() {
+            return buildWorkspaceManualRankMap(this.workspace, store.columnTaskOrder);
+        },
         workspaceTaskIds() {
             if (!this.workspace || !Array.isArray(this.workspace.columns)) return [];
 
@@ -157,7 +178,9 @@ Vue.component('eisenhower-view', {
                 .filter(task => !!task);
         },
         filteredWorkspaceTasks() {
-            return this.workspaceTasks.filter(task => !task.isCompleted && taskMatchesFilters(task, this.activeFilters));
+            return this.workspaceTasks.filter(task =>
+                !task.isCompleted && taskMatchesFilters(task, this.activeFilters, this.searchQuery)
+            );
         },
         priorityBuckets() {
             const buckets = {
@@ -174,6 +197,13 @@ Vue.component('eisenhower-view', {
                 } else {
                     buckets.unassigned.push(task);
                 }
+            });
+
+            Object.keys(buckets).forEach(bucketKey => {
+                buckets[bucketKey] = sortTaskObjects(buckets[bucketKey], {
+                    sortMode: this.sortMode,
+                    manualRankMap: this.workspaceManualRankMap
+                });
             });
 
             return buckets;

@@ -26,8 +26,7 @@ test.describe('Kanban Board', () => {
     test('should add a new task', async ({ page }) => {
         const firstColumn = page.locator('.kanban-column').first();
 
-        // .quick-add-btn
-        await firstColumn.locator('.quick-add-btn').click();
+        await firstColumn.locator('.column-quick-add-trigger').click();
 
         // textarea inside .quick-add-input-wrapper
         await firstColumn.locator('.quick-add-input-wrapper textarea').fill('New Task');
@@ -38,10 +37,27 @@ test.describe('Kanban Board', () => {
         await expect(firstColumn.locator('.task-card')).toContainText('New Task');
     });
 
+    test('should keep quick add open on enter and insert new tasks at the top', async ({ page }) => {
+        const firstColumn = page.locator('.kanban-column').first();
+        await firstColumn.locator('.column-quick-add-trigger').click();
+
+        const quickAddInput = firstColumn.locator('.quick-add-input-wrapper textarea');
+        await quickAddInput.fill('Task One');
+        await quickAddInput.press('Enter');
+
+        await expect(quickAddInput).toBeVisible();
+        await quickAddInput.fill('Task Two');
+        await quickAddInput.press('Enter');
+
+        const taskTitles = firstColumn.locator('.task-card .task-title');
+        await expect(taskTitles.nth(0)).toHaveText('Task Two');
+        await expect(taskTitles.nth(1)).toHaveText('Task One');
+    });
+
     test('should edit task details via modal', async ({ page }) => {
         // Create task first
         const firstColumn = page.locator('.kanban-column').first();
-        await firstColumn.locator('.quick-add-btn').click();
+        await firstColumn.locator('.column-quick-add-trigger').click();
         await firstColumn.locator('.quick-add-input-wrapper textarea').fill('Task to Edit');
         await firstColumn.locator('.add-actions .btn-primary').click();
 
@@ -63,7 +79,7 @@ test.describe('Kanban Board', () => {
 
     test('should handle inline tagging', async ({ page }) => {
         const firstColumn = page.locator('.kanban-column').first();
-        await firstColumn.locator('.quick-add-btn').click();
+        await firstColumn.locator('.column-quick-add-trigger').click();
         await firstColumn.locator('.quick-add-input-wrapper textarea').fill('Task with #urgent tag');
         await firstColumn.locator('.add-actions .btn-primary').click();
 
@@ -76,7 +92,7 @@ test.describe('Kanban Board', () => {
 
     test('should delete all data and keep it cleared after reload', async ({ page }) => {
         const firstColumn = page.locator('.kanban-column').first();
-        await firstColumn.locator('.quick-add-btn').click();
+        await firstColumn.locator('.column-quick-add-trigger').click();
         await firstColumn.locator('.quick-add-input-wrapper textarea').fill('Task to delete');
         await firstColumn.locator('.add-actions .btn-primary').click();
 

@@ -4,12 +4,20 @@ import { getActiveHashToken, replaceHashToken, getWorkspaceTags } from '../utils
 
 Vue.component('kanban-quick-add', {
     props: {
-        columnId: { type: String, required: true }
+        columnId: { type: String, required: true },
+        showTrigger: { type: Boolean, default: true },
+        insertPosition: {
+            type: String,
+            default: 'bottom',
+            validator(value) {
+                return ['top', 'bottom'].includes(value);
+            }
+        }
     },
     template: `
-        <div class="quick-add-container">
+        <div class="quick-add-container" v-show="showTrigger || isAddingTask">
             <button
-                v-if="!isAddingTask"
+                v-if="showTrigger && !isAddingTask"
                 type="button"
                 class="quick-add-btn"
                 aria-label="Add a task"
@@ -17,7 +25,7 @@ Vue.component('kanban-quick-add', {
             >
                 <i class="fas fa-plus"></i> Add
             </button>
-            <div v-else class="quick-add-input-wrapper" v-click-outside="finishAddingTask">
+            <div v-else-if="isAddingTask" class="quick-add-input-wrapper" v-click-outside="finishAddingTask">
                 <textarea
                     ref="addTaskInput"
                     v-model="newTaskTitle"
@@ -103,7 +111,9 @@ Vue.component('kanban-quick-add', {
             }
         },
         confirmAddTask() {
-            const result = mutations.addTask(this.columnId, this.newTaskTitle);
+            const result = mutations.addTask(this.columnId, this.newTaskTitle, {
+                position: this.insertPosition
+            });
             if (!result.ok) {
                 this.quickAddError = result.error.message;
                 return;

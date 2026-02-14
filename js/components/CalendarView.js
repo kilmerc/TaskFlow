@@ -1,5 +1,10 @@
 import { store, mutations } from '../store.js';
 import { taskMatchesFilters } from '../utils/taskFilters.js';
+import {
+    DEFAULT_SORT_MODE,
+    buildWorkspaceManualRankMap,
+    sortTaskObjects
+} from '../utils/taskSort.js';
 
 Vue.component('calendar-view', {
     props: {
@@ -99,6 +104,22 @@ Vue.component('calendar-view', {
         activeFilters() {
             return this.store.activeFilters || { tags: [], priorities: [] };
         },
+        workspaceViewState() {
+            if (!this.workspace || !this.workspace.id) {
+                return { searchQuery: '', sortMode: DEFAULT_SORT_MODE };
+            }
+            return this.store.workspaceViewState[this.workspace.id]
+                || { searchQuery: '', sortMode: DEFAULT_SORT_MODE };
+        },
+        searchQuery() {
+            return this.workspaceViewState.searchQuery || '';
+        },
+        sortMode() {
+            return this.workspaceViewState.sortMode || DEFAULT_SORT_MODE;
+        },
+        workspaceManualRankMap() {
+            return buildWorkspaceManualRankMap(this.workspace, this.store.columnTaskOrder);
+        },
         currentMonthYear() {
             return this.currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
         },
@@ -118,12 +139,19 @@ Vue.component('calendar-view', {
                     return;
                 }
 
-                if (!taskMatchesFilters(task, this.activeFilters)) return;
+                if (!taskMatchesFilters(task, this.activeFilters, this.searchQuery)) return;
 
                 if (!map[task.dueDate]) {
                     map[task.dueDate] = [];
                 }
                 map[task.dueDate].push(task);
+            });
+
+            Object.keys(map).forEach(dateKey => {
+                map[dateKey] = sortTaskObjects(map[dateKey], {
+                    sortMode: this.sortMode,
+                    manualRankMap: this.workspaceManualRankMap
+                });
             });
             return map; // Returns a new object reference, which is fine for computed
         },

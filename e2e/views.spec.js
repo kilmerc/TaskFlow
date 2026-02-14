@@ -11,7 +11,7 @@ test.describe('Views & Filtering', () => {
 
         // Setup: Create a task with date and tag
         const firstColumn = page.locator('.kanban-column').first();
-        await firstColumn.locator('.quick-add-btn').click();
+        await firstColumn.locator('.column-quick-add-trigger').click();
         await firstColumn.locator('.quick-add-input-wrapper textarea').fill('Scheduled Task #work');
         await firstColumn.locator('.add-actions .btn-primary').click();
 
@@ -66,7 +66,7 @@ test.describe('Views & Filtering', () => {
 
         // Add another task without tag
         const firstColumn = page.locator('.kanban-column').first();
-        await firstColumn.locator('.quick-add-btn').click();
+        await firstColumn.locator('.column-quick-add-trigger').click();
         await firstColumn.locator('.quick-add-input-wrapper textarea').fill('Normal Task');
         await firstColumn.locator('.add-actions .btn-primary').click();
 
@@ -82,7 +82,7 @@ test.describe('Views & Filtering', () => {
         await page.locator('.app-dialog-panel .btn-primary').click();
 
         const firstColumn = page.locator('.kanban-column').first();
-        await firstColumn.locator('.quick-add-btn').click();
+        await firstColumn.locator('.column-quick-add-trigger').click();
         await firstColumn.locator('.quick-add-input-wrapper textarea').fill('Second task #personal');
         await firstColumn.locator('.add-actions .btn-primary').click();
 
@@ -103,5 +103,55 @@ test.describe('Views & Filtering', () => {
         await page.locator('.filter-btn').click();
         await expect(page.locator('.filter-item').filter({ hasText: 'personal' })).toBeVisible();
         await expect(page.locator('.filter-item').filter({ hasText: 'work' })).toHaveCount(0);
+    });
+
+    test('should apply search across kanban, calendar sidebar, and eisenhower', async ({ page }) => {
+        const firstColumn = page.locator('.kanban-column').first();
+        await firstColumn.locator('.column-quick-add-trigger').click();
+        await firstColumn.locator('.quick-add-input-wrapper textarea').fill('Another Task');
+        await firstColumn.locator('.add-actions .btn-primary').click();
+
+        await page.locator('.workspace-search-input').fill('work');
+        await page.locator('.workspace-search-input').press('Enter');
+        await page.waitForTimeout(250);
+
+        await expect(page.locator('.task-card').filter({ hasText: 'Scheduled Task' })).toBeVisible();
+        await expect(page.locator('.task-card').filter({ hasText: 'Another Task' })).toHaveCount(0);
+
+        await page.locator('button[title="Calendar View"]').click();
+        await expect(page.locator('.calendar-layout')).toContainText('Scheduled Task');
+        await expect(page.locator('.calendar-layout')).not.toContainText('Another Task');
+
+        await page.locator('button[title="Eisenhower Matrix View"]').click();
+        await expect(page.locator('.eisenhower-layout')).toContainText('Scheduled Task');
+        await expect(page.locator('.eisenhower-layout')).not.toContainText('Another Task');
+    });
+
+    test('should apply workspace-wide sort mode in kanban and calendar sidebar', async ({ page }) => {
+        const firstColumn = page.locator('.kanban-column').first();
+        await firstColumn.locator('.column-quick-add-trigger').click();
+        await firstColumn.locator('.quick-add-input-wrapper textarea').fill('Low Priority Task');
+        await firstColumn.locator('.add-actions .btn-primary').click();
+
+        await firstColumn.locator('.column-quick-add-trigger').click();
+        await firstColumn.locator('.quick-add-input-wrapper textarea').fill('High Priority Task');
+        await firstColumn.locator('.add-actions .btn-primary').click();
+
+        await page.locator('.task-card').filter({ hasText: 'Low Priority Task' }).locator('.task-open-btn').click();
+        await page.locator('.modal-content select').first().selectOption('IV');
+        await page.locator('.modal-footer .btn-primary').filter({ hasText: 'OK' }).click();
+
+        await page.locator('.task-card').filter({ hasText: 'High Priority Task' }).locator('.task-open-btn').click();
+        await page.locator('.modal-content select').first().selectOption('I');
+        await page.locator('.modal-footer .btn-primary').filter({ hasText: 'OK' }).click();
+
+        await page.locator('.workspace-sort-select').selectOption('priority');
+
+        const kanbanTitles = firstColumn.locator('.task-card .task-title');
+        await expect(kanbanTitles.nth(0)).toHaveText('High Priority Task');
+
+        await page.locator('button[title="Calendar View"]').click();
+        const sidebarTitles = page.locator('.calendar-sidebar .task-title');
+        await expect(sidebarTitles.nth(0)).toHaveText('High Priority Task');
     });
 });

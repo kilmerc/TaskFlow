@@ -42,6 +42,12 @@
   position: relative;
 }
 
+.column-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
 .column-actions i {
   cursor: pointer;
   color: var(--text-secondary);
@@ -165,7 +171,7 @@
   flex: 1;
   min-height: 50px;
   /* Drop zone */
-  padding: 0.5rem 0.5rem 0.5rem;
+  padding: 0.5rem;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -173,10 +179,16 @@
 }
 
 .task-list-draggable {
-  min-height: 10px;
+  min-height: 120px;
   display: flex;
   flex-direction: column;
+  flex: 1;
   gap: 0.5rem;
+}
+
+.column-drop-spacer {
+  flex: 1;
+  min-height: 96px;
 }
 
 .task-card-row {
@@ -343,7 +355,7 @@
 
 /* --- Quick Add --- */
 .quick-add-container {
-  padding: 0.5rem 0.5rem 0;
+  padding: 0 0 0.25rem;
 }
 
 .completed-section {
@@ -392,6 +404,10 @@
 
 .quick-add-input-wrapper {
   position: relative;
+  border: 1px solid var(--task-color-blue);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  padding: 0.45rem 0.55rem;
 }
 
 .quick-add-input-wrapper textarea {

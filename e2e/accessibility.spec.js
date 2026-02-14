@@ -24,11 +24,16 @@ test.describe('Accessibility', () => {
         await expect(page.locator('.dropdown-menu').first()).toBeVisible();
         await page.keyboard.press('Escape');
         await expect(page.locator('.dropdown-menu')).toHaveCount(0);
+
+        const quickAddTrigger = page.locator('.column-quick-add-trigger').first();
+        await quickAddTrigger.focus();
+        await page.keyboard.press('Enter');
+        await expect(page.locator('.quick-add-input-wrapper textarea').first()).toBeVisible();
     });
 
     test('should open task modal with keyboard from kanban, calendar, and eisenhower cards', async ({ page }) => {
         const firstColumn = page.locator('.kanban-column').first();
-        await firstColumn.locator('.quick-add-btn').click();
+        await firstColumn.locator('.column-quick-add-trigger').click();
         await firstColumn.locator('.quick-add-input-wrapper textarea').fill('Keyboard task');
         await firstColumn.locator('.add-actions .btn-primary').click();
 

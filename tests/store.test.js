@@ -3,7 +3,7 @@ import { store, mutations, hydrate, normalizeText, validateName, buildPersistedS
 const expect = chai.expect;
 
 const BASELINE_STATE = {
-    appVersion: '1.2',
+    appVersion: '1.3',
     theme: 'light',
     currentWorkspaceId: 'ws_base',
     workspaces: [{
@@ -25,6 +25,12 @@ const BASELINE_STATE = {
     activeFilters: {
         tags: [],
         priorities: []
+    },
+    workspaceViewState: {
+        ws_base: {
+            searchQuery: '',
+            sortMode: 'manual'
+        }
     },
     activeTaskId: null,
     taskModalMode: null,
@@ -94,6 +100,16 @@ describe('Store', () => {
         expect(task.title).to.equal('New Task');
         expect(task.tags).to.include('test');
         expect(task.priority).to.equal(null);
+    });
+
+    it('should insert quick-add tasks at top when position is top', () => {
+        const colId = store.workspaces[0].columns[0];
+        mutations.addTask(colId, 'First Task');
+        mutations.addTask(colId, 'Second Task', { position: 'top' });
+
+        const orderedTaskIds = store.columnTaskOrder[colId];
+        expect(store.tasks[orderedTaskIds[0]].title).to.equal('Second Task');
+        expect(store.tasks[orderedTaskIds[1]].title).to.equal('First Task');
     });
 
     it('should reject invalid createTask payloads and create valid tasks', () => {
@@ -318,6 +334,26 @@ describe('Store', () => {
         expect(store.activeFilters.priorities).to.deep.equal(['II']);
     });
 
+    it('should persist workspace search query and sort mode per workspace', () => {
+        const baseWorkspaceId = store.currentWorkspaceId;
+
+        const queryResult = mutations.setWorkspaceSearchQuery(baseWorkspaceId, '  Sprint   Plan  ');
+        const sortResult = mutations.setWorkspaceSortMode(baseWorkspaceId, 'priority');
+
+        expect(queryResult.ok).to.equal(true);
+        expect(sortResult.ok).to.equal(true);
+        expect(store.workspaceViewState[baseWorkspaceId].searchQuery).to.equal('Sprint Plan');
+        expect(store.workspaceViewState[baseWorkspaceId].sortMode).to.equal('priority');
+
+        const workspaceResult = mutations.addWorkspace('Second');
+        const secondWorkspaceId = workspaceResult.data.workspaceId;
+        expect(store.workspaceViewState[secondWorkspaceId].searchQuery).to.equal('');
+        expect(store.workspaceViewState[secondWorkspaceId].sortMode).to.equal('manual');
+
+        mutations.setWorkspaceSortMode(secondWorkspaceId, 'not-a-valid-mode');
+        expect(store.workspaceViewState[secondWorkspaceId].sortMode).to.equal('manual');
+    });
+
     it('should delete all data and persist reset snapshot immediately', () => {
         const colId = store.workspaces[0].columns[0];
         mutations.addTask(colId, 'Task before full reset');
@@ -524,7 +560,7 @@ describe('Store', () => {
     describe('buildPersistedSnapshot', () => {
         it('should return only domain keys and no transient state', () => {
             const snapshot = buildPersistedSnapshot();
-            const expectedKeys = ['appVersion', 'theme', 'currentWorkspaceId', 'workspaces', 'columns', 'tasks', 'columnTaskOrder', 'activeFilters'];
+            const expectedKeys = ['appVersion', 'theme', 'currentWorkspaceId', 'workspaces', 'columns', 'tasks', 'columnTaskOrder', 'activeFilters', 'workspaceViewState'];
             expect(Object.keys(snapshot).sort()).to.deep.equal(expectedKeys.sort());
         });
 
@@ -594,14 +630,22 @@ describe('Store', () => {
                     }
                 },
                 columnTaskOrder: { col_todo: ['task_legacy'] },
-                activeFilter: ['legacy-tag']
+                activeFilter: ['legacy-tag'],
+                workspaceViewState: {
+                    ws_base: {
+                        searchQuery: 'legacy',
+                        sortMode: 'createdAt'
+                    }
+                }
             });
 
-            expect(store.appVersion).to.equal('1.2');
+            expect(store.appVersion).to.equal('1.3');
             expect(store.activeFilters.tags).to.include('legacy-tag');
+            expect(store.workspaceViewState.ws_base.searchQuery).to.equal('legacy');
+            expect(store.workspaceViewState.ws_base.sortMode).to.equal('createdAt');
         });
 
-        it('should handle pre-1.2 data with transient fields gracefully', () => {
+        it('should handle pre-1.3 data with transient fields gracefully', () => {
             hydrate({
                 appVersion: '1.1',
                 theme: 'dark',
@@ -611,17 +655,20 @@ describe('Store', () => {
                 tasks: {},
                 columnTaskOrder: { col_todo: [] },
                 activeFilters: { tags: [], priorities: [] },
+                workspaceViewState: {},
                 activeTaskId: 'stale-id',
                 taskModalMode: 'edit',
                 dialog: { isOpen: true },
                 toasts: [{ message: 'stale' }]
             });
 
-            expect(store.appVersion).to.equal('1.2');
+            expect(store.appVersion).to.equal('1.3');
             expect(store.activeTaskId).to.equal(null);
             expect(store.taskModalMode).to.equal(null);
             expect(store.dialog.isOpen).to.equal(false);
             expect(store.toasts).to.deep.equal([]);
+            expect(store.workspaceViewState.ws_base.searchQuery).to.equal('');
+            expect(store.workspaceViewState.ws_base.sortMode).to.equal('manual');
         });
     });
 });

@@ -1,6 +1,11 @@
 import { store, mutations } from '../store.js';
 import { printColumn } from '../utils/print.js';
 import { hasActiveFilters, taskMatchesFilters } from '../utils/taskFilters.js';
+import {
+    DEFAULT_SORT_MODE,
+    buildWorkspaceManualRankMap,
+    sortTaskIds
+} from '../utils/taskSort.js';
 
 Vue.component('kanban-column', {
     props: {
@@ -14,9 +19,17 @@ Vue.component('kanban-column', {
             <kanban-column-header
                 :column-id="columnId"
                 @print="printList"
+                @quick-add="openQuickAdd"
             ></kanban-column-header>
 
             <div class="task-list">
+                <kanban-quick-add
+                    ref="quickAdd"
+                    :column-id="columnId"
+                    :show-trigger="false"
+                    insert-position="top"
+                ></kanban-quick-add>
+
                 <draggable
                     v-model="displayTasks"
                     group="tasks"
@@ -24,16 +37,18 @@ Vue.component('kanban-column', {
                     ghost-class="task-ghost"
                     drag-class="task-drag"
                     :animation="150"
-                    :disabled="hasFilters"
+                    :disabled="isDragDisabled"
+                    :draggable="'.sortable-task'"
                 >
                     <task-card
                         v-for="taskId in displayTasks"
                         :key="taskId"
                         :task-id="taskId"
+                        class="sortable-task"
                     ></task-card>
-                </draggable>
 
-                <kanban-quick-add :column-id="columnId"></kanban-quick-add>
+                    <div slot="footer" class="column-drop-spacer" aria-hidden="true"></div>
+                </draggable>
 
                 <div v-if="completedCount > 0" class="completed-section">
                     <button type="button" class="completed-toggle" @click="toggleShowCompleted" :aria-expanded="showCompleted ? 'true' : 'false'">
@@ -63,27 +78,61 @@ Vue.component('kanban-column', {
         activeFilters() {
             return this.sharedStore.activeFilters || { tags: [], priorities: [] };
         },
+        currentWorkspace() {
+            return this.sharedStore.workspaces.find(ws => ws.id === this.sharedStore.currentWorkspaceId) || null;
+        },
+        workspaceViewState() {
+            if (!this.sharedStore.currentWorkspaceId) {
+                return { searchQuery: '', sortMode: DEFAULT_SORT_MODE };
+            }
+            return this.sharedStore.workspaceViewState[this.sharedStore.currentWorkspaceId]
+                || { searchQuery: '', sortMode: DEFAULT_SORT_MODE };
+        },
+        searchQuery() {
+            return this.workspaceViewState.searchQuery || '';
+        },
+        sortMode() {
+            return this.workspaceViewState.sortMode || DEFAULT_SORT_MODE;
+        },
+        workspaceManualRankMap() {
+            return buildWorkspaceManualRankMap(this.currentWorkspace, this.sharedStore.columnTaskOrder);
+        },
         hasFilters() {
             return hasActiveFilters(this.activeFilters);
         },
+        hasSearchQuery() {
+            return this.searchQuery.length > 0;
+        },
+        isDragDisabled() {
+            return this.hasFilters || this.hasSearchQuery || this.sortMode !== DEFAULT_SORT_MODE;
+        },
         filteredTaskIds() {
             const allTasks = this.sharedStore.columnTaskOrder[this.columnId] || [];
-            if (!this.hasFilters) return allTasks;
+            if (!this.hasFilters && !this.hasSearchQuery) return allTasks;
 
             return allTasks.filter(taskId => {
                 const task = this.sharedStore.tasks[taskId];
-                return taskMatchesFilters(task, this.activeFilters);
+                return taskMatchesFilters(task, this.activeFilters, this.searchQuery);
             });
         },
         displayTasks: {
             get() {
-                return this.filteredTaskIds.filter(taskId => {
+                const activeTaskIds = this.filteredTaskIds.filter(taskId => {
                     const task = this.sharedStore.tasks[taskId];
                     return task && !task.isCompleted;
                 });
+
+                if (this.sortMode === DEFAULT_SORT_MODE) {
+                    return activeTaskIds;
+                }
+
+                return sortTaskIds(activeTaskIds, this.sharedStore.tasks, {
+                    sortMode: this.sortMode,
+                    manualRankMap: this.workspaceManualRankMap
+                });
             },
             set(value) {
-                if (this.hasFilters) return;
+                if (this.isDragDisabled) return;
 
                 // Handle cross-column moves: update columnId via store mutation
                 value.forEach((taskId, newIndex) => {
@@ -126,6 +175,11 @@ Vue.component('kanban-column', {
     methods: {
         toggleShowCompleted() {
             mutations.toggleColumnShowCompleted(this.columnId);
+        },
+        openQuickAdd() {
+            if (this.$refs.quickAdd && typeof this.$refs.quickAdd.startAddingTask === 'function') {
+                this.$refs.quickAdd.startAddingTask();
+            }
         },
         printList() {
             const allIds = [...this.displayTasks, ...this.completedTasks];
