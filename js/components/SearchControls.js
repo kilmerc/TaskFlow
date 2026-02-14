@@ -64,7 +64,7 @@ Vue.component('search-controls', {
             }
         }
     },
-    beforeDestroy() {
+    beforeUnmount() {
         if (this.searchDebounceTimer) {
             clearTimeout(this.searchDebounceTimer);
             this.searchDebounceTimer = null;

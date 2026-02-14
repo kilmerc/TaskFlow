@@ -1,7 +1,5 @@
 import { getLegacyRegistry } from './vue2Compat.js';
-
-// Global directives
-import '../directives/clickOutside.js';
+import { clickOutsideDirective } from '../directives/clickOutside.js';
 
 // Import components for side-effects (legacy Vue.component registration)
 // Subcomponents must be imported before their parent components
@@ -23,48 +21,6 @@ import '../components/SearchControls.js';
 import '../components/AppDialog.js';
 import '../components/AppToast.js';
 import '../components/TemplateGalleryModal.js';
-
-function applyLifecycleAliases(definition) {
-    if (!definition || typeof definition !== 'object') {
-        return definition;
-    }
-
-    if (typeof definition.beforeDestroy === 'function' && typeof definition.beforeUnmount !== 'function') {
-        definition.beforeUnmount = definition.beforeDestroy;
-    }
-
-    if (typeof definition.destroyed === 'function' && typeof definition.unmounted !== 'function') {
-        definition.unmounted = definition.destroyed;
-    }
-
-    return definition;
-}
-
-function createClickOutsideDirective() {
-    return {
-        beforeMount(el, binding) {
-            el.__clickOutsideValue__ = binding.value;
-            el.__clickOutsideHandler__ = function onClickOutside(event) {
-                if (el === event.target || el.contains(event.target)) {
-                    return;
-                }
-
-                if (typeof el.__clickOutsideValue__ === 'function') {
-                    el.__clickOutsideValue__(event);
-                }
-            };
-            document.body.addEventListener('click', el.__clickOutsideHandler__);
-        },
-        updated(el, binding) {
-            el.__clickOutsideValue__ = binding.value;
-        },
-        unmounted(el) {
-            document.body.removeEventListener('click', el.__clickOutsideHandler__);
-            delete el.__clickOutsideHandler__;
-            delete el.__clickOutsideValue__;
-        }
-    };
-}
 
 function adaptLegacyDirective(definition) {
     if (!definition || typeof definition !== 'object') {
@@ -106,13 +62,14 @@ export function registerGlobals(app) {
     const componentEntries = Object.entries(legacyRegistry.components || {});
     const directiveEntries = Object.entries(legacyRegistry.directives || {});
 
+    app.directive('click-outside', clickOutsideDirective);
+
     componentEntries.forEach(([name, definition]) => {
-        app.component(name, applyLifecycleAliases(definition));
+        app.component(name, definition);
     });
 
     directiveEntries.forEach(([name, definition]) => {
         if (name === 'click-outside') {
-            app.directive(name, createClickOutsideDirective());
             return;
         }
 

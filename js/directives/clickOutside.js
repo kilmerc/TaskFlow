@@ -1,15 +1,23 @@
-Vue.directive('click-outside', {
-    bind: function (el, binding, vnode) {
-        el._clickOutsideHandler = function (event) {
-            if (!(el === event.target || el.contains(event.target))) {
-                var handler = vnode.context[binding.expression];
-                if (typeof handler === 'function') handler(event);
+export const clickOutsideDirective = {
+    beforeMount(el, binding) {
+        el.__clickOutsideValue__ = binding.value;
+        el.__clickOutsideHandler__ = function onClickOutside(event) {
+            if (el === event.target || el.contains(event.target)) {
+                return;
+            }
+
+            if (typeof el.__clickOutsideValue__ === 'function') {
+                el.__clickOutsideValue__(event);
             }
         };
-        document.body.addEventListener('click', el._clickOutsideHandler);
+        document.body.addEventListener('click', el.__clickOutsideHandler__);
     },
-    unbind: function (el) {
-        document.body.removeEventListener('click', el._clickOutsideHandler);
-        delete el._clickOutsideHandler;
+    updated(el, binding) {
+        el.__clickOutsideValue__ = binding.value;
+    },
+    unmounted(el) {
+        document.body.removeEventListener('click', el.__clickOutsideHandler__);
+        delete el.__clickOutsideHandler__;
+        delete el.__clickOutsideValue__;
     }
-});
+};

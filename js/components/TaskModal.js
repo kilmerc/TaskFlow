@@ -185,7 +185,7 @@ Vue.component('task-modal', {
         draft: { deep: true, handler() { if (this.isCreate) this.resetFromContext(); } }
     },
     mounted() { document.addEventListener('keydown', this.onEsc); },
-    beforeDestroy() { document.removeEventListener('keydown', this.onEsc); },
+    beforeUnmount() { document.removeEventListener('keydown', this.onEsc); },
     methods: {
         resetFromContext() {
             this.closeTaskActions(false);

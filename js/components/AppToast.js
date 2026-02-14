@@ -43,7 +43,7 @@ Vue.component('app-toast', {
             }
         }
     },
-    beforeDestroy() {
+    beforeUnmount() {
         Object.keys(this.timers).forEach(id => {
             clearTimeout(this.timers[id]);
         });
