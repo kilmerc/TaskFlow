@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(del \"c:\\\\Personal\\\\Workspaces\\\\TaskFlow\\\\js\\\\components\\\\ThemeToggle.js\")",
-      "Bash(npx playwright test)"
+      "Bash(npx playwright test)",
+      "Bash(git checkout:*)",
+      "Bash(git merge:*)",
+      "Bash(git push:*)",
+      "Bash(git branch:*)"
     ]
   }
 }
