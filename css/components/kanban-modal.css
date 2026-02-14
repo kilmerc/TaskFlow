@@ -568,6 +568,7 @@
 }
 
 .modal-task-actions {
+  position: relative;
   margin-right: 0.25rem;
 }
 
@@ -575,7 +576,7 @@
   right: 0;
   top: calc(100% + 0.2rem);
   min-width: 170px;
-  z-index: 80;
+  z-index: 90;
 }
 
 .modal-title-row {

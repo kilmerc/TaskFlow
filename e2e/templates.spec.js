@@ -26,7 +26,7 @@ test.describe('Task Templates', () => {
         await page.locator('.modal-task-actions .column-menu-trigger').click();
         const saveTemplateItem = page.locator('.modal-task-actions .menu-item', { hasText: 'Save as template' });
         await expect(saveTemplateItem).toBeVisible();
-        await saveTemplateItem.evaluate(el => el.click());
+        await saveTemplateItem.click();
         await expect(page.locator('.app-dialog-panel')).toBeVisible();
         await page.locator('.app-dialog-input').fill(templateName);
         await page.locator('.app-dialog-panel .btn-primary').click();
@@ -108,5 +108,22 @@ test.describe('Task Templates', () => {
         await quickInput.fill('/');
         await expect(firstColumn.locator('.quick-add-tag-menu')).toHaveCount(0);
         expect(nativeDialogCount).toBe(0);
+    });
+
+    test('should open save-as-template from modal menu via keyboard', async ({ page }) => {
+        const firstColumn = page.locator('.kanban-column').first();
+        await firstColumn.locator('.column-quick-add-trigger').click();
+        await firstColumn.locator('.quick-add-input-wrapper textarea').fill('Keyboard Menu Source');
+        await firstColumn.locator('.quick-add-input-wrapper .add-actions .btn-primary').click();
+
+        await page.locator('.task-card').filter({ hasText: 'Keyboard Menu Source' }).first().locator('.task-open-btn').click();
+        const trigger = page.locator('.modal-task-actions .column-menu-trigger');
+        await trigger.focus();
+        await trigger.press('ArrowDown');
+        await page.keyboard.press('Enter');
+
+        await expect(page.locator('.app-dialog-panel')).toBeVisible();
+        await expect(page.locator('.app-dialog-title')).toContainText('Save as template');
+        await page.locator('.app-dialog-panel .btn-text').click();
     });
 });
