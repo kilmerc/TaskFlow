@@ -12,6 +12,7 @@ Vue.component('task-modal-subtasks', {
             </div>
             <draggable
                 v-model="subtasks"
+                :item-key="subtaskItemKey"
                 tag="ul"
                 class="subtask-list"
                 handle=".subtask-drag-handle"
@@ -20,25 +21,27 @@ Vue.component('task-modal-subtasks', {
                 :animation="150"
                 :disabled="!canDragSubtasks"
             >
-                <li v-for="(st, index) in subtasks" :key="subtaskKey(st, index)" class="subtask-item">
-                    <button
-                        type="button"
-                        class="subtask-drag-handle"
-                        :title="canDragSubtasks ? 'Drag to reorder subtask' : 'Add more subtasks to reorder'"
-                        aria-label="Drag to reorder subtask"
-                        :disabled="!canDragSubtasks"
-                    ><i class="fas fa-grip-vertical" aria-hidden="true"></i></button>
-                    <input type="checkbox" class="subtask-checkbox" :checked="st.done" @change="toggleSubtask(index, $event.target.checked)" title="Mark as done">
-                    <input
-                        type="text"
-                        :value="st.text"
-                        @change="updateSubtaskText(index, $event.target.value)"
-                        class="subtask-input"
-                        :class="{ completed: st.done }"
-                        placeholder="Subtask..."
-                    >
-                    <button type="button" class="delete-subtask-btn" @click="deleteSubtask(index)" title="Delete Subtask"><i class="fas fa-trash-alt"></i></button>
-                </li>
+                <template #item="{ element: st, index }">
+                    <li class="subtask-item">
+                        <button
+                            type="button"
+                            class="subtask-drag-handle"
+                            :title="canDragSubtasks ? 'Drag to reorder subtask' : 'Add more subtasks to reorder'"
+                            aria-label="Drag to reorder subtask"
+                            :disabled="!canDragSubtasks"
+                        ><i class="fas fa-grip-vertical" aria-hidden="true"></i></button>
+                        <input type="checkbox" class="subtask-checkbox" :checked="st.done" @change="toggleSubtask(index, $event.target.checked)" title="Mark as done">
+                        <input
+                            type="text"
+                            :value="st.text"
+                            @change="updateSubtaskText(index, $event.target.value)"
+                            class="subtask-input"
+                            :class="{ completed: st.done }"
+                            placeholder="Subtask..."
+                        >
+                        <button type="button" class="delete-subtask-btn" @click="deleteSubtask(index)" title="Delete Subtask"><i class="fas fa-trash-alt"></i></button>
+                    </li>
+                </template>
             </draggable>
             <div class="add-subtask">
                 <i class="fas fa-plus"></i>
@@ -92,8 +95,8 @@ Vue.component('task-modal-subtasks', {
         deleteSubtask(index) {
             mutations.deleteSubtask(this.taskId, index);
         },
-        subtaskKey(st, index) {
-            if (!st || typeof st !== 'object' || !this.subtaskKeyMap) return `subtask-${index}`;
+        subtaskItemKey(st) {
+            if (!st || typeof st !== 'object' || !this.subtaskKeyMap) return `subtask-${String(st)}`;
             if (!this.subtaskKeyMap.has(st)) {
                 this.subtaskKeySeed += 1;
                 this.subtaskKeyMap.set(st, `subtask-${this.subtaskKeySeed}`);

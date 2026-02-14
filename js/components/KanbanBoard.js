@@ -11,17 +11,19 @@ Vue.component('kanban-board', {
         <div class="kanban-board">
             <draggable 
                 v-model="columns" 
+                :item-key="item => item"
                 class="kanban-columns-container" 
                 handle=".column-header"
                 animation="150"
                 ghost-class="column-ghost"
                 @end="onDragEnd"
             >
-                <kanban-column 
-                    v-for="colId in columns" 
-                    :key="colId" 
-                    :column-id="colId"
-                ></kanban-column>
+                <template #item="{ element: colId }">
+                    <kanban-column
+                        :key="colId"
+                        :column-id="colId"
+                    ></kanban-column>
+                </template>
             </draggable>
             
             <div class="add-column-container">

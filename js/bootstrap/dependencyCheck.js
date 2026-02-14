@@ -1,7 +1,8 @@
 (function checkDependencies() {
-    const hasVue = !!window.Vue;
+    const hasVue = !!window.Vue && typeof window.Vue.createApp === 'function';
     const hasSortable = !!window.Sortable;
-    const hasDraggable = !!window.vuedraggable;
+    const resolvedDraggable = window.vuedraggable && (window.vuedraggable.default || window.vuedraggable);
+    const hasDraggable = !!resolvedDraggable;
     const hasAllDependencies = hasVue && hasSortable && hasDraggable;
 
     window.__DEPENDENCIES_LOADED__ = hasAllDependencies;

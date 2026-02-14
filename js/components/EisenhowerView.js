@@ -19,39 +19,41 @@ Vue.component('eisenhower-view', {
                 <draggable
                     class="eisenhower-list"
                     :list="unassignedTasks"
+                    item-key="id"
                     :group="dragGroup"
                     :sort="false"
                     @change="onUnassignedDrop"
                 >
-                    <div
-                        v-for="task in unassignedTasks"
-                        :key="task.id"
-                        class="matrix-task-card"
-                    >
-                        <div class="matrix-task-row">
-                            <input
-                                type="checkbox"
-                                class="task-checkbox matrix-task-checkbox"
-                                :checked="task.isCompleted"
-                                @click.stop
-                                @change="toggleTaskCompletion(task.id)"
-                                title="Mark as complete"
-                            >
-                            <button
-                                type="button"
-                                class="task-open-btn"
-                                :aria-label="'Open task ' + task.title"
-                                @click="openTask(task.id)"
-                            >
-                                <div class="task-content">
-                                    <span class="task-title">{{ task.title }}</span>
-                                    <div class="task-tags" v-if="task.tags && task.tags.length">
-                                        <span v-for="tag in task.tags" :key="tag" class="tag-pill" :class="getTagToneClass(tag)">{{ tag }}</span>
+                    <template #item="{ element: task }">
+                        <div
+                            :key="task.id"
+                            class="matrix-task-card"
+                        >
+                            <div class="matrix-task-row">
+                                <input
+                                    type="checkbox"
+                                    class="task-checkbox matrix-task-checkbox"
+                                    :checked="task.isCompleted"
+                                    @click.stop
+                                    @change="toggleTaskCompletion(task.id)"
+                                    title="Mark as complete"
+                                >
+                                <button
+                                    type="button"
+                                    class="task-open-btn"
+                                    :aria-label="'Open task ' + task.title"
+                                    @click="openTask(task.id)"
+                                >
+                                    <div class="task-content">
+                                        <span class="task-title">{{ task.title }}</span>
+                                        <div class="task-tags" v-if="task.tags && task.tags.length">
+                                            <span v-for="tag in task.tags" :key="tag" class="tag-pill" :class="getTagToneClass(tag)">{{ tag }}</span>
+                                        </div>
                                     </div>
-                                </div>
-                            </button>
+                                </button>
+                            </div>
                         </div>
-                    </div>
+                    </template>
 
                     <div v-if="unassignedTasks.length === 0" class="matrix-empty">
                         No unassigned tasks
@@ -84,39 +86,41 @@ Vue.component('eisenhower-view', {
                     <draggable
                         class="eisenhower-list"
                         :list="quadrantTasks(quadrant.priority)"
+                        item-key="id"
                         :group="dragGroup"
                         :sort="false"
                         @change="onQuadrantDrop($event, quadrant.priority)"
                     >
-                        <div
-                            v-for="task in quadrantTasks(quadrant.priority)"
-                            :key="task.id"
-                            class="matrix-task-card"
-                        >
-                            <div class="matrix-task-row">
-                                <input
-                                    type="checkbox"
-                                    class="task-checkbox matrix-task-checkbox"
-                                    :checked="task.isCompleted"
-                                    @click.stop
-                                    @change="toggleTaskCompletion(task.id)"
-                                    title="Mark as complete"
-                                >
-                                <button
-                                    type="button"
-                                    class="task-open-btn"
-                                    :aria-label="'Open task ' + task.title"
-                                    @click="openTask(task.id)"
-                                >
-                                    <div class="task-content">
-                                        <span class="task-title">{{ task.title }}</span>
-                                        <div class="task-tags" v-if="task.tags && task.tags.length">
-                                            <span v-for="tag in task.tags" :key="tag" class="tag-pill" :class="getTagToneClass(tag)">{{ tag }}</span>
+                        <template #item="{ element: task }">
+                            <div
+                                :key="task.id"
+                                class="matrix-task-card"
+                            >
+                                <div class="matrix-task-row">
+                                    <input
+                                        type="checkbox"
+                                        class="task-checkbox matrix-task-checkbox"
+                                        :checked="task.isCompleted"
+                                        @click.stop
+                                        @change="toggleTaskCompletion(task.id)"
+                                        title="Mark as complete"
+                                    >
+                                    <button
+                                        type="button"
+                                        class="task-open-btn"
+                                        :aria-label="'Open task ' + task.title"
+                                        @click="openTask(task.id)"
+                                    >
+                                        <div class="task-content">
+                                            <span class="task-title">{{ task.title }}</span>
+                                            <div class="task-tags" v-if="task.tags && task.tags.length">
+                                                <span v-for="tag in task.tags" :key="tag" class="tag-pill" :class="getTagToneClass(tag)">{{ tag }}</span>
+                                            </div>
                                         </div>
-                                    </div>
-                                </button>
+                                    </button>
+                                </div>
                             </div>
-                        </div>
+                        </template>
                     </draggable>
                 </div>
             </section>

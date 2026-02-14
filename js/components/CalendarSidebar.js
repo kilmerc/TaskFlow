@@ -17,47 +17,51 @@ Vue.component('calendar-sidebar', {
             <draggable 
                 class="sidebar-list" 
                 :list="unscheduledTasks" 
+                item-key="id"
                 :group="{ name: 'calendar', pull: 'clone', put: true }"
                 :sort="false"
                 @change="onSidebarDrop"
             >
-                <div 
-                    v-for="task in unscheduledTasks" 
-                    :key="task.id"
-                    class="task-card"
-                    :class="'task-color-' + (task.color || 'gray')"
-                >
-                    <div class="task-card-row">
-                        <input
-                            type="checkbox"
-                            class="task-checkbox"
-                            :checked="task.isCompleted"
-                            @click.stop
-                            @change="toggleTaskCompletion(task.id)"
-                            title="Mark as complete"
-                        >
-                        <button
-                            type="button"
-                            class="task-open-btn"
-                            :aria-label="'Open task ' + task.title"
-                            @click="openTask(task)"
-                        >
-                            <div class="task-content">
-                                <span class="task-title">{{ task.title }}</span>
-                                <div class="task-meta" v-if="task.subtasks && task.subtasks.length > 0">
-                                    <span class="meta-item">
-                                        <i class="fas fa-check-square"></i> 
-                                        {{ task.subtasks.filter(s => s.done).length }}/{{ task.subtasks.length }}
-                                    </span>
+                <template #item="{ element: task }">
+                    <div
+                        :key="task.id"
+                        class="task-card"
+                        :class="'task-color-' + (task.color || 'gray')"
+                    >
+                        <div class="task-card-row">
+                            <input
+                                type="checkbox"
+                                class="task-checkbox"
+                                :checked="task.isCompleted"
+                                @click.stop
+                                @change="toggleTaskCompletion(task.id)"
+                                title="Mark as complete"
+                            >
+                            <button
+                                type="button"
+                                class="task-open-btn"
+                                :aria-label="'Open task ' + task.title"
+                                @click="openTask(task)"
+                            >
+                                <div class="task-content">
+                                    <span class="task-title">{{ task.title }}</span>
+                                    <div class="task-meta" v-if="task.subtasks && task.subtasks.length > 0">
+                                        <span class="meta-item">
+                                            <i class="fas fa-check-square"></i>
+                                            {{ task.subtasks.filter(s => s.done).length }}/{{ task.subtasks.length }}
+                                        </span>
+                                    </div>
                                 </div>
-                            </div>
-                        </button>
+                            </button>
+                        </div>
                     </div>
-                </div>
-                
-                <div v-if="unscheduledTasks.length === 0" class="empty-state-text">
-                    All tasks scheduled!
-                </div>
+                </template>
+
+                <template #footer>
+                    <div v-if="unscheduledTasks.length === 0" class="empty-state-text">
+                        All tasks scheduled!
+                    </div>
+                </template>
             </draggable>
         </div>
     `,

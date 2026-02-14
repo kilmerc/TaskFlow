@@ -55,30 +55,32 @@ Vue.component('calendar-view', {
                         
                         <draggable 
                             :list="cell.tasks" 
+                            item-key="id"
                             group="calendar"
                             :data-date="cell.dateStr"
                             @change="onTaskDrop($event, cell.dateStr)"
                             class="cal-task-list"
                         >
-                            <button
-                                v-for="task in cell.tasks" 
-                                :key="task.id"
-                                class="cal-task-pill"
-                                :class="'task-color-' + (task.color || 'gray')"
-                                type="button"
-                                :aria-label="'Open task ' + task.title"
-                                @click.stop="openTask(task)"
-                            >
-                                <input
-                                    type="checkbox"
-                                    class="cal-task-checkbox"
-                                    :checked="task.isCompleted"
-                                    @click.stop
-                                    @change="toggleTaskCompletion(task.id)"
-                                    title="Mark as complete"
+                            <template #item="{ element: task }">
+                                <button
+                                    :key="task.id"
+                                    class="cal-task-pill"
+                                    :class="'task-color-' + (task.color || 'gray')"
+                                    type="button"
+                                    :aria-label="'Open task ' + task.title"
+                                    @click.stop="openTask(task)"
                                 >
-                                <span class="pill-title">{{ task.title }}</span>
-                            </button>
+                                    <input
+                                        type="checkbox"
+                                        class="cal-task-checkbox"
+                                        :checked="task.isCompleted"
+                                        @click.stop
+                                        @change="toggleTaskCompletion(task.id)"
+                                        title="Mark as complete"
+                                    >
+                                    <span class="pill-title">{{ task.title }}</span>
+                                </button>
+                            </template>
                         </draggable>
                     </div>
                 </div>

@@ -27,6 +27,7 @@ Vue.component('kanban-column', {
 
                 <draggable
                     v-model="displayTasks"
+                    :item-key="item => item"
                     group="tasks"
                     class="task-list-draggable"
                     ghost-class="task-ghost"
@@ -34,14 +35,17 @@ Vue.component('kanban-column', {
                     :animation="150"
                     :draggable="'.sortable-task'"
                 >
-                    <task-card
-                        v-for="taskId in displayTasks"
-                        :key="taskId"
-                        :task-id="taskId"
-                        class="sortable-task"
-                    ></task-card>
+                    <template #item="{ element: taskId }">
+                        <task-card
+                            :key="taskId"
+                            :task-id="taskId"
+                            class="sortable-task"
+                        ></task-card>
+                    </template>
 
-                    <div slot="footer" class="column-drop-spacer" aria-hidden="true"></div>
+                    <template #footer>
+                        <div class="column-drop-spacer" aria-hidden="true"></div>
+                    </template>
                 </draggable>
 
                 <div v-if="completedCount > 0" class="completed-section">

@@ -1,41 +1,13 @@
 import { store, hydrate, persist, mutations } from './store.js';
 import { exportData, importData } from './utils/io.js';
+import { registerGlobals } from './bootstrap/registerGlobals.js';
 
-// Global directives
-import './directives/clickOutside.js';
-
-// Import components for side-effects (global registration)
-// Subcomponents must be imported before their parent components
-import './components/KanbanColumnHeader.js';
-import './components/KanbanQuickAdd.js';
-import './components/TaskModalColumnPicker.js';
-import './components/TaskModalTagEditor.js';
-import './components/TaskModalSubtasks.js';
-import './components/WorkspaceSwitcher.js';
-import './components/KanbanBoard.js';
-import './components/KanbanColumn.js';
-import './components/CalendarView.js';
-import './components/CalendarSidebar.js';
-import './components/EisenhowerView.js';
-import './components/TaskCard.js';
-import './components/TaskModal.js';
-import './components/FilterBar.js';
-import './components/SearchControls.js';
-import './components/AppDialog.js';
-import './components/AppToast.js';
-import './components/TemplateGalleryModal.js';
-
-// Global error handler for Vue
-Vue.config.errorHandler = function (err, vm, info) {
-    console.error('Vue Error:', err, info);
-};
-
-// Main App instance
-new Vue({
-    el: '#app',
-    data: {
-        store: store,
-        currentView: 'kanban' // Start with 'kanban' default
+const app = Vue.createApp({
+    data() {
+        return {
+            store: store,
+            currentView: 'kanban' // Start with 'kanban' default
+        };
     },
 
     computed: {
@@ -98,3 +70,10 @@ new Vue({
         }
     }
 });
+
+app.config.errorHandler = function onVueError(err, vm, info) {
+    console.error('Vue Error:', err, info);
+};
+
+registerGlobals(app);
+app.mount('#app');
