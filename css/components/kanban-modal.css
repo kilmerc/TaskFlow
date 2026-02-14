@@ -695,6 +695,10 @@ input[type="date"] {
   outline: none;
 }
 
+[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.1);
+}
+
 select {
   padding: 0.5rem;
   border: 1px solid var(--border-color);

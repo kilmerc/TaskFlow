@@ -363,6 +363,24 @@ function normalizeTemplateSubtasks(subtasks) {
     return normalized;
 }
 
+function normalizeDraftSubtasks(subtasks) {
+    if (!Array.isArray(subtasks)) {
+        return [];
+    }
+
+    const normalized = [];
+    subtasks.forEach(item => {
+        const text = normalizeText(item && item.text);
+        if (!text) return;
+        normalized.push({
+            text,
+            done: !!(item && item.done)
+        });
+    });
+
+    return normalized;
+}
+
 function getWorkspaceTemplateList(workspaceId) {
     if (!workspaceId) return [];
     return Object.values(store.taskTemplates).filter(template =>
@@ -852,6 +870,41 @@ export const mutations = {
         return success({ templateId: id });
     },
 
+    createTaskTemplateFromDraft(rawDraft, rawTemplateName) {
+        const draft = rawDraft && typeof rawDraft === 'object' ? rawDraft : {};
+        let workspaceId = typeof draft.workspaceId === 'string' ? draft.workspaceId : null;
+        if (!workspaceId || !getWorkspace(workspaceId)) {
+            workspaceId = store.currentWorkspaceId;
+        }
+        if (!workspaceId || !getWorkspace(workspaceId)) {
+            return failure(buildValidationError('invalid_target', 'Target workspace does not exist.', 'template'));
+        }
+
+        const nameValidation = validateTemplateName(workspaceId, rawTemplateName);
+        if (!nameValidation.ok) {
+            return failure(nameValidation.error);
+        }
+
+        const nowIso = new Date().toISOString();
+        const id = generateId('tmpl');
+        const template = {
+            id,
+            workspaceId,
+            name: nameValidation.value,
+            description: typeof draft.description === 'string' ? draft.description : '',
+            tags: normalizeTagList(draft.tags || []),
+            priority: normalizePriority(draft.priority),
+            color: typeof draft.color === 'string' && draft.color ? draft.color : 'gray',
+            subtasks: normalizeTemplateSubtasks(draft.subtasks),
+            createdAt: nowIso,
+            updatedAt: nowIso
+        };
+
+        store.taskTemplates[id] = template;
+        persist();
+        return success({ templateId: id });
+    },
+
     updateTaskTemplate(templateId, updates) {
         const template = store.taskTemplates[templateId];
         if (!template || !updates || typeof updates !== 'object') {
@@ -1051,7 +1104,8 @@ export const mutations = {
             priority: normalizePriority(input.priority),
             color: typeof input.color === 'string' && input.color ? input.color : 'gray',
             tags: normalizeTagList(input.tags || []),
-            columnId: columnId || null
+            columnId: columnId || null,
+            subtasks: normalizeDraftSubtasks(input.subtasks)
         };
         return success();
     },
@@ -1389,6 +1443,12 @@ export const mutations = {
         case 'template.saveFromTask':
             result = this.createTaskTemplateFromTask(
                 action.payload && action.payload.taskId,
+                store.dialog.input.value
+            );
+            break;
+        case 'template.saveFromDraft':
+            result = this.createTaskTemplateFromDraft(
+                action.payload && action.payload.draft,
                 store.dialog.input.value
             );
             break;

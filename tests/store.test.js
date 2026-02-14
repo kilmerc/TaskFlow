@@ -246,6 +246,96 @@ describe('Store', () => {
         expect(store.columnTaskOrder[col2][0]).to.equal(newTaskId);
     });
 
+    it('should initialize create modal draft with normalized subtasks', () => {
+        const colId = store.workspaces[0].columns[0];
+        const firstOpenResult = mutations.openTaskModalForCreate({
+            workspaceId: store.currentWorkspaceId,
+            columnId: colId,
+            subtasks: [
+                { text: '  First   Step ', done: true },
+                { text: '   ', done: true },
+                { text: 'Second', done: 0 }
+            ]
+        });
+
+        expect(firstOpenResult.ok).to.equal(true);
+        expect(store.taskModalMode).to.equal('create');
+        expect(store.taskModalDraft.columnId).to.equal(colId);
+        expect(store.taskModalDraft.subtasks).to.deep.equal([
+            { text: 'First Step', done: true },
+            { text: 'Second', done: false }
+        ]);
+
+        const secondOpenResult = mutations.openTaskModalForCreate({
+            workspaceId: store.currentWorkspaceId
+        });
+        expect(secondOpenResult.ok).to.equal(true);
+        expect(store.taskModalDraft.subtasks).to.deep.equal([]);
+    });
+
+    it('should save task templates from create drafts and reset subtask done state', () => {
+        const draftResult = mutations.createTaskTemplateFromDraft({
+            workspaceId: store.currentWorkspaceId,
+            title: 'Draft source title',
+            description: 'Draft description',
+            tags: ['Ops', 'ops', '#Team'],
+            priority: 'III',
+            color: 'purple',
+            subtasks: [
+                { text: '  Draft Step  ', done: true },
+                { text: '', done: false }
+            ]
+        }, ' Draft Template ');
+
+        expect(draftResult.ok).to.equal(true);
+        const template = store.taskTemplates[draftResult.data.templateId];
+
+        expect(template.workspaceId).to.equal(store.currentWorkspaceId);
+        expect(template.name).to.equal('draft-template');
+        expect(template.description).to.equal('Draft description');
+        expect(template.tags).to.deep.equal(['ops', 'team']);
+        expect(template.priority).to.equal('III');
+        expect(template.color).to.equal('purple');
+        expect(template.subtasks).to.deep.equal([{ text: 'Draft Step', done: false }]);
+        expect(template).to.not.have.property('dueDate');
+        expect(template).to.not.have.property('columnId');
+    });
+
+    it('should execute template.saveFromDraft dialog action and keep dialog open on validation errors', () => {
+        mutations.openDialog({
+            variant: 'prompt',
+            title: 'Save as template',
+            action: {
+                type: 'template.saveFromDraft',
+                payload: {
+                    draft: {
+                        workspaceId: store.currentWorkspaceId,
+                        description: 'Draft dialog description',
+                        tags: ['Ops'],
+                        priority: 'I',
+                        color: 'green',
+                        subtasks: [{ text: 'Dialog Step', done: true }]
+                    }
+                }
+            },
+            input: { value: '   ' }
+        });
+
+        const failResult = mutations.confirmDialog();
+        expect(failResult.ok).to.equal(false);
+        expect(store.dialog.isOpen).to.equal(true);
+        expect(store.dialog.error).to.contain('required');
+
+        mutations.setDialogInput('Dialog Draft Template');
+        const successResult = mutations.confirmDialog();
+        expect(successResult.ok).to.equal(true);
+        expect(store.dialog.isOpen).to.equal(false);
+
+        const createdTemplate = Object.values(store.taskTemplates).find(template => template.name === 'dialog-draft-template');
+        expect(createdTemplate).to.exist;
+        expect(createdTemplate.subtasks).to.deep.equal([{ text: 'Dialog Step', done: false }]);
+    });
+
     it('should prune workspace templates when deleting a workspace', () => {
         const baseWorkspaceId = store.currentWorkspaceId;
         const baseColumnId = store.workspaces[0].columns[0];

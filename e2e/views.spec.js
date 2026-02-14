@@ -198,4 +198,79 @@ test.describe('Views & Filtering', () => {
         await expect(secondColumn.locator('.task-card').filter({ hasText: 'Second Hidden Task' })).toBeVisible();
         await expect(firstColumn.locator('.task-card').filter({ hasText: 'Filter Move Task' })).toHaveCount(0);
     });
+
+    test('should show parity controls in calendar create modal and persist created subtasks', async ({ page }) => {
+        await page.locator('button[title="Calendar View"]').click();
+
+        const todayCell = page.locator('.cal-cell.today').first();
+        await todayCell.click();
+        await expect(page.locator('.modal-content')).toBeVisible();
+        await expect(page.locator('.modal-task-actions .column-menu-trigger')).toBeVisible();
+        await expect(page.locator('.subtasks-section')).toBeVisible();
+
+        await page.locator('.modal-title-input').fill('Calendar Modal Parity');
+        const createSubtaskInput = page.locator('.modal-content .add-subtask input');
+        await createSubtaskInput.fill('Calendar step one');
+        await createSubtaskInput.press('Enter');
+        await expect(page.locator('.modal-content .subtask-input').first()).toHaveValue('Calendar step one');
+
+        await page.locator('.modal-footer .btn-primary', { hasText: 'Create Task' }).click();
+        await expect(page.locator('.modal-content')).toHaveCount(0);
+
+        const createdPill = page.locator('.cal-cell.today .cal-task-pill').filter({ hasText: 'Calendar Modal Parity' }).first();
+        await expect(createdPill).toBeVisible();
+        await createdPill.click();
+        await expect(page.locator('.modal-content .subtask-input').first()).toHaveValue('Calendar step one');
+        await page.locator('.modal-footer .btn-primary', { hasText: 'OK' }).click();
+    });
+
+    test('should save a template from eisenhower create modal without creating a task', async ({ page }) => {
+        await page.locator('button[title="Eisenhower Matrix View"]').click();
+
+        await page.locator('.matrix-add-btn').first().click();
+        await expect(page.locator('.modal-content')).toBeVisible();
+        await expect(page.locator('.modal-task-actions .column-menu-trigger')).toBeVisible();
+        await expect(page.locator('.subtasks-section')).toBeVisible();
+
+        await page.locator('.modal-title-input').fill('Draft-only Matrix Task');
+        const subtaskInput = page.locator('.modal-content .add-subtask input');
+        await subtaskInput.fill('Matrix template step');
+        await subtaskInput.press('Enter');
+
+        await page.locator('.modal-task-actions .column-menu-trigger').click();
+        await page.locator('.modal-task-actions .menu-item', { hasText: 'Save as template' }).click();
+        await expect(page.locator('.app-dialog-panel')).toBeVisible();
+        await page.locator('.app-dialog-input').fill('Matrix Draft Template');
+        await page.locator('.app-dialog-panel .btn-primary').click();
+
+        await page.locator('.close-btn').first().click();
+        await expect(page.locator('.eisenhower-layout')).not.toContainText('Draft-only Matrix Task');
+
+        await page.locator('button[title="Kanban Board"]').click();
+        const firstColumn = page.locator('.kanban-column').first();
+        await firstColumn.locator('.column-quick-add-trigger').click();
+        const quickInput = firstColumn.locator('.quick-add-input-wrapper textarea');
+        await quickInput.fill('/');
+        await expect(firstColumn.locator('.quick-add-tag-menu .quick-add-tag-item').first()).toContainText('/matrix-draft-template');
+    });
+
+    test('should discard create-mode draft values after closing the modal', async ({ page }) => {
+        await page.locator('button[title="Calendar View"]').click();
+
+        const todayCell = page.locator('.cal-cell.today').first();
+        await todayCell.click();
+        await expect(page.locator('.modal-content')).toBeVisible();
+
+        await page.locator('.modal-title-input').fill('Discard me');
+        const subtaskInput = page.locator('.modal-content .add-subtask input');
+        await subtaskInput.fill('Unsaved subtask');
+        await subtaskInput.press('Enter');
+        await expect(page.locator('.modal-content .subtask-item')).toHaveCount(1);
+        await page.locator('.close-btn').first().click();
+
+        await todayCell.click();
+        await expect(page.locator('.modal-title-input')).toHaveValue('');
+        await expect(page.locator('.modal-content .subtask-item')).toHaveCount(0);
+        await page.locator('.close-btn').first().click();
+    });
 });

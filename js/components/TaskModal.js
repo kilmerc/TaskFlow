@@ -30,7 +30,7 @@ const TaskModal = {
                             placeholder="Task Title *"
                         >
                     </div>
-                    <div v-if="isEdit" class="dropdown modal-task-actions" :class="{ active: isTaskActionsOpen }" v-click-outside="onTaskActionsOutside">
+                    <div class="dropdown modal-task-actions" :class="{ active: isTaskActionsOpen }" v-click-outside="onTaskActionsOutside">
                         <button
                             ref="taskActionsTrigger"
                             type="button"
@@ -119,8 +119,11 @@ const TaskModal = {
                     </div>
 
                     <task-modal-subtasks
-                        v-if="isEdit"
-                        :task-id="task.id"
+                        :subtasks="isEdit && task ? (task.subtasks || []) : localSubtasks"
+                        @add-subtask="onAddSubtask"
+                        @update-subtask="onUpdateSubtask"
+                        @delete-subtask="onDeleteSubtask"
+                        @reorder-subtasks="onReorderSubtasks"
                     ></task-modal-subtasks>
                 </div>
 
@@ -144,6 +147,7 @@ const TaskModal = {
         const localPriority = ref('');
         const localColor = ref('gray');
         const localTags = ref([]);
+        const localSubtasks = ref([]);
         const localColumnId = ref(null);
         const localColumnInput = ref('');
         const showTitleError = ref(false);
@@ -238,6 +242,12 @@ const TaskModal = {
                 localPriority.value = task.value.priority || '';
                 localColor.value = task.value.color || 'gray';
                 localTags.value = Array.isArray(task.value.tags) ? task.value.tags.slice() : [];
+                localSubtasks.value = Array.isArray(task.value.subtasks)
+                    ? task.value.subtasks.map(subtask => ({
+                        text: typeof subtask.text === 'string' ? subtask.text : '',
+                        done: !!subtask.done
+                    }))
+                    : [];
                 localColumnId.value = task.value.columnId || null;
                 localColumnInput.value = getColumnTitle(localColumnId.value);
                 return;
@@ -251,6 +261,12 @@ const TaskModal = {
                 localPriority.value = draftValue.priority || '';
                 localColor.value = draftValue.color || 'gray';
                 localTags.value = Array.isArray(draftValue.tags) ? draftValue.tags.slice() : [];
+                localSubtasks.value = Array.isArray(draftValue.subtasks)
+                    ? draftValue.subtasks.map(subtask => ({
+                        text: typeof subtask.text === 'string' ? subtask.text : '',
+                        done: !!subtask.done
+                    }))
+                    : [];
                 localColumnId.value = draftValue.columnId && store.columns[draftValue.columnId]
                     ? draftValue.columnId
                     : (workspaceColumns.value[0] ? workspaceColumns.value[0].id : null);
@@ -264,6 +280,7 @@ const TaskModal = {
             localPriority.value = '';
             localColor.value = 'gray';
             localTags.value = [];
+            localSubtasks.value = [];
             localColumnId.value = null;
             localColumnInput.value = '';
         }
@@ -345,8 +362,37 @@ const TaskModal = {
         }
 
         function saveAsTemplate() {
-            if (!isEdit.value || !task.value) return;
             closeTaskActions(false);
+            let action = null;
+            if (isEdit.value && task.value) {
+                action = {
+                    type: 'template.saveFromTask',
+                    payload: { taskId: task.value.id }
+                };
+            } else if (isCreate.value) {
+                action = {
+                    type: 'template.saveFromDraft',
+                    payload: {
+                        draft: {
+                            workspaceId: workspaceId.value || store.currentWorkspaceId || null,
+                            title: localTitle.value,
+                            description: localDescription.value,
+                            dueDate: localDueDate.value || null,
+                            priority: localPriority.value || null,
+                            color: localColor.value,
+                            tags: localTags.value.slice(),
+                            columnId: localColumnId.value || null,
+                            subtasks: localSubtasks.value.map(subtask => ({
+                                text: typeof subtask.text === 'string' ? subtask.text : '',
+                                done: !!subtask.done
+                            }))
+                        }
+                    }
+                };
+            } else {
+                return;
+            }
+
             mutations.openDialog({
                 variant: 'prompt',
                 title: 'Save as template',
@@ -357,10 +403,7 @@ const TaskModal = {
                     placeholder: 'Template name',
                     maxLength: MAX_TASK_TITLE
                 },
-                action: {
-                    type: 'template.saveFromTask',
-                    payload: { taskId: task.value.id }
-                }
+                action
             });
         }
 
@@ -514,6 +557,82 @@ const TaskModal = {
             }
         }
 
+        function normalizeLocalSubtaskText(value) {
+            if (typeof value !== 'string') {
+                return '';
+            }
+            return value.replace(/\s+/g, ' ').trim();
+        }
+
+        function onAddSubtask(text) {
+            const normalizedText = normalizeLocalSubtaskText(text);
+            if (!normalizedText) return;
+
+            if (isEdit.value && task.value) {
+                mutations.addSubtask(task.value.id, normalizedText);
+                return;
+            }
+
+            if (!isCreate.value) return;
+            localSubtasks.value = [...localSubtasks.value, {
+                text: normalizedText,
+                done: false
+            }];
+        }
+
+        function onUpdateSubtask(payload) {
+            const index = payload && Number.isInteger(payload.index) ? payload.index : -1;
+            const updates = payload && typeof payload.updates === 'object' ? payload.updates : {};
+            if (index < 0) return;
+
+            if (isEdit.value && task.value) {
+                mutations.updateSubtask(task.value.id, index, updates);
+                return;
+            }
+
+            if (!isCreate.value || !localSubtasks.value[index]) return;
+            const next = localSubtasks.value.slice();
+            const current = next[index];
+            const hasText = Object.prototype.hasOwnProperty.call(updates, 'text');
+            const hasDone = Object.prototype.hasOwnProperty.call(updates, 'done');
+
+            next[index] = {
+                text: hasText ? normalizeLocalSubtaskText(updates.text) : current.text,
+                done: hasDone ? !!updates.done : !!current.done
+            };
+
+            localSubtasks.value = next;
+        }
+
+        function onDeleteSubtask(index) {
+            if (!Number.isInteger(index) || index < 0) return;
+
+            if (isEdit.value && task.value) {
+                mutations.deleteSubtask(task.value.id, index);
+                return;
+            }
+
+            if (!isCreate.value || !localSubtasks.value[index]) return;
+            const next = localSubtasks.value.slice();
+            next.splice(index, 1);
+            localSubtasks.value = next;
+        }
+
+        function onReorderSubtasks(subtasks) {
+            if (!Array.isArray(subtasks)) return;
+
+            if (isEdit.value && task.value) {
+                mutations.reorderSubtasks(task.value.id, subtasks);
+                return;
+            }
+
+            if (!isCreate.value) return;
+            localSubtasks.value = subtasks.map(subtask => ({
+                text: normalizeLocalSubtaskText(subtask && subtask.text),
+                done: !!(subtask && subtask.done)
+            }));
+        }
+
         function submitModal() {
             if (!isCreate.value) {
                 close();
@@ -537,7 +656,11 @@ const TaskModal = {
                 dueDate: localDueDate.value || null,
                 priority: localPriority.value || null,
                 color: localColor.value,
-                tags: localTags.value
+                tags: localTags.value,
+                subtasks: localSubtasks.value.map(subtask => ({
+                    text: typeof subtask.text === 'string' ? subtask.text : '',
+                    done: !!subtask.done
+                }))
             });
             if (!createResult.ok) {
                 if (createResult.error.field === 'column') {
@@ -582,6 +705,7 @@ const TaskModal = {
             localPriority,
             localColor,
             localTags,
+            localSubtasks,
             localColumnId,
             localColumnInput,
             showTitleError,
@@ -621,6 +745,10 @@ const TaskModal = {
             onAddTag,
             onRemoveTag,
             onRemoveLastTag,
+            onAddSubtask,
+            onUpdateSubtask,
+            onDeleteSubtask,
+            onReorderSubtasks,
             submitModal,
             deleteTask
         };

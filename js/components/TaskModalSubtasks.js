@@ -1,20 +1,19 @@
-import { store, mutations } from '../store.js';
-
 const { ref, computed } = Vue;
 
 const TaskModalSubtasks = {
     name: 'TaskModalSubtasks',
     props: {
-        taskId: { type: String, required: true }
+        subtasks: { type: Array, required: true }
     },
+    emits: ['add-subtask', 'update-subtask', 'delete-subtask', 'reorder-subtasks'],
     template: `
         <div class="subtasks-section">
             <label>Subtasks</label>
-            <div class="progress-bar" v-if="subtasks.length > 0">
+            <div class="progress-bar" v-if="localSubtasks.length > 0">
                 <div class="progress-fill" :style="{ width: progress + '%' }"></div>
             </div>
             <draggable
-                v-model="subtasks"
+                v-model="localSubtasks"
                 :item-key="subtaskItemKey"
                 tag="ul"
                 class="subtask-list"
@@ -58,51 +57,47 @@ const TaskModalSubtasks = {
             </div>
         </div>
     `,
-    setup(props) {
+    setup(props, { emit }) {
         const newSubtaskText = ref('');
         const subtaskKeySeed = ref(0);
         const subtaskKeyMap = typeof WeakMap === 'function' ? new WeakMap() : null;
 
-        const task = computed(() => {
-            return store.tasks[props.taskId] || {};
-        });
-
-        const subtasks = computed({
+        const localSubtasks = computed({
             get() {
-                return task.value.subtasks || [];
+                return Array.isArray(props.subtasks) ? props.subtasks : [];
             },
             set(value) {
-                mutations.reorderSubtasks(props.taskId, value);
+                emit('reorder-subtasks', Array.isArray(value) ? value : []);
             }
         });
 
         const canDragSubtasks = computed(() => {
-            return subtasks.value.length > 1;
+            return localSubtasks.value.length > 1;
         });
 
         const progress = computed(() => {
-            if (!subtasks.value.length) return 0;
-            const done = subtasks.value.filter(st => st.done).length;
-            return (done / subtasks.value.length) * 100;
+            if (!localSubtasks.value.length) return 0;
+            const done = localSubtasks.value.filter(st => st.done).length;
+            return (done / localSubtasks.value.length) * 100;
         });
 
         function addSubtask() {
             if (newSubtaskText.value.trim()) {
-                mutations.addSubtask(props.taskId, newSubtaskText.value.trim());
+                emit('add-subtask', newSubtaskText.value.trim());
                 newSubtaskText.value = '';
             }
         }
 
         function toggleSubtask(index, done) {
-            mutations.updateSubtask(props.taskId, index, { done });
+            emit('update-subtask', { index, updates: { done } });
         }
 
         function updateSubtaskText(index, text) {
-            mutations.updateSubtask(props.taskId, index, { text });
+            emit('update-subtask', { index, updates: { text } });
         }
 
         function deleteSubtask(index) {
-            mutations.deleteSubtask(props.taskId, index);
+            emit('delete-subtask', index);
         }
 
         function subtaskItemKey(st) {
@@ -118,7 +113,7 @@ const TaskModalSubtasks = {
 
         return {
             newSubtaskText,
-            subtasks,
+            localSubtasks,
             canDragSubtasks,
             progress,
             addSubtask,
