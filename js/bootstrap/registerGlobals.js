@@ -1,83 +1,45 @@
-import { getLegacyRegistry } from './vue2Compat.js';
 import { clickOutsideDirective } from '../directives/clickOutside.js';
 
-// Import components for side-effects (legacy Vue.component registration)
-// Subcomponents must be imported before their parent components
-import '../components/KanbanColumnHeader.js';
-import '../components/KanbanQuickAdd.js';
-import '../components/TaskModalColumnPicker.js';
-import '../components/TaskModalTagEditor.js';
-import '../components/TaskModalSubtasks.js';
-import '../components/WorkspaceSwitcher.js';
-import '../components/KanbanBoard.js';
-import '../components/KanbanColumn.js';
-import '../components/CalendarView.js';
-import '../components/CalendarSidebar.js';
-import '../components/EisenhowerView.js';
-import '../components/TaskCard.js';
-import '../components/TaskModal.js';
-import '../components/FilterBar.js';
-import '../components/SearchControls.js';
-import '../components/AppDialog.js';
-import '../components/AppToast.js';
-import '../components/TemplateGalleryModal.js';
-
-function adaptLegacyDirective(definition) {
-    if (!definition || typeof definition !== 'object') {
-        return definition;
-    }
-
-    if (
-        typeof definition.beforeMount === 'function'
-        || typeof definition.mounted === 'function'
-        || typeof definition.updated === 'function'
-        || typeof definition.unmounted === 'function'
-    ) {
-        return definition;
-    }
-
-    const adapted = {};
-
-    if (typeof definition.bind === 'function') {
-        adapted.beforeMount = definition.bind;
-    }
-    if (typeof definition.inserted === 'function') {
-        adapted.mounted = definition.inserted;
-    }
-    if (typeof definition.update === 'function') {
-        adapted.updated = definition.update;
-    }
-    if (typeof definition.componentUpdated === 'function') {
-        adapted.updated = definition.componentUpdated;
-    }
-    if (typeof definition.unbind === 'function') {
-        adapted.unmounted = definition.unbind;
-    }
-
-    return adapted;
-}
+import KanbanColumnHeader from '../components/KanbanColumnHeader.js';
+import KanbanQuickAdd from '../components/KanbanQuickAdd.js';
+import TaskModalColumnPicker from '../components/TaskModalColumnPicker.js';
+import TaskModalTagEditor from '../components/TaskModalTagEditor.js';
+import TaskModalSubtasks from '../components/TaskModalSubtasks.js';
+import WorkspaceSwitcher from '../components/WorkspaceSwitcher.js';
+import TaskCard from '../components/TaskCard.js';
+import KanbanColumn from '../components/KanbanColumn.js';
+import CalendarSidebar from '../components/CalendarSidebar.js';
+import KanbanBoard from '../components/KanbanBoard.js';
+import CalendarView from '../components/CalendarView.js';
+import EisenhowerView from '../components/EisenhowerView.js';
+import TaskModal from '../components/TaskModal.js';
+import FilterBar from '../components/FilterBar.js';
+import SearchControls from '../components/SearchControls.js';
+import AppDialog from '../components/AppDialog.js';
+import AppToast from '../components/AppToast.js';
+import TemplateGalleryModal from '../components/TemplateGalleryModal.js';
 
 export function registerGlobals(app) {
-    const legacyRegistry = getLegacyRegistry();
-    const componentEntries = Object.entries(legacyRegistry.components || {});
-    const directiveEntries = Object.entries(legacyRegistry.directives || {});
-
     app.directive('click-outside', clickOutsideDirective);
 
-    componentEntries.forEach(([name, definition]) => {
-        app.component(name, definition);
-    });
-
-    directiveEntries.forEach(([name, definition]) => {
-        if (name === 'click-outside') {
-            return;
-        }
-
-        const adapted = adaptLegacyDirective(definition);
-        if (adapted) {
-            app.directive(name, adapted);
-        }
-    });
+    app.component('kanban-column-header', KanbanColumnHeader);
+    app.component('kanban-quick-add', KanbanQuickAdd);
+    app.component('task-modal-column-picker', TaskModalColumnPicker);
+    app.component('task-modal-tag-editor', TaskModalTagEditor);
+    app.component('task-modal-subtasks', TaskModalSubtasks);
+    app.component('workspace-switcher', WorkspaceSwitcher);
+    app.component('task-card', TaskCard);
+    app.component('kanban-column', KanbanColumn);
+    app.component('calendar-sidebar', CalendarSidebar);
+    app.component('kanban-board', KanbanBoard);
+    app.component('calendar-view', CalendarView);
+    app.component('eisenhower-view', EisenhowerView);
+    app.component('task-modal', TaskModal);
+    app.component('filter-bar', FilterBar);
+    app.component('search-controls', SearchControls);
+    app.component('app-dialog', AppDialog);
+    app.component('app-toast', AppToast);
+    app.component('template-gallery-modal', TemplateGalleryModal);
 
     const draggable = window.vuedraggable && (window.vuedraggable.default || window.vuedraggable);
     if (draggable) {
