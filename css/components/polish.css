@@ -35,7 +35,7 @@
   min-width: 0;
 }
 
-.search-sort-controls {
+.search-controls {
   display: flex;
   align-items: center;
   gap: 0.45rem;
@@ -78,16 +78,6 @@
 .workspace-search-clear:hover {
   color: var(--text-primary);
   background: transparent;
-}
-
-.workspace-sort-select {
-  border: 1px solid var(--border-color);
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  border-radius: var(--radius-sm);
-  padding: 0.4rem 0.5rem;
-  font: inherit;
-  min-height: 0;
 }
 
 /* 3. Filter Dropdown */
@@ -681,7 +671,7 @@
     gap: 0.35rem;
   }
 
-  .search-sort-controls {
+  .search-controls {
     max-width: 46vw;
   }
 
@@ -690,9 +680,6 @@
     min-width: 70px;
   }
 
-  .workspace-sort-select {
-    max-width: 110px;
-  }
 }
 
 .app-dialog-panel {

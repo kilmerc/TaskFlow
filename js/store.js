@@ -1,7 +1,6 @@
 import { generateId } from './utils/id.js';
 import { parseTagsFromTitle, normalizeTag, normalizeTagList } from './utils/tagParser.js';
 import { PRIORITY_VALUES, normalizePriority } from './utils/taskFilters.js';
-import { DEFAULT_SORT_MODE, normalizeSortMode } from './utils/taskSort.js';
 
 
 const STORAGE_KEY = 'taskflow_data';
@@ -18,8 +17,7 @@ function getDefaultActiveFilters() {
 
 function getDefaultWorkspaceViewState() {
     return {
-        searchQuery: '',
-        sortMode: DEFAULT_SORT_MODE
+        searchQuery: ''
     };
 }
 
@@ -266,8 +264,7 @@ function ensureWorkspaceViewState(workspaceId) {
         Vue.set(store.workspaceViewState, workspaceId, getDefaultWorkspaceViewState());
     } else {
         const normalized = {
-            searchQuery: normalizeWorkspaceSearchQuery(existing.searchQuery),
-            sortMode: normalizeSortMode(existing.sortMode)
+            searchQuery: normalizeWorkspaceSearchQuery(existing.searchQuery)
         };
         Vue.set(store.workspaceViewState, workspaceId, normalized);
     }
@@ -1314,22 +1311,6 @@ export const mutations = {
         return success({ changed: true });
     },
 
-    setWorkspaceSortMode(workspaceId, sortMode) {
-        if (!getWorkspace(workspaceId)) {
-            return failure(buildValidationError('invalid_target', 'Workspace not found.', 'workspace'));
-        }
-
-        const workspaceViewState = ensureWorkspaceViewState(workspaceId);
-        const nextSortMode = normalizeSortMode(sortMode);
-        if (workspaceViewState.sortMode === nextSortMode) {
-            return success({ changed: false });
-        }
-
-        Vue.set(workspaceViewState, 'sortMode', nextSortMode);
-        persist();
-        return success({ changed: true });
-    },
-
     deleteAllData() {
         initializeDefaultData();
         persistNow();
@@ -1511,8 +1492,7 @@ export function hydrate(inputData = null) {
             store.workspaces.forEach(workspace => {
                 const rawWorkspaceState = rawWorkspaceViewState[workspace.id] || {};
                 Vue.set(store.workspaceViewState, workspace.id, {
-                    searchQuery: normalizeWorkspaceSearchQuery(rawWorkspaceState.searchQuery),
-                    sortMode: normalizeSortMode(rawWorkspaceState.sortMode)
+                    searchQuery: normalizeWorkspaceSearchQuery(rawWorkspaceState.searchQuery)
                 });
             });
 

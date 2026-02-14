@@ -277,7 +277,7 @@ Default target document path: `docs/TaskFlow_Implementation_Plan_v2.md`.
 2. Standardize task movement interface to one mutation contract for all move operations.
 3. Add global `dialog` and `toast` state contracts in store.
 4. Add workspace-scoped filter option resolver interface.
-5. Add optional Phase 4 schema fields: `searchQuery`, `sortMode`, `bulkSelection`, `undoStack`, `task.recurrence`, `task.archivedAt`.
+5. Add optional Phase 4 schema fields: `searchQuery`, `bulkSelection`, `undoStack`, `task.recurrence`, `task.archivedAt`.
 
 ## Test Cases and Scenarios (Required)
 1. Keyboard-only task creation, modal editing, dropdown operations, and destructive confirmations.

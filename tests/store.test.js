@@ -29,8 +29,7 @@ const BASELINE_STATE = {
     },
     workspaceViewState: {
         ws_base: {
-            searchQuery: '',
-            sortMode: 'manual'
+            searchQuery: ''
         }
     },
     activeTaskId: null,
@@ -440,24 +439,17 @@ describe('Store', () => {
         expect(store.activeFilters.priorities).to.deep.equal(['II']);
     });
 
-    it('should persist workspace search query and sort mode per workspace', () => {
+    it('should persist workspace search query per workspace', () => {
         const baseWorkspaceId = store.currentWorkspaceId;
 
         const queryResult = mutations.setWorkspaceSearchQuery(baseWorkspaceId, '  Sprint   Plan  ');
-        const sortResult = mutations.setWorkspaceSortMode(baseWorkspaceId, 'priority');
 
         expect(queryResult.ok).to.equal(true);
-        expect(sortResult.ok).to.equal(true);
         expect(store.workspaceViewState[baseWorkspaceId].searchQuery).to.equal('Sprint Plan');
-        expect(store.workspaceViewState[baseWorkspaceId].sortMode).to.equal('priority');
 
         const workspaceResult = mutations.addWorkspace('Second');
         const secondWorkspaceId = workspaceResult.data.workspaceId;
         expect(store.workspaceViewState[secondWorkspaceId].searchQuery).to.equal('');
-        expect(store.workspaceViewState[secondWorkspaceId].sortMode).to.equal('manual');
-
-        mutations.setWorkspaceSortMode(secondWorkspaceId, 'not-a-valid-mode');
-        expect(store.workspaceViewState[secondWorkspaceId].sortMode).to.equal('manual');
     });
 
     it('should delete all data and persist reset snapshot immediately', () => {
@@ -741,8 +733,7 @@ describe('Store', () => {
                 activeFilter: ['legacy-tag'],
                 workspaceViewState: {
                     ws_base: {
-                        searchQuery: 'legacy',
-                        sortMode: 'createdAt'
+                        searchQuery: 'legacy'
                     }
                 }
             });
@@ -750,7 +741,6 @@ describe('Store', () => {
             expect(store.appVersion).to.equal('1.4');
             expect(store.activeFilters.tags).to.include('legacy-tag');
             expect(store.workspaceViewState.ws_base.searchQuery).to.equal('legacy');
-            expect(store.workspaceViewState.ws_base.sortMode).to.equal('createdAt');
         });
 
         it('should hydrate correctly when taskTemplates is missing', () => {
@@ -793,7 +783,6 @@ describe('Store', () => {
             expect(store.dialog.isOpen).to.equal(false);
             expect(store.toasts).to.deep.equal([]);
             expect(store.workspaceViewState.ws_base.searchQuery).to.equal('');
-            expect(store.workspaceViewState.ws_base.sortMode).to.equal('manual');
         });
     });
 });

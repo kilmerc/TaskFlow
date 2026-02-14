@@ -1,11 +1,6 @@
 import { store, mutations } from '../store.js';
 import { printColumn } from '../utils/print.js';
 import { hasActiveFilters, taskMatchesFilters } from '../utils/taskFilters.js';
-import {
-    DEFAULT_SORT_MODE,
-    buildWorkspaceManualRankMap,
-    sortTaskIds
-} from '../utils/taskSort.js';
 
 Vue.component('kanban-column', {
     props: {
@@ -37,7 +32,6 @@ Vue.component('kanban-column', {
                     ghost-class="task-ghost"
                     drag-class="task-drag"
                     :animation="150"
-                    :disabled="isDragDisabled"
                     :draggable="'.sortable-task'"
                 >
                     <task-card
@@ -78,33 +72,21 @@ Vue.component('kanban-column', {
         activeFilters() {
             return this.sharedStore.activeFilters || { tags: [], priorities: [] };
         },
-        currentWorkspace() {
-            return this.sharedStore.workspaces.find(ws => ws.id === this.sharedStore.currentWorkspaceId) || null;
-        },
         workspaceViewState() {
             if (!this.sharedStore.currentWorkspaceId) {
-                return { searchQuery: '', sortMode: DEFAULT_SORT_MODE };
+                return { searchQuery: '' };
             }
             return this.sharedStore.workspaceViewState[this.sharedStore.currentWorkspaceId]
-                || { searchQuery: '', sortMode: DEFAULT_SORT_MODE };
+                || { searchQuery: '' };
         },
         searchQuery() {
             return this.workspaceViewState.searchQuery || '';
-        },
-        sortMode() {
-            return this.workspaceViewState.sortMode || DEFAULT_SORT_MODE;
-        },
-        workspaceManualRankMap() {
-            return buildWorkspaceManualRankMap(this.currentWorkspace, this.sharedStore.columnTaskOrder);
         },
         hasFilters() {
             return hasActiveFilters(this.activeFilters);
         },
         hasSearchQuery() {
             return this.searchQuery.length > 0;
-        },
-        isDragDisabled() {
-            return this.hasFilters || this.hasSearchQuery || this.sortMode !== DEFAULT_SORT_MODE;
         },
         filteredTaskIds() {
             const allTasks = this.sharedStore.columnTaskOrder[this.columnId] || [];
@@ -121,34 +103,63 @@ Vue.component('kanban-column', {
                     const task = this.sharedStore.tasks[taskId];
                     return task && !task.isCompleted;
                 });
-
-                if (this.sortMode === DEFAULT_SORT_MODE) {
-                    return activeTaskIds;
-                }
-
-                return sortTaskIds(activeTaskIds, this.sharedStore.tasks, {
-                    sortMode: this.sortMode,
-                    manualRankMap: this.workspaceManualRankMap
-                });
+                return activeTaskIds;
             },
             set(value) {
-                if (this.isDragDisabled) return;
+                const nextVisibleOrder = Array.isArray(value) ? value : [];
 
-                // Handle cross-column moves: update columnId via store mutation
-                value.forEach((taskId, newIndex) => {
+                // Handle cross-column moves first so all dragged tasks belong to this column.
+                nextVisibleOrder.forEach(taskId => {
                     const task = this.sharedStore.tasks[taskId];
                     if (task && task.columnId !== this.columnId) {
-                        mutations.moveTask(taskId, task.columnId, this.columnId, newIndex);
+                        mutations.moveTask(taskId, task.columnId, this.columnId);
                     }
                 });
 
-                // Set definitive order for this column (active + completed)
+                // Merge visible reorder into full active order while preserving hidden task placement.
                 const columnOrder = this.sharedStore.columnTaskOrder[this.columnId] || [];
-                const completedIds = columnOrder.filter(taskId => {
+                const activeIds = [];
+                const completedIds = [];
+                columnOrder.forEach(taskId => {
                     const task = this.sharedStore.tasks[taskId];
-                    return task && task.isCompleted;
+                    if (!task) {
+                        return;
+                    }
+                    if (task.isCompleted) {
+                        completedIds.push(taskId);
+                    } else {
+                        activeIds.push(taskId);
+                    }
                 });
-                mutations.updateColumnTaskOrder(this.columnId, [...value, ...completedIds]);
+
+                const activeSet = new Set(activeIds);
+                const seenVisible = new Set();
+                const reorderedVisible = [];
+                nextVisibleOrder.forEach(taskId => {
+                    if (!activeSet.has(taskId) || seenVisible.has(taskId)) {
+                        return;
+                    }
+                    seenVisible.add(taskId);
+                    reorderedVisible.push(taskId);
+                });
+
+                if (reorderedVisible.length === 0) {
+                    mutations.updateColumnTaskOrder(this.columnId, [...activeIds, ...completedIds]);
+                    return;
+                }
+
+                let visibleIndex = 0;
+                const reorderedVisibleSet = new Set(reorderedVisible);
+                const mergedActiveIds = activeIds.map(taskId => {
+                    if (!reorderedVisibleSet.has(taskId)) {
+                        return taskId;
+                    }
+                    const nextTaskId = reorderedVisible[visibleIndex];
+                    visibleIndex += 1;
+                    return nextTaskId;
+                });
+
+                mutations.updateColumnTaskOrder(this.columnId, [...mergedActiveIds, ...completedIds]);
             }
         },
         completedTasks() {

@@ -127,31 +127,75 @@ test.describe('Views & Filtering', () => {
         await expect(page.locator('.eisenhower-layout')).not.toContainText('Another Task');
     });
 
-    test('should apply workspace-wide sort mode in kanban and calendar sidebar', async ({ page }) => {
+    test('should allow kanban drag reorder while search is active and preserve hidden tasks', async ({ page }) => {
         const firstColumn = page.locator('.kanban-column').first();
         await firstColumn.locator('.column-quick-add-trigger').click();
-        await firstColumn.locator('.quick-add-input-wrapper textarea').fill('Low Priority Task');
+        await firstColumn.locator('.quick-add-input-wrapper textarea').fill('Alpha One');
         await firstColumn.locator('.add-actions .btn-primary').click();
 
         await firstColumn.locator('.column-quick-add-trigger').click();
-        await firstColumn.locator('.quick-add-input-wrapper textarea').fill('High Priority Task');
+        await firstColumn.locator('.quick-add-input-wrapper textarea').fill('Buffer Task');
         await firstColumn.locator('.add-actions .btn-primary').click();
 
-        await page.locator('.task-card').filter({ hasText: 'Low Priority Task' }).locator('.task-open-btn').click();
-        await page.locator('.modal-content select').first().selectOption('IV');
-        await page.locator('.modal-footer .btn-primary').filter({ hasText: 'OK' }).click();
+        await firstColumn.locator('.column-quick-add-trigger').click();
+        await firstColumn.locator('.quick-add-input-wrapper textarea').fill('Alpha Two');
+        await firstColumn.locator('.add-actions .btn-primary').click();
 
-        await page.locator('.task-card').filter({ hasText: 'High Priority Task' }).locator('.task-open-btn').click();
-        await page.locator('.modal-content select').first().selectOption('I');
-        await page.locator('.modal-footer .btn-primary').filter({ hasText: 'OK' }).click();
+        await page.locator('.workspace-search-input').fill('Alpha');
+        await page.waitForTimeout(250);
 
-        await page.locator('.workspace-sort-select').selectOption('priority');
+        await firstColumn
+            .locator('.task-card')
+            .filter({ hasText: 'Alpha One' })
+            .dragTo(firstColumn.locator('.task-card').filter({ hasText: 'Alpha Two' }));
 
-        const kanbanTitles = firstColumn.locator('.task-card .task-title');
-        await expect(kanbanTitles.nth(0)).toHaveText('High Priority Task');
+        await page.locator('.workspace-search-clear').click();
 
-        await page.locator('button[title="Calendar View"]').click();
-        const sidebarTitles = page.locator('.calendar-sidebar .task-title');
-        await expect(sidebarTitles.nth(0)).toHaveText('High Priority Task');
+        const titles = await firstColumn.locator('.task-card .task-title').allTextContents();
+        const alphaOneIndex = titles.indexOf('Alpha One');
+        const bufferIndex = titles.indexOf('Buffer Task');
+        const alphaTwoIndex = titles.indexOf('Alpha Two');
+
+        expect(alphaOneIndex).toBeGreaterThan(-1);
+        expect(bufferIndex).toBeGreaterThan(-1);
+        expect(alphaTwoIndex).toBeGreaterThan(-1);
+        expect(alphaOneIndex).toBeLessThan(bufferIndex);
+        expect(bufferIndex).toBeLessThan(alphaTwoIndex);
+    });
+
+    test('should allow cross-column drag while tag filter is active', async ({ page }) => {
+        const firstColumn = page.locator('.kanban-column').first();
+        const secondColumn = page.locator('.kanban-column').nth(1);
+
+        await firstColumn.locator('.column-quick-add-trigger').click();
+        await firstColumn.locator('.quick-add-input-wrapper textarea').fill('Filter Move Task #ops');
+        await firstColumn.locator('.add-actions .btn-primary').click();
+
+        await secondColumn.locator('.column-quick-add-trigger').click();
+        await secondColumn.locator('.quick-add-input-wrapper textarea').fill('Second Hidden Task #misc');
+        await secondColumn.locator('.add-actions .btn-primary').click();
+
+        await secondColumn.locator('.column-quick-add-trigger').click();
+        await secondColumn.locator('.quick-add-input-wrapper textarea').fill('Second Visible Task #ops');
+        await secondColumn.locator('.add-actions .btn-primary').click();
+
+        await page.locator('.filter-btn').click();
+        await page.locator('.filter-item').filter({ hasText: 'ops' }).locator('input').check();
+        await page.locator('.filter-btn').click();
+
+        await firstColumn
+            .locator('.task-card')
+            .filter({ hasText: 'Filter Move Task' })
+            .dragTo(secondColumn.locator('.task-card').filter({ hasText: 'Second Visible Task' }));
+
+        await expect(secondColumn.locator('.task-card').filter({ hasText: 'Filter Move Task' })).toBeVisible();
+
+        await page.locator('.filter-btn').click();
+        await page.locator('.btn-text-sm', { hasText: 'Clear' }).click();
+        await page.locator('.filter-btn').click();
+
+        await expect(secondColumn.locator('.task-card').filter({ hasText: 'Filter Move Task' })).toBeVisible();
+        await expect(secondColumn.locator('.task-card').filter({ hasText: 'Second Hidden Task' })).toBeVisible();
+        await expect(firstColumn.locator('.task-card').filter({ hasText: 'Filter Move Task' })).toHaveCount(0);
     });
 });

@@ -1,7 +1,6 @@
 import { store, mutations } from '../store.js';
-import { DEFAULT_SORT_MODE } from '../utils/taskSort.js';
 
-Vue.component('search-sort-controls', {
+Vue.component('search-controls', {
     data() {
         return {
             searchInput: '',
@@ -10,7 +9,7 @@ Vue.component('search-sort-controls', {
         };
     },
     template: `
-        <div v-if="currentWorkspaceId" class="search-sort-controls">
+        <div v-if="currentWorkspaceId" class="search-controls">
             <div class="workspace-search">
                 <i class="fas fa-search" aria-hidden="true"></i>
                 <input
@@ -32,20 +31,6 @@ Vue.component('search-sort-controls', {
                     <i class="fas fa-times" aria-hidden="true"></i>
                 </button>
             </div>
-
-            <label class="sr-only" for="workspace-sort-mode">Sort tasks</label>
-            <select
-                id="workspace-sort-mode"
-                class="workspace-sort-select"
-                :value="sortMode"
-                aria-label="Sort tasks"
-                @change="onSortChange"
-            >
-                <option value="manual">Manual</option>
-                <option value="dueDate">Due date</option>
-                <option value="priority">Priority</option>
-                <option value="createdAt">Created date</option>
-            </select>
         </div>
     `,
     computed: {
@@ -54,13 +39,10 @@ Vue.component('search-sort-controls', {
         },
         currentWorkspaceViewState() {
             if (!this.currentWorkspaceId) {
-                return { searchQuery: '', sortMode: DEFAULT_SORT_MODE };
+                return { searchQuery: '' };
             }
             return store.workspaceViewState[this.currentWorkspaceId]
-                || { searchQuery: '', sortMode: DEFAULT_SORT_MODE };
-        },
-        sortMode() {
-            return this.currentWorkspaceViewState.sortMode || DEFAULT_SORT_MODE;
+                || { searchQuery: '' };
         }
     },
     watch: {
@@ -107,11 +89,6 @@ Vue.component('search-sort-controls', {
             }
             this.searchInput = '';
             mutations.setWorkspaceSearchQuery(this.currentWorkspaceId, '');
-        },
-        onSortChange(event) {
-            if (!this.currentWorkspaceId) return;
-            const sortMode = event && event.target ? event.target.value : DEFAULT_SORT_MODE;
-            mutations.setWorkspaceSortMode(this.currentWorkspaceId, sortMode);
         }
     }
 });

@@ -1,10 +1,5 @@
 import { store, mutations } from '../store.js';
 import { taskMatchesFilters } from '../utils/taskFilters.js';
-import {
-    DEFAULT_SORT_MODE,
-    buildWorkspaceManualRankMap,
-    sortTaskObjects
-} from '../utils/taskSort.js';
 
 Vue.component('calendar-sidebar', {
     props: {
@@ -75,40 +70,36 @@ Vue.component('calendar-sidebar', {
         },
         workspaceViewState() {
             if (!this.workspace || !this.workspace.id) {
-                return { searchQuery: '', sortMode: DEFAULT_SORT_MODE };
+                return { searchQuery: '' };
             }
             return this.store.workspaceViewState[this.workspace.id]
-                || { searchQuery: '', sortMode: DEFAULT_SORT_MODE };
+                || { searchQuery: '' };
         },
         searchQuery() {
             return this.workspaceViewState.searchQuery || '';
         },
-        sortMode() {
-            return this.workspaceViewState.sortMode || DEFAULT_SORT_MODE;
-        },
-        workspaceManualRankMap() {
-            return buildWorkspaceManualRankMap(this.workspace, this.store.columnTaskOrder);
+        workspaceTaskIds() {
+            if (!this.workspace || !Array.isArray(this.workspace.columns)) {
+                return [];
+            }
+
+            const ids = [];
+            this.workspace.columns.forEach(columnId => {
+                const orderedTaskIds = this.store.columnTaskOrder[columnId] || [];
+                ids.push(...orderedTaskIds);
+            });
+            return ids;
         },
         unscheduledTasks() {
             // Return tasks in the active workspace where dueDate is null.
-            const allTasks = Object.values(this.store.tasks);
-            const workspaceId = this.workspace ? this.workspace.id : null;
-            const visibleTasks = allTasks.filter(t => {
-                if (t.dueDate) return false;
-                if (t.isCompleted) return false;
-
-                const column = this.store.columns[t.columnId];
-                if (!workspaceId || !column || column.workspaceId !== workspaceId) {
-                    return false;
-                }
-
-                return taskMatchesFilters(t, this.activeFilters, this.searchQuery);
-            });
-
-            return sortTaskObjects(visibleTasks, {
-                sortMode: this.sortMode,
-                manualRankMap: this.workspaceManualRankMap
-            });
+            return this.workspaceTaskIds
+                .map(taskId => this.store.tasks[taskId])
+                .filter(t => {
+                    if (!t) return false;
+                    if (t.dueDate) return false;
+                    if (t.isCompleted) return false;
+                    return taskMatchesFilters(t, this.activeFilters, this.searchQuery);
+                });
         }
     },
     methods: {

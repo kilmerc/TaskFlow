@@ -20,7 +20,7 @@ import './components/EisenhowerView.js';
 import './components/TaskCard.js';
 import './components/TaskModal.js';
 import './components/FilterBar.js';
-import './components/SearchSortControls.js';
+import './components/SearchControls.js';
 import './components/AppDialog.js';
 import './components/AppToast.js';
 import './components/TemplateGalleryModal.js';

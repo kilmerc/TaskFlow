@@ -1,10 +1,5 @@
 import { store, mutations } from '../store.js';
 import { taskMatchesFilters } from '../utils/taskFilters.js';
-import {
-    DEFAULT_SORT_MODE,
-    buildWorkspaceManualRankMap,
-    sortTaskObjects
-} from '../utils/taskSort.js';
 
 Vue.component('calendar-view', {
     props: {
@@ -106,19 +101,30 @@ Vue.component('calendar-view', {
         },
         workspaceViewState() {
             if (!this.workspace || !this.workspace.id) {
-                return { searchQuery: '', sortMode: DEFAULT_SORT_MODE };
+                return { searchQuery: '' };
             }
             return this.store.workspaceViewState[this.workspace.id]
-                || { searchQuery: '', sortMode: DEFAULT_SORT_MODE };
+                || { searchQuery: '' };
         },
         searchQuery() {
             return this.workspaceViewState.searchQuery || '';
         },
-        sortMode() {
-            return this.workspaceViewState.sortMode || DEFAULT_SORT_MODE;
+        workspaceTaskIds() {
+            if (!this.workspace || !Array.isArray(this.workspace.columns)) {
+                return [];
+            }
+
+            const ids = [];
+            this.workspace.columns.forEach(columnId => {
+                const orderedTaskIds = this.store.columnTaskOrder[columnId] || [];
+                ids.push(...orderedTaskIds);
+            });
+            return ids;
         },
-        workspaceManualRankMap() {
-            return buildWorkspaceManualRankMap(this.workspace, this.store.columnTaskOrder);
+        workspaceTasks() {
+            return this.workspaceTaskIds
+                .map(taskId => this.store.tasks[taskId])
+                .filter(task => !!task);
         },
         currentMonthYear() {
             return this.currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
@@ -126,18 +132,9 @@ Vue.component('calendar-view', {
         tasksByDate() {
             // Group tasks by dueDate YYYY-MM-DD
             const map = {};
-            const allTasks = Object.values(this.store.tasks);
-            const workspaceId = this.workspace ? this.workspace.id : null;
-
-            allTasks.forEach(task => {
+            this.workspaceTasks.forEach(task => {
                 if (!task.dueDate) return;
                 if (task.isCompleted) return;
-
-                // Only show tasks that belong to a column in the active workspace.
-                const column = this.store.columns[task.columnId];
-                if (!workspaceId || !column || column.workspaceId !== workspaceId) {
-                    return;
-                }
 
                 if (!taskMatchesFilters(task, this.activeFilters, this.searchQuery)) return;
 
@@ -147,12 +144,6 @@ Vue.component('calendar-view', {
                 map[task.dueDate].push(task);
             });
 
-            Object.keys(map).forEach(dateKey => {
-                map[dateKey] = sortTaskObjects(map[dateKey], {
-                    sortMode: this.sortMode,
-                    manualRankMap: this.workspaceManualRankMap
-                });
-            });
             return map; // Returns a new object reference, which is fine for computed
         },
         calendarCells() {
