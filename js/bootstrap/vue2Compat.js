@@ -11,10 +11,6 @@ function getOrCreateRegistry() {
     return window[REGISTRY_KEY];
 }
 
-function isArrayIndex(key) {
-    return Number.isInteger(Number(key)) && Number(key) >= 0;
-}
-
 export function installVue2CompatShims() {
     const VueGlobal = window.Vue;
     if (!VueGlobal) {
@@ -41,40 +37,6 @@ export function installVue2CompatShims() {
         };
     }
 
-    if (typeof VueGlobal.observable !== 'function' && typeof VueGlobal.reactive === 'function') {
-        VueGlobal.observable = VueGlobal.reactive;
-    }
-
-    if (typeof VueGlobal.set !== 'function') {
-        VueGlobal.set = function legacySet(target, key, value) {
-            if (!target) {
-                return value;
-            }
-
-            if (Array.isArray(target) && isArrayIndex(key)) {
-                target.splice(Number(key), 1, value);
-                return value;
-            }
-
-            target[key] = value;
-            return value;
-        };
-    }
-
-    if (typeof VueGlobal.delete !== 'function') {
-        VueGlobal.delete = function legacyDelete(target, key) {
-            if (!target) {
-                return;
-            }
-
-            if (Array.isArray(target) && isArrayIndex(key)) {
-                target.splice(Number(key), 1);
-                return;
-            }
-
-            delete target[key];
-        };
-    }
 }
 
 export function getLegacyRegistry() {
