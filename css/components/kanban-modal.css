@@ -567,6 +567,17 @@
   border-bottom: 1px solid var(--border-color);
 }
 
+.modal-task-actions {
+  margin-right: 0.25rem;
+}
+
+.modal-task-actions .dropdown-menu {
+  right: 0;
+  top: calc(100% + 0.2rem);
+  min-width: 170px;
+  z-index: 80;
+}
+
 .modal-title-row {
   display: flex;
   align-items: center;
@@ -1002,6 +1013,112 @@ select {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.template-gallery-backdrop {
+  z-index: 1100;
+}
+
+.template-gallery-modal {
+  width: min(900px, calc(100vw - 2rem));
+  max-width: 900px;
+}
+
+.template-gallery-title {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.template-gallery-body {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.template-gallery-list {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  overflow-y: auto;
+  max-height: 58vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.template-gallery-empty {
+  padding: 0.8rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.template-gallery-item {
+  border: none;
+  background: transparent;
+  text-align: left;
+  width: 100%;
+  border-radius: 0;
+  padding: 0.65rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+}
+
+.template-gallery-item:hover {
+  background: var(--bg-tertiary);
+}
+
+.template-gallery-item.active {
+  background: var(--task-color-blue);
+}
+
+[data-theme="dark"] .template-gallery-item.active {
+  color: #fff;
+}
+
+.template-gallery-item-name {
+  font-weight: 600;
+}
+
+.template-gallery-item-meta {
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
+.template-gallery-editor {
+  min-width: 0;
+}
+
+.template-gallery-footer .btn-primary[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.template-subtasks-group {
+  margin-bottom: 0;
+}
+
+.template-subtask-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.template-subtask-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .template-gallery-body {
+    grid-template-columns: 1fr;
+  }
+
+  .template-gallery-list {
+    max-height: 180px;
+  }
 }
 
 .btn {

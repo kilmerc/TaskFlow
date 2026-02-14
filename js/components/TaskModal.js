@@ -26,6 +26,32 @@ Vue.component('task-modal', {
                             placeholder="Task Title *"
                         >
                     </div>
+                    <div v-if="isEdit" class="dropdown modal-task-actions" :class="{ active: isTaskActionsOpen }" v-click-outside="closeTaskActions">
+                        <button
+                            ref="taskActionsTrigger"
+                            type="button"
+                            class="column-menu-trigger"
+                            aria-label="Task actions"
+                            aria-haspopup="menu"
+                            :aria-expanded="isTaskActionsOpen ? 'true' : 'false'"
+                            :aria-controls="taskActionsMenuId"
+                            @click="toggleTaskActions"
+                            @keydown.down.prevent="openTaskActionsAndFocus(0)"
+                            @keydown.up.prevent="openTaskActionsAndFocus(getTaskActionItems().length - 1)"
+                            @keydown.esc.prevent="closeTaskActions(true)"
+                        >
+                            <i class="fas fa-ellipsis-h" aria-hidden="true"></i>
+                        </button>
+                        <div
+                            v-if="isTaskActionsOpen"
+                            class="dropdown-menu"
+                            :id="taskActionsMenuId"
+                            role="menu"
+                            @keydown="onTaskActionsKeydown"
+                        >
+                            <button class="menu-item" role="menuitem" type="button" @click="saveAsTemplate">Save as template</button>
+                        </div>
+                    </div>
                     <button class="close-btn" @click="close" title="Close Modal"><i class="fas fa-times"></i></button>
                 </header>
 
@@ -119,7 +145,9 @@ Vue.component('task-modal', {
             colors: ['gray', 'red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink'],
             priorities: PRIORITY_VALUES,
             MAX_TASK_TITLE,
-            MAX_COLUMN_NAME
+            MAX_COLUMN_NAME,
+            isTaskActionsOpen: false,
+            taskActionsMenuId: `task-actions-${Math.random().toString(36).slice(2)}`
         };
     },
     computed: {
@@ -160,6 +188,7 @@ Vue.component('task-modal', {
     beforeDestroy() { document.removeEventListener('keydown', this.onEsc); },
     methods: {
         resetFromContext() {
+            this.closeTaskActions(false);
             this.showTitleError = false;
             this.showColumnError = false;
             this.titleErrorMessage = 'Task title is required.';
@@ -199,6 +228,87 @@ Vue.component('task-modal', {
             this.localColumnInput = '';
         },
         close() { mutations.closeTaskModal(); },
+        toggleTaskActions() {
+            if (this.isTaskActionsOpen) {
+                this.closeTaskActions(false);
+                return;
+            }
+            this.openTaskActionsAndFocus(0);
+        },
+        openTaskActionsAndFocus(index = 0) {
+            this.isTaskActionsOpen = true;
+            this.$nextTick(() => {
+                const items = this.getTaskActionItems();
+                if (!items.length) return;
+                const bounded = Math.max(0, Math.min(index, items.length - 1));
+                items[bounded].focus();
+            });
+        },
+        closeTaskActions(restoreTrigger = false) {
+            this.isTaskActionsOpen = false;
+            if (restoreTrigger) {
+                this.$nextTick(() => {
+                    if (this.$refs.taskActionsTrigger) {
+                        this.$refs.taskActionsTrigger.focus();
+                    }
+                });
+            }
+        },
+        getTaskActionItems() {
+            if (!this.$el) return [];
+            return Array.from(this.$el.querySelectorAll('.modal-task-actions .dropdown-menu .menu-item'));
+        },
+        onTaskActionsKeydown(event) {
+            const items = this.getTaskActionItems();
+            if (!items.length) return;
+            const currentIndex = items.indexOf(document.activeElement);
+
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                const next = currentIndex < 0 ? 0 : (currentIndex + 1) % items.length;
+                items[next].focus();
+                return;
+            }
+            if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                const next = currentIndex < 0 ? items.length - 1 : (currentIndex - 1 + items.length) % items.length;
+                items[next].focus();
+                return;
+            }
+            if (event.key === 'Home') {
+                event.preventDefault();
+                items[0].focus();
+                return;
+            }
+            if (event.key === 'End') {
+                event.preventDefault();
+                items[items.length - 1].focus();
+                return;
+            }
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                this.closeTaskActions(true);
+            }
+        },
+        saveAsTemplate() {
+            if (!this.isEdit || !this.task) return;
+            this.closeTaskActions(true);
+            mutations.openDialog({
+                variant: 'prompt',
+                title: 'Save as template',
+                message: 'Enter a template name.',
+                confirmLabel: 'Save',
+                cancelLabel: 'Cancel',
+                input: {
+                    placeholder: 'Template name',
+                    maxLength: MAX_TASK_TITLE
+                },
+                action: {
+                    type: 'template.saveFromTask',
+                    payload: { taskId: this.task.id }
+                }
+            });
+        },
         toggleCompleted() { if (this.isEdit) mutations.toggleTaskCompletion(this.task.id); },
         onEsc(e) {
             if (e.key !== 'Escape' || !this.isOpen) return;

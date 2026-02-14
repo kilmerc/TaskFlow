@@ -23,6 +23,7 @@ import './components/FilterBar.js';
 import './components/SearchSortControls.js';
 import './components/AppDialog.js';
 import './components/AppToast.js';
+import './components/TemplateGalleryModal.js';
 
 // Global error handler for Vue
 Vue.config.errorHandler = function (err, vm, info) {
@@ -91,6 +92,9 @@ new Vue({
                     type: 'app.resetAll'
                 }
             });
+        },
+        openTemplateGallery() {
+            mutations.openTemplateGallery();
         }
     }
 });

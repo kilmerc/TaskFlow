@@ -1,6 +1,7 @@
 import { store, mutations } from '../store.js';
-import { normalizeTag } from '../utils/tagParser.js';
+import { normalizeTag, parseTagsFromTitle } from '../utils/tagParser.js';
 import { getActiveHashToken, replaceHashToken, getWorkspaceTags } from '../utils/tagAutocomplete.js';
+import { getActiveSlashToken, replaceSlashToken, parseTemplateCommand } from '../utils/templateAutocomplete.js';
 
 Vue.component('kanban-quick-add', {
     props: {
@@ -36,7 +37,7 @@ Vue.component('kanban-quick-add', {
                     @keydown.up="onQuickAddArrow(-1, $event)"
                     @keydown.esc.prevent="onQuickAddEsc"
                     @input="onQuickAddInput"
-                    @click="refreshQuickAddTagMenu"
+                    @click="refreshQuickAddSuggestionMenu"
                     @keyup="onQuickAddKeyup"
                     rows="2"
                     :maxlength="200"
@@ -54,9 +55,10 @@ Vue.component('kanban-quick-add', {
                         :key="item.type + '-' + item.value"
                         class="quick-add-tag-item"
                         :class="{ active: index === activeTagIndex, 'is-create': item.type === 'create' }"
-                        @mousedown.prevent="selectQuickAddTag(item)"
+                        @mousedown.prevent="selectQuickAddSuggestion(item)"
                     >
                         <span v-if="item.type === 'create'">Create "#{{ item.value }}"</span>
+                        <span v-else-if="menuMode === 'template'">/{{ item.value }}</span>
                         <span v-else>#{{ item.value }}</span>
                     </div>
                 </div>
@@ -78,12 +80,19 @@ Vue.component('kanban-quick-add', {
             activeTagIndex: 0,
             activeTokenRange: null,
             tagMenuPosition: { top: 0, left: 0 },
-            maxTagSuggestions: 8
+            maxTagSuggestions: 8,
+            menuMode: 'tag'
         };
     },
     computed: {
         column() {
             return store.columns[this.columnId] || {};
+        },
+        workspaceTemplates() {
+            if (!this.column.workspaceId) return [];
+            return Object.values(store.taskTemplates || {})
+                .filter(template => template && template.workspaceId === this.column.workspaceId)
+                .sort((a, b) => a.name.localeCompare(b.name));
         }
     },
     methods: {
@@ -111,6 +120,11 @@ Vue.component('kanban-quick-add', {
             }
         },
         confirmAddTask() {
+            const templateCommandResult = this.createFromTemplateCommand();
+            if (templateCommandResult.handled) {
+                return;
+            }
+
             const result = mutations.addTask(this.columnId, this.newTaskTitle, {
                 position: this.insertPosition
             });
@@ -129,7 +143,7 @@ Vue.component('kanban-quick-add', {
         },
         onQuickAddEnter() {
             if (this.isTagMenuOpen && this.tagMenuItems.length) {
-                this.acceptQuickAddTag();
+                this.acceptQuickAddSuggestion();
                 return;
             }
             this.confirmAddTask();
@@ -137,7 +151,7 @@ Vue.component('kanban-quick-add', {
         onQuickAddTab(event) {
             if (!this.isTagMenuOpen || !this.tagMenuItems.length) return;
             event.preventDefault();
-            this.acceptQuickAddTag();
+            this.acceptQuickAddSuggestion();
         },
         onQuickAddEsc() {
             if (this.isTagMenuOpen) {
@@ -153,22 +167,48 @@ Vue.component('kanban-quick-add', {
             this.activeTagIndex = (this.activeTagIndex + step + total) % total;
         },
         onQuickAddInput() {
+            this.quickAddError = '';
             this.activeTagIndex = 0;
-            this.refreshQuickAddTagMenu();
+            this.refreshQuickAddSuggestionMenu();
         },
         onQuickAddKeyup(event) {
             if (['ArrowUp', 'ArrowDown', 'Enter', 'Escape', 'Tab'].includes(event.key)) {
                 return;
             }
-            this.refreshQuickAddTagMenu();
+            this.refreshQuickAddSuggestionMenu();
         },
-        refreshQuickAddTagMenu() {
+        refreshQuickAddSuggestionMenu() {
             if (!this.isAddingTask) return;
 
             const input = this.$refs.addTaskInput;
             if (!input) return;
 
             const caretIndex = typeof input.selectionStart === 'number' ? input.selectionStart : this.newTaskTitle.length;
+
+            const slashToken = getActiveSlashToken(this.newTaskTitle, caretIndex);
+            if (slashToken) {
+                const query = normalizeTag(slashToken.query || '');
+                const items = this.workspaceTemplates
+                    .filter(template => !query || template.name.includes(query))
+                    .slice(0, this.maxTagSuggestions)
+                    .map(template => ({ type: 'existing', value: template.name }));
+
+                if (!items.length) {
+                    this.closeQuickAddTagMenu();
+                    return;
+                }
+
+                this.menuMode = 'template';
+                this.activeTokenRange = { start: slashToken.start, end: slashToken.end };
+                this.tagMenuItems = items;
+                if (this.activeTagIndex >= items.length) {
+                    this.activeTagIndex = 0;
+                }
+                this.isTagMenuOpen = true;
+                this.positionQuickAddTagMenu(input, caretIndex);
+                return;
+            }
+
             const token = getActiveHashToken(this.newTaskTitle, caretIndex);
             if (!token) {
                 this.closeQuickAddTagMenu();
@@ -195,6 +235,7 @@ Vue.component('kanban-quick-add', {
                 return;
             }
 
+            this.menuMode = 'tag';
             this.activeTokenRange = {
                 start: token.start,
                 end: token.end
@@ -206,15 +247,17 @@ Vue.component('kanban-quick-add', {
             this.isTagMenuOpen = true;
             this.positionQuickAddTagMenu(input, caretIndex);
         },
-        acceptQuickAddTag() {
+        acceptQuickAddSuggestion() {
             if (!this.tagMenuItems.length) return;
             const item = this.tagMenuItems[this.activeTagIndex];
-            this.selectQuickAddTag(item);
+            this.selectQuickAddSuggestion(item);
         },
-        selectQuickAddTag(item) {
+        selectQuickAddSuggestion(item) {
             if (!item || !item.value || !this.activeTokenRange) return;
 
-            const replaced = replaceHashToken(this.newTaskTitle, this.activeTokenRange, item.value);
+            const replaced = this.menuMode === 'template'
+                ? replaceSlashToken(this.newTaskTitle, this.activeTokenRange, item.value)
+                : replaceHashToken(this.newTaskTitle, this.activeTokenRange, item.value);
             this.newTaskTitle = replaced.text;
             this.closeQuickAddTagMenu();
 
@@ -224,14 +267,51 @@ Vue.component('kanban-quick-add', {
                 input.focus();
                 input.selectionStart = replaced.caretIndex;
                 input.selectionEnd = replaced.caretIndex;
-                this.refreshQuickAddTagMenu();
+                this.refreshQuickAddSuggestionMenu();
             });
+        },
+        createFromTemplateCommand() {
+            const command = parseTemplateCommand(this.newTaskTitle);
+            if (!command) {
+                return { handled: false };
+            }
+
+            const normalizedTemplateName = normalizeTag(command.templateName);
+            const selectedTemplate = this.workspaceTemplates.find(template => template.name === normalizedTemplateName);
+            if (!selectedTemplate) {
+                this.quickAddError = 'Select an existing template.';
+                return { handled: true };
+            }
+
+            const parsed = parseTagsFromTitle(command.remainder || '');
+            const result = mutations.createTaskFromTemplate({
+                templateId: selectedTemplate.id,
+                columnId: this.columnId,
+                title: parsed.title,
+                inlineTags: parsed.tags,
+                position: this.insertPosition
+            });
+            if (!result.ok) {
+                this.quickAddError = result.error.message;
+                return { handled: true };
+            }
+
+            this.quickAddError = '';
+            this.newTaskTitle = '';
+            this.closeQuickAddTagMenu();
+            this.$nextTick(() => {
+                if (this.$refs.addTaskInput) {
+                    this.$refs.addTaskInput.focus();
+                }
+            });
+            return { handled: true };
         },
         closeQuickAddTagMenu() {
             this.isTagMenuOpen = false;
             this.tagMenuItems = [];
             this.activeTagIndex = 0;
             this.activeTokenRange = null;
+            this.menuMode = 'tag';
         },
         positionQuickAddTagMenu(textarea, caretIndex) {
             const caret = this.getTextareaCaretCoordinates(textarea, caretIndex);

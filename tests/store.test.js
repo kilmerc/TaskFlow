@@ -3,7 +3,7 @@ import { store, mutations, hydrate, normalizeText, validateName, buildPersistedS
 const expect = chai.expect;
 
 const BASELINE_STATE = {
-    appVersion: '1.3',
+    appVersion: '1.4',
     theme: 'light',
     currentWorkspaceId: 'ws_base',
     workspaces: [{
@@ -17,6 +17,7 @@ const BASELINE_STATE = {
         col_done: { id: 'col_done', workspaceId: 'ws_base', title: 'Done', showCompleted: false }
     },
     tasks: {},
+    taskTemplates: {},
     columnTaskOrder: {
         col_todo: [],
         col_inprogress: [],
@@ -163,6 +164,111 @@ describe('Store', () => {
         });
 
         expect(store.tasks[taskId].tags).to.deep.equal(['team-ops', 'team_ops']);
+    });
+
+    it('should save task templates from tasks without due date/column and reset subtask done state', () => {
+        const colId = store.workspaces[0].columns[0];
+        const createResult = mutations.createTask({
+            title: 'Template Source',
+            columnId: colId,
+            dueDate: '2026-02-20',
+            tags: ['Ops'],
+            subtasks: [
+                { text: 'First', done: true },
+                { text: 'Second', done: false }
+            ],
+            priority: 'II',
+            description: 'Source description',
+            color: 'blue'
+        });
+        const taskId = createResult.data.taskId;
+
+        const templateResult = mutations.createTaskTemplateFromTask(taskId, ' Daily Ops ');
+        expect(templateResult.ok).to.equal(true);
+        const template = store.taskTemplates[templateResult.data.templateId];
+
+        expect(template.workspaceId).to.equal(store.currentWorkspaceId);
+        expect(template.name).to.equal('daily-ops');
+        expect(template).to.not.have.property('dueDate');
+        expect(template).to.not.have.property('columnId');
+        expect(template.tags).to.deep.equal(['ops']);
+        expect(template.subtasks).to.deep.equal([
+            { text: 'First', done: false },
+            { text: 'Second', done: false }
+        ]);
+    });
+
+    it('should reject duplicate normalized template names in the same workspace', () => {
+        const colId = store.workspaces[0].columns[0];
+        mutations.addTask(colId, 'Template A');
+        const taskId = store.columnTaskOrder[colId][0];
+
+        const first = mutations.createTaskTemplateFromTask(taskId, ' Team Ops ');
+        const duplicate = mutations.createTaskTemplateFromTask(taskId, '#team-ops');
+
+        expect(first.ok).to.equal(true);
+        expect(duplicate.ok).to.equal(false);
+        expect(duplicate.error.code).to.equal('duplicate_template_name');
+    });
+
+    it('should create tasks from templates in target column and merge inline tags', () => {
+        const col1 = store.workspaces[0].columns[0];
+        const col2 = store.workspaces[0].columns[1];
+        const sourceTask = mutations.createTask({
+            title: 'Template Source',
+            columnId: col1,
+            tags: ['ops'],
+            priority: 'III',
+            description: 'from template',
+            color: 'green',
+            subtasks: [{ text: 'Ship', done: true }]
+        });
+        const sourceTaskId = sourceTask.data.taskId;
+        const templateCreate = mutations.createTaskTemplateFromTask(sourceTaskId, 'ops-template');
+
+        const createFromTemplate = mutations.createTaskFromTemplate({
+            templateId: templateCreate.data.templateId,
+            columnId: col2,
+            title: 'Run playbook',
+            inlineTags: ['hotfix', 'OPS'],
+            position: 'top'
+        });
+        expect(createFromTemplate.ok).to.equal(true);
+
+        const newTaskId = createFromTemplate.data.taskId;
+        const newTask = store.tasks[newTaskId];
+        expect(newTask.columnId).to.equal(col2);
+        expect(newTask.dueDate).to.equal(null);
+        expect(newTask.description).to.equal('from template');
+        expect(newTask.priority).to.equal('III');
+        expect(newTask.color).to.equal('green');
+        expect(newTask.tags).to.deep.equal(['ops', 'hotfix']);
+        expect(newTask.subtasks).to.deep.equal([{ text: 'Ship', done: false }]);
+        expect(store.columnTaskOrder[col2][0]).to.equal(newTaskId);
+    });
+
+    it('should prune workspace templates when deleting a workspace', () => {
+        const baseWorkspaceId = store.currentWorkspaceId;
+        const baseColumnId = store.workspaces[0].columns[0];
+        mutations.addTask(baseColumnId, 'Base template source');
+        const baseTaskId = store.columnTaskOrder[baseColumnId][0];
+        const baseTemplate = mutations.createTaskTemplateFromTask(baseTaskId, 'base-template');
+        expect(baseTemplate.ok).to.equal(true);
+
+        const workspaceCreate = mutations.addWorkspace('Second Workspace');
+        expect(workspaceCreate.ok).to.equal(true);
+        const secondWorkspaceId = workspaceCreate.data.workspaceId;
+        const secondColumnId = store.workspaces.find(ws => ws.id === secondWorkspaceId).columns[0];
+        mutations.addTask(secondColumnId, 'Second template source');
+        const secondTaskId = store.columnTaskOrder[secondColumnId][0];
+        const secondTemplate = mutations.createTaskTemplateFromTask(secondTaskId, 'second-template');
+        expect(secondTemplate.ok).to.equal(true);
+
+        const deleteResult = mutations.deleteWorkspace(secondWorkspaceId);
+        expect(deleteResult.ok).to.equal(true);
+        expect(store.taskTemplates[secondTemplate.data.templateId]).to.equal(undefined);
+        expect(store.taskTemplates[baseTemplate.data.templateId]).to.exist;
+        expect(store.taskTemplates[baseTemplate.data.templateId].workspaceId).to.equal(baseWorkspaceId);
     });
 
     it('should move a task between columns', () => {
@@ -560,7 +666,7 @@ describe('Store', () => {
     describe('buildPersistedSnapshot', () => {
         it('should return only domain keys and no transient state', () => {
             const snapshot = buildPersistedSnapshot();
-            const expectedKeys = ['appVersion', 'theme', 'currentWorkspaceId', 'workspaces', 'columns', 'tasks', 'columnTaskOrder', 'activeFilters', 'workspaceViewState'];
+            const expectedKeys = ['appVersion', 'theme', 'currentWorkspaceId', 'workspaces', 'columns', 'tasks', 'taskTemplates', 'columnTaskOrder', 'activeFilters', 'workspaceViewState'];
             expect(Object.keys(snapshot).sort()).to.deep.equal(expectedKeys.sort());
         });
 
@@ -575,6 +681,7 @@ describe('Store', () => {
             expect(snapshot).to.not.have.property('storageWarning');
             expect(snapshot).to.not.have.property('dialog');
             expect(snapshot).to.not.have.property('toasts');
+            expect(snapshot).to.not.have.property('templateGalleryOpen');
         });
 
         it('should persist domain data correctly via persistNow', () => {
@@ -588,6 +695,7 @@ describe('Store', () => {
             expect(parsed).to.not.have.property('dialog');
             expect(parsed).to.not.have.property('toasts');
             expect(parsed).to.not.have.property('taskModalMode');
+            expect(parsed).to.have.property('taskTemplates');
         });
 
         it('should keep persisted snapshot schema stable after transient mutations', () => {
@@ -639,13 +747,30 @@ describe('Store', () => {
                 }
             });
 
-            expect(store.appVersion).to.equal('1.3');
+            expect(store.appVersion).to.equal('1.4');
             expect(store.activeFilters.tags).to.include('legacy-tag');
             expect(store.workspaceViewState.ws_base.searchQuery).to.equal('legacy');
             expect(store.workspaceViewState.ws_base.sortMode).to.equal('createdAt');
         });
 
-        it('should handle pre-1.3 data with transient fields gracefully', () => {
+        it('should hydrate correctly when taskTemplates is missing', () => {
+            hydrate({
+                appVersion: '1.2',
+                theme: 'light',
+                currentWorkspaceId: 'ws_base',
+                workspaces: [{ id: 'ws_base', name: 'Base', columns: ['col_todo'] }],
+                columns: { col_todo: { id: 'col_todo', workspaceId: 'ws_base', title: 'To Do' } },
+                tasks: {},
+                columnTaskOrder: { col_todo: [] },
+                activeFilters: { tags: [], priorities: [] },
+                workspaceViewState: {}
+            });
+
+            expect(store.taskTemplates).to.deep.equal({});
+            expect(store.appVersion).to.equal('1.4');
+        });
+
+        it('should handle pre-1.4 data with transient fields gracefully', () => {
             hydrate({
                 appVersion: '1.1',
                 theme: 'dark',
@@ -662,7 +787,7 @@ describe('Store', () => {
                 toasts: [{ message: 'stale' }]
             });
 
-            expect(store.appVersion).to.equal('1.3');
+            expect(store.appVersion).to.equal('1.4');
             expect(store.activeTaskId).to.equal(null);
             expect(store.taskModalMode).to.equal(null);
             expect(store.dialog.isOpen).to.equal(false);

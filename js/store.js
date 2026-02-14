@@ -1,5 +1,5 @@
 import { generateId } from './utils/id.js';
-import { parseTagsFromTitle, normalizeTagList } from './utils/tagParser.js';
+import { parseTagsFromTitle, normalizeTag, normalizeTagList } from './utils/tagParser.js';
 import { PRIORITY_VALUES, normalizePriority } from './utils/taskFilters.js';
 import { DEFAULT_SORT_MODE, normalizeSortMode } from './utils/taskSort.js';
 
@@ -89,18 +89,20 @@ function cloneDialogState(overrides = {}) {
 }
 
 export const store = Vue.observable({
-    appVersion: '1.3',
+    appVersion: '1.4',
     theme: 'light',
     currentWorkspaceId: null,
     workspaces: [],
     columns: {},
     tasks: {},
+    taskTemplates: {},
     columnTaskOrder: {},
     activeFilters: getDefaultActiveFilters(),
     workspaceViewState: {},
     activeTaskId: null,
     taskModalMode: null,
     taskModalDraft: null,
+    templateGalleryOpen: false,
     storageWarning: null,
     dialog: getDefaultDialogState(),
     toasts: []
@@ -114,6 +116,7 @@ export function buildPersistedSnapshot() {
         workspaces: store.workspaces,
         columns: store.columns,
         tasks: store.tasks,
+        taskTemplates: store.taskTemplates,
         columnTaskOrder: store.columnTaskOrder,
         activeFilters: store.activeFilters,
         workspaceViewState: store.workspaceViewState
@@ -291,7 +294,7 @@ function resetDialogAndToasts() {
 }
 
 function initializeDefaultData() {
-    store.appVersion = '1.3';
+    store.appVersion = '1.4';
 
     const wsId = generateId('ws');
     const col1 = generateId('col');
@@ -319,12 +322,14 @@ function initializeDefaultData() {
     };
 
     store.tasks = {};
+    store.taskTemplates = {};
     store.activeFilters = getDefaultActiveFilters();
     store.workspaceViewState = {};
     Vue.set(store.workspaceViewState, wsId, getDefaultWorkspaceViewState());
     store.activeTaskId = null;
     store.taskModalMode = null;
     store.taskModalDraft = null;
+    store.templateGalleryOpen = false;
     store.storageWarning = null;
     resetDialogAndToasts();
     persist();
@@ -333,6 +338,112 @@ function initializeDefaultData() {
 export function normalizeText(value) {
     if (typeof value !== 'string') return '';
     return value.replace(/\s+/g, ' ').trim();
+}
+
+function isIsoDateString(value) {
+    return typeof value === 'string' && !Number.isNaN(Date.parse(value));
+}
+
+export function normalizeTemplateName(raw) {
+    return normalizeTag(raw);
+}
+
+function normalizeTemplateSubtasks(subtasks) {
+    if (!Array.isArray(subtasks)) {
+        return [];
+    }
+
+    const normalized = [];
+    subtasks.forEach(item => {
+        const text = normalizeText(item && item.text);
+        if (!text) return;
+        normalized.push({
+            text,
+            done: false
+        });
+    });
+
+    return normalized;
+}
+
+function getWorkspaceTemplateList(workspaceId) {
+    if (!workspaceId) return [];
+    return Object.values(store.taskTemplates).filter(template =>
+        template
+        && template.workspaceId === workspaceId
+        && typeof template.name === 'string'
+        && template.name.length > 0
+    );
+}
+
+function normalizeTemplateRecord(input) {
+    if (!input || typeof input !== 'object') {
+        return null;
+    }
+
+    const workspaceId = typeof input.workspaceId === 'string' ? input.workspaceId : null;
+    if (!workspaceId || !getWorkspace(workspaceId)) {
+        return null;
+    }
+
+    const name = normalizeTemplateName(input.name);
+    if (!name) {
+        return null;
+    }
+
+    const nowIso = new Date().toISOString();
+    const createdAt = isIsoDateString(input.createdAt) ? input.createdAt : nowIso;
+    const updatedAt = isIsoDateString(input.updatedAt) ? input.updatedAt : createdAt;
+
+    return {
+        id: typeof input.id === 'string' && input.id ? input.id : generateId('tmpl'),
+        workspaceId,
+        name,
+        description: typeof input.description === 'string' ? input.description : '',
+        tags: normalizeTagList(input.tags || []),
+        priority: normalizePriority(input.priority),
+        color: typeof input.color === 'string' && input.color ? input.color : 'gray',
+        subtasks: normalizeTemplateSubtasks(input.subtasks),
+        createdAt,
+        updatedAt
+    };
+}
+
+export function validateTemplateName(workspaceId, rawValue, context = {}) {
+    if (!workspaceId || !getWorkspace(workspaceId)) {
+        return {
+            ok: false,
+            value: '',
+            error: buildValidationError('invalid_target', 'Target workspace does not exist.', 'template')
+        };
+    }
+
+    const normalized = normalizeTemplateName(rawValue);
+    if (!normalized) {
+        return {
+            ok: false,
+            value: '',
+            error: buildValidationError('required', 'Template name is required.', 'template')
+        };
+    }
+
+    const excludeTemplateId = context.excludeTemplateId || null;
+    const duplicate = getWorkspaceTemplateList(workspaceId).some(template =>
+        template.id !== excludeTemplateId && template.name === normalized
+    );
+    if (duplicate) {
+        return {
+            ok: false,
+            value: normalized,
+            error: buildValidationError('duplicate_template_name', 'A template with this name already exists.', 'template')
+        };
+    }
+
+    return {
+        ok: true,
+        value: normalized,
+        error: null
+    };
 }
 
 function buildValidationError(code, message, field, maxLength = null) {
@@ -477,6 +588,12 @@ export const mutations = {
             });
             Vue.delete(store.columnTaskOrder, colId);
             Vue.delete(store.columns, colId);
+        });
+        Object.keys(store.taskTemplates).forEach(templateId => {
+            const template = store.taskTemplates[templateId];
+            if (template && template.workspaceId === workspaceId) {
+                Vue.delete(store.taskTemplates, templateId);
+            }
         });
         Vue.delete(store.workspaceViewState, workspaceId);
 
@@ -660,6 +777,173 @@ export const mutations = {
 
         persist();
         return success({ taskId: id });
+    },
+
+    createTaskFromTemplate(payload) {
+        const input = payload && typeof payload === 'object' ? payload : {};
+        const templateId = typeof input.templateId === 'string' ? input.templateId : null;
+        const columnId = typeof input.columnId === 'string' ? input.columnId : null;
+        const template = templateId ? store.taskTemplates[templateId] : null;
+
+        if (!template) {
+            return failure(buildValidationError('invalid_target', 'Template not found.', 'template'));
+        }
+
+        const column = store.columns[columnId];
+        if (!column) {
+            return failure(buildValidationError('invalid_target', 'Target column does not exist.', 'task'));
+        }
+
+        if (column.workspaceId !== template.workspaceId) {
+            return failure(buildValidationError('invalid_target', 'Template does not belong to this workspace.', 'template'));
+        }
+
+        const titleValidation = validateName('task', input.title);
+        if (!titleValidation.ok) {
+            return failure(titleValidation.error);
+        }
+
+        const inlineTags = Array.isArray(input.inlineTags) ? input.inlineTags : [];
+        const mergedTags = normalizeTagList([...(template.tags || []), ...inlineTags]);
+
+        return this.createTask({
+            columnId,
+            title: titleValidation.value,
+            tags: mergedTags,
+            priority: template.priority,
+            description: template.description,
+            color: template.color,
+            dueDate: null,
+            subtasks: normalizeTemplateSubtasks(template.subtasks),
+            position: input.position
+        });
+    },
+
+    createTaskTemplateFromTask(taskId, rawTemplateName) {
+        const task = store.tasks[taskId];
+        if (!task) {
+            return failure(buildValidationError('invalid_target', 'Task not found.', 'task'));
+        }
+
+        const column = store.columns[task.columnId];
+        if (!column || !column.workspaceId || !getWorkspace(column.workspaceId)) {
+            return failure(buildValidationError('invalid_target', 'Target workspace does not exist.', 'template'));
+        }
+
+        const nameValidation = validateTemplateName(column.workspaceId, rawTemplateName);
+        if (!nameValidation.ok) {
+            return failure(nameValidation.error);
+        }
+
+        const nowIso = new Date().toISOString();
+        const id = generateId('tmpl');
+        const template = {
+            id,
+            workspaceId: column.workspaceId,
+            name: nameValidation.value,
+            description: typeof task.description === 'string' ? task.description : '',
+            tags: normalizeTagList(task.tags || []),
+            priority: normalizePriority(task.priority),
+            color: typeof task.color === 'string' && task.color ? task.color : 'gray',
+            subtasks: normalizeTemplateSubtasks(task.subtasks),
+            createdAt: nowIso,
+            updatedAt: nowIso
+        };
+
+        Vue.set(store.taskTemplates, id, template);
+        persist();
+        return success({ templateId: id });
+    },
+
+    updateTaskTemplate(templateId, updates) {
+        const template = store.taskTemplates[templateId];
+        if (!template || !updates || typeof updates !== 'object') {
+            return failure(buildValidationError('invalid_target', 'Template not found.', 'template'));
+        }
+
+        let hasChanges = false;
+
+        if (Object.prototype.hasOwnProperty.call(updates, 'name')) {
+            const validation = validateTemplateName(template.workspaceId, updates.name, {
+                excludeTemplateId: templateId
+            });
+            if (!validation.ok) {
+                return failure(validation.error);
+            }
+            if (template.name !== validation.value) {
+                Vue.set(template, 'name', validation.value);
+                hasChanges = true;
+            }
+        }
+
+        if (Object.prototype.hasOwnProperty.call(updates, 'description')) {
+            const nextDescription = typeof updates.description === 'string' ? updates.description : '';
+            if (template.description !== nextDescription) {
+                Vue.set(template, 'description', nextDescription);
+                hasChanges = true;
+            }
+        }
+
+        if (Object.prototype.hasOwnProperty.call(updates, 'tags')) {
+            const nextTags = normalizeTagList(updates.tags);
+            if (JSON.stringify(template.tags || []) !== JSON.stringify(nextTags)) {
+                Vue.set(template, 'tags', nextTags);
+                hasChanges = true;
+            }
+        }
+
+        if (Object.prototype.hasOwnProperty.call(updates, 'priority')) {
+            const nextPriority = normalizePriority(updates.priority);
+            if (template.priority !== nextPriority) {
+                Vue.set(template, 'priority', nextPriority);
+                hasChanges = true;
+            }
+        }
+
+        if (Object.prototype.hasOwnProperty.call(updates, 'color')) {
+            const nextColor = typeof updates.color === 'string' && updates.color ? updates.color : 'gray';
+            if (template.color !== nextColor) {
+                Vue.set(template, 'color', nextColor);
+                hasChanges = true;
+            }
+        }
+
+        if (Object.prototype.hasOwnProperty.call(updates, 'subtasks')) {
+            const nextSubtasks = normalizeTemplateSubtasks(updates.subtasks);
+            if (JSON.stringify(template.subtasks || []) !== JSON.stringify(nextSubtasks)) {
+                Vue.set(template, 'subtasks', nextSubtasks);
+                hasChanges = true;
+            }
+        }
+
+        if (!hasChanges) {
+            return success({ changed: false });
+        }
+
+        Vue.set(template, 'updatedAt', new Date().toISOString());
+        persist();
+        return success({ changed: true });
+    },
+
+    deleteTaskTemplate(templateId) {
+        const template = store.taskTemplates[templateId];
+        if (!template) {
+            return failure(buildValidationError('invalid_target', 'Template not found.', 'template'));
+        }
+
+        Vue.delete(store.taskTemplates, templateId);
+        persist();
+        return success();
+    },
+
+    openTemplateGallery() {
+        Vue.set(store, 'templateGalleryOpen', true);
+        return success();
+    },
+
+    closeTemplateGallery() {
+        Vue.set(store, 'templateGalleryOpen', false);
+        return success();
     },
 
     moveTask(taskId, sourceColId, targetColId, newIndex) {
@@ -1121,6 +1405,15 @@ export const mutations = {
         case 'task.delete':
             result = this.deleteTask(action.payload && action.payload.taskId);
             break;
+        case 'template.saveFromTask':
+            result = this.createTaskTemplateFromTask(
+                action.payload && action.payload.taskId,
+                store.dialog.input.value
+            );
+            break;
+        case 'template.delete':
+            result = this.deleteTaskTemplate(action.payload && action.payload.templateId);
+            break;
         case 'app.resetAll':
             result = this.deleteAllData();
             break;
@@ -1186,7 +1479,7 @@ export function hydrate(inputData = null) {
         if (data) {
 
             // Restore top-level primitives
-            store.appVersion = '1.3';
+            store.appVersion = '1.4';
             store.theme = data.theme || 'light';
             store.currentWorkspaceId = data.currentWorkspaceId;
 
@@ -1194,6 +1487,7 @@ export function hydrate(inputData = null) {
             store.activeTaskId = null;
             store.taskModalMode = null;
             store.taskModalDraft = null;
+            store.templateGalleryOpen = false;
 
             // Migration: legacy activeFilter (array) → activeFilters.tags (v1.0 → v1.1)
             const legacyTags = Array.isArray(data.activeFilter) ? data.activeFilter : [];
@@ -1221,6 +1515,23 @@ export function hydrate(inputData = null) {
                     sortMode: normalizeSortMode(rawWorkspaceState.sortMode)
                 });
             });
+
+            store.taskTemplates = {};
+            if (data.taskTemplates && typeof data.taskTemplates === 'object') {
+                const seenWorkspaceNames = new Set();
+                Object.keys(data.taskTemplates).forEach(key => {
+                    const normalized = normalizeTemplateRecord(data.taskTemplates[key]);
+                    if (!normalized) {
+                        return;
+                    }
+                    const dedupeKey = `${normalized.workspaceId}:${normalized.name}`;
+                    if (seenWorkspaceNames.has(dedupeKey)) {
+                        return;
+                    }
+                    seenWorkspaceNames.add(dedupeKey);
+                    Vue.set(store.taskTemplates, normalized.id, normalized);
+                });
+            }
 
             // Restore nested objects using Vue.set to ensure reactivity is maintained/re-established
             // Although Object.assign(store, data) might work, explicit Vue.set is safer for nested observers
