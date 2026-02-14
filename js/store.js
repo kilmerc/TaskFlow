@@ -86,7 +86,7 @@ function cloneDialogState(overrides = {}) {
     };
 }
 
-export const store = Vue.observable({
+export const store = Vue.reactive({
     appVersion: '1.4',
     theme: 'light',
     currentWorkspaceId: null,
@@ -198,7 +198,7 @@ function getWorkspaceTagSet(workspaceId) {
 
 function pruneActiveTagFiltersForWorkspace(workspaceId) {
     if (!store.activeFilters || !Array.isArray(store.activeFilters.tags)) {
-        Vue.set(store, 'activeFilters', getDefaultActiveFilters());
+        store['activeFilters'] = getDefaultActiveFilters();
         return;
     }
 
@@ -206,7 +206,7 @@ function pruneActiveTagFiltersForWorkspace(workspaceId) {
     const nextTags = store.activeFilters.tags.filter(tag => allowedTags.has(tag));
 
     if (nextTags.length !== store.activeFilters.tags.length) {
-        Vue.set(store.activeFilters, 'tags', nextTags);
+        store.activeFilters['tags'] = nextTags;
     }
 }
 
@@ -222,7 +222,7 @@ function getDefaultColumnId(workspaceId = null) {
 
 function ensureColumnTaskOrder(columnId) {
     if (!store.columnTaskOrder[columnId]) {
-        Vue.set(store.columnTaskOrder, columnId, []);
+        store.columnTaskOrder[columnId] = [];
     }
 }
 
@@ -252,7 +252,7 @@ function addTaskToColumnOrder(taskId, columnId, position = 'bottom') {
 
 function ensureWorkspaceViewState(workspaceId) {
     if (!store.workspaceViewState || typeof store.workspaceViewState !== 'object') {
-        Vue.set(store, 'workspaceViewState', {});
+        store['workspaceViewState'] = {};
     }
 
     if (!workspaceId) {
@@ -261,12 +261,12 @@ function ensureWorkspaceViewState(workspaceId) {
 
     const existing = store.workspaceViewState[workspaceId];
     if (!existing || typeof existing !== 'object') {
-        Vue.set(store.workspaceViewState, workspaceId, getDefaultWorkspaceViewState());
+        store.workspaceViewState[workspaceId] = getDefaultWorkspaceViewState();
     } else {
         const normalized = {
             searchQuery: normalizeWorkspaceSearchQuery(existing.searchQuery)
         };
-        Vue.set(store.workspaceViewState, workspaceId, normalized);
+        store.workspaceViewState[workspaceId] = normalized;
     }
 
     return store.workspaceViewState[workspaceId];
@@ -278,16 +278,16 @@ function getColumnWorkspaceId(columnId) {
 }
 
 function applyDialogState(dialogState) {
-    Vue.set(store, 'dialog', cloneDialogState(dialogState));
+    store['dialog'] = cloneDialogState(dialogState);
 }
 
 function setDialogError(message) {
-    Vue.set(store.dialog, 'error', message || 'Unable to complete this action.');
+    store.dialog['error'] = message || 'Unable to complete this action.';
 }
 
 function resetDialogAndToasts() {
     applyDialogState(getDefaultDialogState());
-    Vue.set(store, 'toasts', []);
+    store['toasts'] = [];
 }
 
 function initializeDefaultData() {
@@ -322,7 +322,7 @@ function initializeDefaultData() {
     store.taskTemplates = {};
     store.activeFilters = getDefaultActiveFilters();
     store.workspaceViewState = {};
-    Vue.set(store.workspaceViewState, wsId, getDefaultWorkspaceViewState());
+    store.workspaceViewState[wsId] = getDefaultWorkspaceViewState();
     store.activeTaskId = null;
     store.taskModalMode = null;
     store.taskModalDraft = null;
@@ -549,15 +549,15 @@ export const mutations = {
         store.workspaces.push(newWorkspace);
 
         // Add default columns
-        Vue.set(store.columns, col1, { id: col1, workspaceId: id, title: 'To Do', showCompleted: false });
-        Vue.set(store.columns, col2, { id: col2, workspaceId: id, title: 'In Progress', showCompleted: false });
-        Vue.set(store.columns, col3, { id: col3, workspaceId: id, title: 'Done', showCompleted: false });
+        store.columns[col1] = { id: col1, workspaceId: id, title: 'To Do', showCompleted: false };
+        store.columns[col2] = { id: col2, workspaceId: id, title: 'In Progress', showCompleted: false };
+        store.columns[col3] = { id: col3, workspaceId: id, title: 'Done', showCompleted: false };
 
         // Initialize column order
-        Vue.set(store.columnTaskOrder, col1, []);
-        Vue.set(store.columnTaskOrder, col2, []);
-        Vue.set(store.columnTaskOrder, col3, []);
-        Vue.set(store.workspaceViewState, id, getDefaultWorkspaceViewState());
+        store.columnTaskOrder[col1] = [];
+        store.columnTaskOrder[col2] = [];
+        store.columnTaskOrder[col3] = [];
+        store.workspaceViewState[id] = getDefaultWorkspaceViewState();
 
         store.currentWorkspaceId = id;
         pruneActiveTagFiltersForWorkspace(id);
@@ -581,18 +581,18 @@ export const mutations = {
         ws.columns.forEach(colId => {
             const taskIds = store.columnTaskOrder[colId] || [];
             taskIds.forEach(taskId => {
-                Vue.delete(store.tasks, taskId);
+                delete store.tasks[taskId];
             });
-            Vue.delete(store.columnTaskOrder, colId);
-            Vue.delete(store.columns, colId);
+            delete store.columnTaskOrder[colId];
+            delete store.columns[colId];
         });
         Object.keys(store.taskTemplates).forEach(templateId => {
             const template = store.taskTemplates[templateId];
             if (template && template.workspaceId === workspaceId) {
-                Vue.delete(store.taskTemplates, templateId);
+                delete store.taskTemplates[templateId];
             }
         });
-        Vue.delete(store.workspaceViewState, workspaceId);
+        delete store.workspaceViewState[workspaceId];
 
         store.workspaces.splice(wsIndex, 1);
 
@@ -654,8 +654,8 @@ export const mutations = {
 
         const id = generateId('col');
 
-        Vue.set(store.columns, id, { id, workspaceId, title: validation.value, showCompleted: false });
-        Vue.set(store.columnTaskOrder, id, []);
+        store.columns[id] = { id, workspaceId, title: validation.value, showCompleted: false };
+        store.columnTaskOrder[id] = [];
         ws.columns.push(id);
         persist();
         return success({ columnId: id });
@@ -699,11 +699,11 @@ export const mutations = {
         // Delete tasks in column
         const taskIds = store.columnTaskOrder[columnId] || [];
         taskIds.forEach(taskId => {
-            Vue.delete(store.tasks, taskId);
+            delete store.tasks[taskId];
         });
 
-        Vue.delete(store.columnTaskOrder, columnId);
-        Vue.delete(store.columns, columnId);
+        delete store.columnTaskOrder[columnId];
+        delete store.columns[columnId];
 
         if (store.activeTaskId && !store.tasks[store.activeTaskId]) {
             this.closeTaskModal();
@@ -768,7 +768,7 @@ export const mutations = {
             createdAt: new Date().toISOString()
         };
 
-        Vue.set(store.tasks, id, newTask);
+        store.tasks[id] = newTask;
         const insertionPosition = input.position === 'top' ? 'top' : 'bottom';
         addTaskToColumnOrder(id, columnId, insertionPosition);
 
@@ -847,7 +847,7 @@ export const mutations = {
             updatedAt: nowIso
         };
 
-        Vue.set(store.taskTemplates, id, template);
+        store.taskTemplates[id] = template;
         persist();
         return success({ templateId: id });
     },
@@ -868,7 +868,7 @@ export const mutations = {
                 return failure(validation.error);
             }
             if (template.name !== validation.value) {
-                Vue.set(template, 'name', validation.value);
+                template['name'] = validation.value;
                 hasChanges = true;
             }
         }
@@ -876,7 +876,7 @@ export const mutations = {
         if (Object.prototype.hasOwnProperty.call(updates, 'description')) {
             const nextDescription = typeof updates.description === 'string' ? updates.description : '';
             if (template.description !== nextDescription) {
-                Vue.set(template, 'description', nextDescription);
+                template['description'] = nextDescription;
                 hasChanges = true;
             }
         }
@@ -884,7 +884,7 @@ export const mutations = {
         if (Object.prototype.hasOwnProperty.call(updates, 'tags')) {
             const nextTags = normalizeTagList(updates.tags);
             if (JSON.stringify(template.tags || []) !== JSON.stringify(nextTags)) {
-                Vue.set(template, 'tags', nextTags);
+                template['tags'] = nextTags;
                 hasChanges = true;
             }
         }
@@ -892,7 +892,7 @@ export const mutations = {
         if (Object.prototype.hasOwnProperty.call(updates, 'priority')) {
             const nextPriority = normalizePriority(updates.priority);
             if (template.priority !== nextPriority) {
-                Vue.set(template, 'priority', nextPriority);
+                template['priority'] = nextPriority;
                 hasChanges = true;
             }
         }
@@ -900,7 +900,7 @@ export const mutations = {
         if (Object.prototype.hasOwnProperty.call(updates, 'color')) {
             const nextColor = typeof updates.color === 'string' && updates.color ? updates.color : 'gray';
             if (template.color !== nextColor) {
-                Vue.set(template, 'color', nextColor);
+                template['color'] = nextColor;
                 hasChanges = true;
             }
         }
@@ -908,7 +908,7 @@ export const mutations = {
         if (Object.prototype.hasOwnProperty.call(updates, 'subtasks')) {
             const nextSubtasks = normalizeTemplateSubtasks(updates.subtasks);
             if (JSON.stringify(template.subtasks || []) !== JSON.stringify(nextSubtasks)) {
-                Vue.set(template, 'subtasks', nextSubtasks);
+                template['subtasks'] = nextSubtasks;
                 hasChanges = true;
             }
         }
@@ -917,7 +917,7 @@ export const mutations = {
             return success({ changed: false });
         }
 
-        Vue.set(template, 'updatedAt', new Date().toISOString());
+        template['updatedAt'] = new Date().toISOString();
         persist();
         return success({ changed: true });
     },
@@ -928,18 +928,18 @@ export const mutations = {
             return failure(buildValidationError('invalid_target', 'Template not found.', 'template'));
         }
 
-        Vue.delete(store.taskTemplates, templateId);
+        delete store.taskTemplates[templateId];
         persist();
         return success();
     },
 
     openTemplateGallery() {
-        Vue.set(store, 'templateGalleryOpen', true);
+        store['templateGalleryOpen'] = true;
         return success();
     },
 
     closeTemplateGallery() {
-        Vue.set(store, 'templateGalleryOpen', false);
+        store['templateGalleryOpen'] = false;
         return success();
     },
 
@@ -980,7 +980,7 @@ export const mutations = {
             return failure(buildValidationError('invalid_target', 'Unable to update task order.', 'column'));
         }
 
-        Vue.set(store.columnTaskOrder, columnId, newOrder);
+        store.columnTaskOrder[columnId] = newOrder;
         persist();
         return success();
     },
@@ -992,8 +992,8 @@ export const mutations = {
         }
 
         const isCompleted = !task.isCompleted;
-        Vue.set(task, 'isCompleted', isCompleted);
-        Vue.set(task, 'completedAt', isCompleted ? new Date().toISOString() : null);
+        task['isCompleted'] = isCompleted;
+        task['completedAt'] = isCompleted ? new Date().toISOString() : null;
         persist();
         return success();
     },
@@ -1004,7 +1004,7 @@ export const mutations = {
             return failure(buildValidationError('invalid_target', 'Column not found.', 'column'));
         }
 
-        Vue.set(col, 'showCompleted', !col.showCompleted);
+        col['showCompleted'] = !col.showCompleted;
         persist();
         return success();
     },
@@ -1089,41 +1089,41 @@ export const mutations = {
                 return failure(titleValidation.error);
             }
             if (titleValidation.value !== task.title) {
-                Vue.set(task, 'title', titleValidation.value);
+                task['title'] = titleValidation.value;
                 hasChanges = true;
             }
         }
 
         if (Object.prototype.hasOwnProperty.call(updates, 'tags')) {
-            Vue.set(task, 'tags', normalizeTagList(updates.tags));
+            task['tags'] = normalizeTagList(updates.tags);
             hasChanges = true;
         }
 
         if (Object.prototype.hasOwnProperty.call(updates, 'priority')) {
-            Vue.set(task, 'priority', normalizePriority(updates.priority));
+            task['priority'] = normalizePriority(updates.priority);
             hasChanges = true;
         }
 
         if (Object.prototype.hasOwnProperty.call(updates, 'description')) {
-            Vue.set(task, 'description', typeof updates.description === 'string' ? updates.description : '');
+            task['description'] = typeof updates.description === 'string' ? updates.description : '';
             hasChanges = true;
         }
 
         if (Object.prototype.hasOwnProperty.call(updates, 'dueDate')) {
-            Vue.set(task, 'dueDate', updates.dueDate || null);
+            task['dueDate'] = updates.dueDate || null;
             hasChanges = true;
         }
 
         if (Object.prototype.hasOwnProperty.call(updates, 'color')) {
             const color = typeof updates.color === 'string' && updates.color ? updates.color : 'gray';
-            Vue.set(task, 'color', color);
+            task['color'] = color;
             hasChanges = true;
         }
 
         if (targetColumnId !== sourceColumnId) {
             removeTaskFromColumnOrder(taskId, sourceColumnId);
             addTaskToColumnOrder(taskId, targetColumnId);
-            Vue.set(task, 'columnId', targetColumnId);
+            task['columnId'] = targetColumnId;
             hasChanges = true;
         }
 
@@ -1149,7 +1149,7 @@ export const mutations = {
             }
         }
 
-        Vue.delete(store.tasks, taskId);
+        delete store.tasks[taskId];
 
         if (store.activeTaskId === taskId) {
             this.closeTaskModal();
@@ -1171,7 +1171,7 @@ export const mutations = {
         }
 
         if (!task.subtasks) {
-            Vue.set(task, 'subtasks', []);
+            task['subtasks'] = [];
         }
 
         task.subtasks.push({
@@ -1191,10 +1191,10 @@ export const mutations = {
         const subtask = task.subtasks[index];
         Object.keys(updates || {}).forEach(key => {
             if (key === 'text') {
-                Vue.set(subtask, key, normalizeText(updates[key]));
+                subtask[key] = normalizeText(updates[key]);
                 return;
             }
-            Vue.set(subtask, key, updates[key]);
+            subtask[key] = updates[key];
         });
         persist();
         return success();
@@ -1222,7 +1222,7 @@ export const mutations = {
             done: !!(item && item.done)
         }));
 
-        Vue.set(task, 'subtasks', normalizedOrder);
+        task['subtasks'] = normalizedOrder;
         persist();
         return success();
     },
@@ -1233,7 +1233,7 @@ export const mutations = {
             return failure(buildValidationError('invalid_target', 'Task not found.', 'task'));
         }
 
-        Vue.set(task, 'dueDate', dateString || null);
+        task['dueDate'] = dateString || null;
         persist();
         return success();
     },
@@ -1245,14 +1245,14 @@ export const mutations = {
         }
 
         const normalized = normalizePriority(priorityOrNull);
-        Vue.set(task, 'priority', normalized);
+        task['priority'] = normalized;
         persist();
         return success();
     },
 
     toggleTagFilter(tag) {
         if (!store.activeFilters || !Array.isArray(store.activeFilters.tags)) {
-            Vue.set(store, 'activeFilters', getDefaultActiveFilters());
+            store['activeFilters'] = getDefaultActiveFilters();
         }
 
         const index = store.activeFilters.tags.indexOf(tag);
@@ -1271,7 +1271,7 @@ export const mutations = {
         }
 
         if (!store.activeFilters || !Array.isArray(store.activeFilters.priorities)) {
-            Vue.set(store, 'activeFilters', getDefaultActiveFilters());
+            store['activeFilters'] = getDefaultActiveFilters();
         }
 
         const index = store.activeFilters.priorities.indexOf(priority);
@@ -1306,7 +1306,7 @@ export const mutations = {
             return success({ changed: false });
         }
 
-        Vue.set(workspaceViewState, 'searchQuery', nextQuery);
+        workspaceViewState['searchQuery'] = nextQuery;
         persist();
         return success({ changed: true });
     },
@@ -1357,8 +1357,8 @@ export const mutations = {
     },
 
     setDialogInput(value) {
-        Vue.set(store.dialog.input, 'value', typeof value === 'string' ? value : '');
-        Vue.set(store.dialog, 'error', '');
+        store.dialog.input['value'] = typeof value === 'string' ? value : '';
+        store.dialog['error'] = '';
         return success();
     },
 
@@ -1442,7 +1442,7 @@ export const mutations = {
     },
 
     clearToasts() {
-        Vue.set(store, 'toasts', []);
+        store['toasts'] = [];
         return success();
     }
 };
@@ -1491,9 +1491,9 @@ export function hydrate(inputData = null) {
                 : {};
             store.workspaces.forEach(workspace => {
                 const rawWorkspaceState = rawWorkspaceViewState[workspace.id] || {};
-                Vue.set(store.workspaceViewState, workspace.id, {
+                store.workspaceViewState[workspace.id] = {
                     searchQuery: normalizeWorkspaceSearchQuery(rawWorkspaceState.searchQuery)
-                });
+                };
             });
 
             store.taskTemplates = {};
@@ -1509,12 +1509,12 @@ export function hydrate(inputData = null) {
                         return;
                     }
                     seenWorkspaceNames.add(dedupeKey);
-                    Vue.set(store.taskTemplates, normalized.id, normalized);
+                    store.taskTemplates[normalized.id] = normalized;
                 });
             }
 
-            // Restore nested objects using Vue.set to ensure reactivity is maintained/re-established
-            // Although Object.assign(store, data) might work, explicit Vue.set is safer for nested observers
+            // Restore nested objects with explicit assignments for clarity and stable reactive updates.
+            // Although Object.assign(store, data) might work, explicit writes keep hydration behavior predictable.
 
             // Columns
             store.columns = {};
@@ -1524,7 +1524,7 @@ export function hydrate(inputData = null) {
                     if (col.showCompleted === undefined) {
                         col.showCompleted = false;
                     }
-                    Vue.set(store.columns, key, col);
+                    store.columns[key] = col;
                 });
             }
 
@@ -1559,7 +1559,7 @@ export function hydrate(inputData = null) {
                     task.title = titleValidation.ok ? titleValidation.value : 'Untitled Task';
                     task.priority = normalizePriority(task.priority);
                     task.tags = normalizeTagList(task.tags);
-                    Vue.set(store.tasks, key, task);
+                    store.tasks[key] = task;
                 });
             }
 
@@ -1602,7 +1602,7 @@ export function hydrate(inputData = null) {
 
             store.columnTaskOrder = {};
             Object.keys(rebuiltOrder).forEach(columnId => {
-                Vue.set(store.columnTaskOrder, columnId, rebuiltOrder[columnId]);
+                store.columnTaskOrder[columnId] = rebuiltOrder[columnId];
             });
 
         } else {
@@ -1624,3 +1624,4 @@ export function hydrate(inputData = null) {
         initializeDefaultData();
     }
 }
+
