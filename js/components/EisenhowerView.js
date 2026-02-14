@@ -1,8 +1,11 @@
-import { store, mutations } from '../store.js';
-import { taskMatchesFilters } from '../utils/taskFilters.js';
+import { mutations } from '../store.js';
+import { useWorkspaceTaskContext } from '../composables/useWorkspaceTaskContext.js';
 import { getTagToneClass as computeTagToneClass } from '../utils/tagStyle.js';
 
+const { ref, computed } = Vue;
+
 const EisenhowerView = {
+    name: 'EisenhowerView',
     props: {
         workspace: {
             type: Object,
@@ -126,56 +129,29 @@ const EisenhowerView = {
             </section>
         </div>
     `,
-    data() {
-        return {
-            dragGroup: {
-                name: 'eisenhower',
-                pull: 'clone',
-                put: true
-            },
-            quadrants: [
-                { priority: 'I', className: 'q1', label: 'Urgent & Important (Necessity)' },
-                { priority: 'II', className: 'q2', label: 'Not Urgent & Important (Effective)' },
-                { priority: 'III', className: 'q3', label: 'Urgent & Not Important (Distraction)' },
-                { priority: 'IV', className: 'q4', label: 'Not Urgent & Not Important (Waste)' }
-            ]
+    setup(props) {
+        const dragGroup = {
+            name: 'eisenhower',
+            pull: 'clone',
+            put: true
         };
-    },
-    computed: {
-        activeFilters() {
-            return store.activeFilters || { tags: [], priorities: [] };
-        },
-        workspaceViewState() {
-            if (!this.workspace || !this.workspace.id) {
-                return { searchQuery: '' };
-            }
-            return store.workspaceViewState[this.workspace.id]
-                || { searchQuery: '' };
-        },
-        searchQuery() {
-            return this.workspaceViewState.searchQuery || '';
-        },
-        workspaceTaskIds() {
-            if (!this.workspace || !Array.isArray(this.workspace.columns)) return [];
 
-            const ids = [];
-            this.workspace.columns.forEach(columnId => {
-                const order = store.columnTaskOrder[columnId] || [];
-                ids.push(...order);
-            });
-            return ids;
-        },
-        workspaceTasks() {
-            return this.workspaceTaskIds
-                .map(id => store.tasks[id])
-                .filter(task => !!task);
-        },
-        filteredWorkspaceTasks() {
-            return this.workspaceTasks.filter(task =>
-                !task.isCompleted && taskMatchesFilters(task, this.activeFilters, this.searchQuery)
+        const quadrants = ref([
+            { priority: 'I', className: 'q1', label: 'Urgent & Important (Necessity)' },
+            { priority: 'II', className: 'q2', label: 'Not Urgent & Important (Effective)' },
+            { priority: 'III', className: 'q3', label: 'Urgent & Not Important (Distraction)' },
+            { priority: 'IV', className: 'q4', label: 'Not Urgent & Not Important (Waste)' }
+        ]);
+
+        const context = useWorkspaceTaskContext(computed(() => props.workspace));
+
+        const filteredWorkspaceTasks = computed(() => {
+            return context.workspaceTasks.value.filter(task =>
+                !task.isCompleted && context.matchesWorkspaceFilters(task)
             );
-        },
-        priorityBuckets() {
+        });
+
+        const priorityBuckets = computed(() => {
             const buckets = {
                 I: [],
                 II: [],
@@ -184,7 +160,7 @@ const EisenhowerView = {
                 unassigned: []
             };
 
-            this.filteredWorkspaceTasks.forEach(task => {
+            filteredWorkspaceTasks.value.forEach(task => {
                 if (task.priority && buckets[task.priority]) {
                     buckets[task.priority].push(task);
                 } else {
@@ -193,42 +169,58 @@ const EisenhowerView = {
             });
 
             return buckets;
-        },
-        unassignedTasks() {
-            return this.priorityBuckets.unassigned;
+        });
+
+        const unassignedTasks = computed(() => priorityBuckets.value.unassigned);
+
+        function quadrantTasks(priority) {
+            return priorityBuckets.value[priority] || [];
         }
-    },
-    methods: {
-        quadrantTasks(priority) {
-            return this.priorityBuckets[priority] || [];
-        },
-        onQuadrantDrop(event, priority) {
+
+        function onQuadrantDrop(event, priority) {
             if (event.added && event.added.element) {
                 mutations.setTaskPriority(event.added.element.id, priority);
             }
-        },
-        onUnassignedDrop(event) {
+        }
+
+        function onUnassignedDrop(event) {
             if (event.added && event.added.element) {
                 mutations.setTaskPriority(event.added.element.id, null);
             }
-        },
-        toggleTaskCompletion(taskId) {
+        }
+
+        function toggleTaskCompletion(taskId) {
             mutations.toggleTaskCompletion(taskId);
-        },
-        openCreateModal(priority) {
+        }
+
+        function openCreateModal(priority) {
             mutations.openTaskModalForCreate({
-                workspaceId: this.workspace.id,
+                workspaceId: props.workspace.id,
                 priority
             });
-        },
-        openTask(taskId) {
+        }
+
+        function openTask(taskId) {
             mutations.setActiveTask(taskId);
-        },
-        getTagToneClass(tag) {
+        }
+
+        function getTagToneClass(tag) {
             return computeTagToneClass(tag);
         }
+
+        return {
+            dragGroup,
+            quadrants,
+            unassignedTasks,
+            quadrantTasks,
+            onQuadrantDrop,
+            onUnassignedDrop,
+            toggleTaskCompletion,
+            openCreateModal,
+            openTask,
+            getTagToneClass
+        };
     }
 };
 
 export default EisenhowerView;
-

@@ -1,7 +1,10 @@
-import { store, mutations } from '../store.js';
-import { taskMatchesFilters } from '../utils/taskFilters.js';
+import { mutations } from '../store.js';
+import { useWorkspaceTaskContext } from '../composables/useWorkspaceTaskContext.js';
+
+const { computed } = Vue;
 
 const CalendarSidebar = {
+    name: 'CalendarSidebar',
     props: {
         workspace: {
             type: Object,
@@ -13,10 +16,10 @@ const CalendarSidebar = {
             <div class="sidebar-header">
                 <h4>Unscheduled</h4>
             </div>
-            
-            <draggable 
-                class="sidebar-list" 
-                :list="unscheduledTasks" 
+
+            <draggable
+                class="sidebar-list"
+                :list="unscheduledTasks"
                 item-key="id"
                 :group="{ name: 'calendar', pull: 'clone', put: true }"
                 :sort="false"
@@ -65,63 +68,42 @@ const CalendarSidebar = {
             </draggable>
         </div>
     `,
-    computed: {
-        store() {
-            return store;
-        },
-        activeFilters() {
-            return this.store.activeFilters || { tags: [], priorities: [] };
-        },
-        workspaceViewState() {
-            if (!this.workspace || !this.workspace.id) {
-                return { searchQuery: '' };
-            }
-            return this.store.workspaceViewState[this.workspace.id]
-                || { searchQuery: '' };
-        },
-        searchQuery() {
-            return this.workspaceViewState.searchQuery || '';
-        },
-        workspaceTaskIds() {
-            if (!this.workspace || !Array.isArray(this.workspace.columns)) {
-                return [];
-            }
+    setup(props) {
+        const context = useWorkspaceTaskContext(computed(() => props.workspace));
 
-            const ids = [];
-            this.workspace.columns.forEach(columnId => {
-                const orderedTaskIds = this.store.columnTaskOrder[columnId] || [];
-                ids.push(...orderedTaskIds);
-            });
-            return ids;
-        },
-        unscheduledTasks() {
-            // Return tasks in the active workspace where dueDate is null.
-            return this.workspaceTaskIds
-                .map(taskId => this.store.tasks[taskId])
+        const unscheduledTasks = computed(() => {
+            return context.workspaceTaskIds.value
+                .map(taskId => context.workspaceTasks.value.find(task => task.id === taskId))
                 .filter(t => {
                     if (!t) return false;
                     if (t.dueDate) return false;
                     if (t.isCompleted) return false;
-                    return taskMatchesFilters(t, this.activeFilters, this.searchQuery);
+                    return context.matchesWorkspaceFilters(t);
                 });
-        }
-    },
-    methods: {
-        openTask(task) {
+        });
+
+        function openTask(task) {
             mutations.setActiveTask(task.id);
-        },
-        toggleTaskCompletion(taskId) {
+        }
+
+        function toggleTaskCompletion(taskId) {
             mutations.toggleTaskCompletion(taskId);
-        },
-        onSidebarDrop(event) {
+        }
+
+        function onSidebarDrop(event) {
             if (event.added) {
                 const task = event.added.element;
-                // dropping into sidebar clears the due date
                 mutations.scheduleTask(task.id, null);
             }
         }
+
+        return {
+            unscheduledTasks,
+            openTask,
+            toggleTaskCompletion,
+            onSidebarDrop
+        };
     }
 };
 
 export default CalendarSidebar;
-

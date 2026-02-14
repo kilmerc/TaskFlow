@@ -1,11 +1,15 @@
 import { MAX_COLUMN_NAME, MAX_TASK_TITLE, store, mutations } from '../store.js';
 import { PRIORITY_VALUES } from '../utils/taskFilters.js';
 import { getWorkspaceTags } from '../utils/tagAutocomplete.js';
+import { useUniqueId } from '../composables/useUniqueId.js';
+
+const { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } = Vue;
 
 const TaskModal = {
+    name: 'TaskModal',
     template: `
         <div class="modal-backdrop" @click.self="close" v-if="isOpen">
-            <div class="modal-content" :class="colorClass">
+            <div ref="modalContent" class="modal-content" :class="colorClass">
                 <header class="modal-header">
                     <div class="modal-title-row">
                         <input
@@ -26,7 +30,7 @@ const TaskModal = {
                             placeholder="Task Title *"
                         >
                     </div>
-                    <div v-if="isEdit" class="dropdown modal-task-actions" :class="{ active: isTaskActionsOpen }" v-click-outside="closeTaskActions">
+                    <div v-if="isEdit" class="dropdown modal-task-actions" :class="{ active: isTaskActionsOpen }" v-click-outside="onTaskActionsOutside">
                         <button
                             ref="taskActionsTrigger"
                             type="button"
@@ -128,139 +132,187 @@ const TaskModal = {
             </div>
         </div>
     `,
-    data() {
-        return {
-            localTitle: '',
-            localDescription: '',
-            localDueDate: null,
-            localPriority: '',
-            localColor: 'gray',
-            localTags: [],
-            localColumnId: null,
-            localColumnInput: '',
-            showTitleError: false,
-            showColumnError: false,
-            titleErrorMessage: 'Task title is required.',
-            columnErrorMessage: 'Column is required.',
-            colors: ['gray', 'red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink'],
-            priorities: PRIORITY_VALUES,
-            MAX_TASK_TITLE,
-            MAX_COLUMN_NAME,
-            isTaskActionsOpen: false,
-            taskActionsMenuId: `task-actions-${Math.random().toString(36).slice(2)}`
-        };
-    },
-    computed: {
-        task() { return store.activeTaskId ? store.tasks[store.activeTaskId] : null; },
-        draft() { return store.taskModalDraft || null; },
-        mode() { return store.taskModalMode || (this.task ? 'edit' : null); },
-        isEdit() { return this.mode === 'edit' && !!this.task; },
-        isCreate() { return this.mode === 'create'; },
-        isOpen() { return this.isEdit || this.isCreate; },
-        colorClass() { return `task-color-${this.localColor}`; },
-        selectedTags() {
-            if (this.isEdit && Array.isArray(this.task.tags)) return this.task.tags;
-            return this.localTags;
-        },
-        workspaceId() {
-            if (this.isEdit && this.task) {
-                const col = store.columns[this.task.columnId];
+    setup() {
+        const modalContent = ref(null);
+        const tagEditor = ref(null);
+        const columnPicker = ref(null);
+        const taskActionsTrigger = ref(null);
+
+        const localTitle = ref('');
+        const localDescription = ref('');
+        const localDueDate = ref(null);
+        const localPriority = ref('');
+        const localColor = ref('gray');
+        const localTags = ref([]);
+        const localColumnId = ref(null);
+        const localColumnInput = ref('');
+        const showTitleError = ref(false);
+        const showColumnError = ref(false);
+        const titleErrorMessage = ref('Task title is required.');
+        const columnErrorMessage = ref('Column is required.');
+        const colors = ['gray', 'red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink'];
+        const priorities = PRIORITY_VALUES;
+        const isTaskActionsOpen = ref(false);
+        const taskActionsMenuId = useUniqueId('task-actions');
+
+        const task = computed(() => store.activeTaskId ? store.tasks[store.activeTaskId] : null);
+        const draft = computed(() => store.taskModalDraft || null);
+        const mode = computed(() => store.taskModalMode || (task.value ? 'edit' : null));
+        const isEdit = computed(() => mode.value === 'edit' && !!task.value);
+        const isCreate = computed(() => mode.value === 'create');
+        const isOpen = computed(() => isEdit.value || isCreate.value);
+        const colorClass = computed(() => `task-color-${localColor.value}`);
+
+        const selectedTags = computed(() => {
+            if (isEdit.value && Array.isArray(task.value.tags)) {
+                return task.value.tags;
+            }
+            return localTags.value;
+        });
+
+        const workspaceId = computed(() => {
+            if (isEdit.value && task.value) {
+                const col = store.columns[task.value.columnId];
                 return col ? col.workspaceId : null;
             }
-            if (this.isCreate) {
-                return (this.draft && this.draft.workspaceId) || store.currentWorkspaceId;
+            if (isCreate.value) {
+                return (draft.value && draft.value.workspaceId) || store.currentWorkspaceId;
             }
             return null;
-        },
-        workspace() { return store.workspaces.find(ws => ws.id === this.workspaceId) || null; },
-        workspaceColumns() {
-            if (!this.workspace || !Array.isArray(this.workspace.columns)) return [];
-            return this.workspace.columns.map(id => store.columns[id]).filter(Boolean);
-        },
-        workspaceTags() { return getWorkspaceTags(this.workspaceId, store); }
-    },
-    watch: {
-        mode: { immediate: true, handler() { this.resetFromContext(); } },
-        task() { if (this.isEdit) this.resetFromContext(); },
-        draft: { deep: true, handler() { if (this.isCreate) this.resetFromContext(); } }
-    },
-    mounted() { document.addEventListener('keydown', this.onEsc); },
-    beforeUnmount() { document.removeEventListener('keydown', this.onEsc); },
-    methods: {
-        resetFromContext() {
-            this.closeTaskActions(false);
-            this.showTitleError = false;
-            this.showColumnError = false;
-            this.titleErrorMessage = 'Task title is required.';
-            this.columnErrorMessage = 'Column is required.';
-            if (this.$refs.tagEditor) this.$refs.tagEditor.reset();
-            if (this.$refs.columnPicker) this.$refs.columnPicker.reset();
-            if (this.isEdit && this.task) {
-                this.localTitle = this.task.title || '';
-                this.localDescription = this.task.description || '';
-                this.localDueDate = this.task.dueDate || null;
-                this.localPriority = this.task.priority || '';
-                this.localColor = this.task.color || 'gray';
-                this.localTags = Array.isArray(this.task.tags) ? this.task.tags.slice() : [];
-                this.localColumnId = this.task.columnId || null;
-                this.localColumnInput = this.getColumnTitle(this.localColumnId);
+        });
+
+        const workspace = computed(() => {
+            return store.workspaces.find(ws => ws.id === workspaceId.value) || null;
+        });
+
+        const workspaceColumns = computed(() => {
+            if (!workspace.value || !Array.isArray(workspace.value.columns)) return [];
+            return workspace.value.columns.map(id => store.columns[id]).filter(Boolean);
+        });
+
+        const workspaceTags = computed(() => {
+            return getWorkspaceTags(workspaceId.value, store);
+        });
+
+        watch(mode, () => {
+            resetFromContext();
+        }, { immediate: true });
+
+        watch(task, () => {
+            if (isEdit.value) {
+                resetFromContext();
+            }
+        });
+
+        watch(draft, () => {
+            if (isCreate.value) {
+                resetFromContext();
+            }
+        }, { deep: true });
+
+        onMounted(() => {
+            document.addEventListener('keydown', onEsc);
+        });
+
+        onBeforeUnmount(() => {
+            document.removeEventListener('keydown', onEsc);
+        });
+
+        function resetFromContext() {
+            closeTaskActions(false);
+            showTitleError.value = false;
+            showColumnError.value = false;
+            titleErrorMessage.value = 'Task title is required.';
+            columnErrorMessage.value = 'Column is required.';
+            if (tagEditor.value) {
+                tagEditor.value.reset();
+            }
+            if (columnPicker.value) {
+                columnPicker.value.reset();
+            }
+
+            if (isEdit.value && task.value) {
+                localTitle.value = task.value.title || '';
+                localDescription.value = task.value.description || '';
+                localDueDate.value = task.value.dueDate || null;
+                localPriority.value = task.value.priority || '';
+                localColor.value = task.value.color || 'gray';
+                localTags.value = Array.isArray(task.value.tags) ? task.value.tags.slice() : [];
+                localColumnId.value = task.value.columnId || null;
+                localColumnInput.value = getColumnTitle(localColumnId.value);
                 return;
             }
-            if (this.isCreate) {
-                const draft = this.draft || {};
-                this.localTitle = draft.title || '';
-                this.localDescription = draft.description || '';
-                this.localDueDate = draft.dueDate || null;
-                this.localPriority = draft.priority || '';
-                this.localColor = draft.color || 'gray';
-                this.localTags = Array.isArray(draft.tags) ? draft.tags.slice() : [];
-                this.localColumnId = draft.columnId && store.columns[draft.columnId] ? draft.columnId : (this.workspaceColumns[0] ? this.workspaceColumns[0].id : null);
-                this.localColumnInput = this.localColumnId ? this.getColumnTitle(this.localColumnId) : '';
+
+            if (isCreate.value) {
+                const draftValue = draft.value || {};
+                localTitle.value = draftValue.title || '';
+                localDescription.value = draftValue.description || '';
+                localDueDate.value = draftValue.dueDate || null;
+                localPriority.value = draftValue.priority || '';
+                localColor.value = draftValue.color || 'gray';
+                localTags.value = Array.isArray(draftValue.tags) ? draftValue.tags.slice() : [];
+                localColumnId.value = draftValue.columnId && store.columns[draftValue.columnId]
+                    ? draftValue.columnId
+                    : (workspaceColumns.value[0] ? workspaceColumns.value[0].id : null);
+                localColumnInput.value = localColumnId.value ? getColumnTitle(localColumnId.value) : '';
                 return;
             }
-            this.localTitle = '';
-            this.localDescription = '';
-            this.localDueDate = null;
-            this.localPriority = '';
-            this.localColor = 'gray';
-            this.localTags = [];
-            this.localColumnId = null;
-            this.localColumnInput = '';
-        },
-        close() { mutations.closeTaskModal(); },
-        toggleTaskActions() {
-            if (this.isTaskActionsOpen) {
-                this.closeTaskActions(false);
+
+            localTitle.value = '';
+            localDescription.value = '';
+            localDueDate.value = null;
+            localPriority.value = '';
+            localColor.value = 'gray';
+            localTags.value = [];
+            localColumnId.value = null;
+            localColumnInput.value = '';
+        }
+
+        function close() {
+            mutations.closeTaskModal();
+        }
+
+        function toggleTaskActions() {
+            if (isTaskActionsOpen.value) {
+                closeTaskActions(false);
                 return;
             }
-            this.openTaskActionsAndFocus(0);
-        },
-        openTaskActionsAndFocus(index = 0) {
-            this.isTaskActionsOpen = true;
-            this.$nextTick(() => {
-                const items = this.getTaskActionItems();
+            openTaskActionsAndFocus(0);
+        }
+
+        function openTaskActionsAndFocus(index = 0) {
+            isTaskActionsOpen.value = true;
+            nextTick(() => {
+                const items = getTaskActionItems();
                 if (!items.length) return;
                 const bounded = Math.max(0, Math.min(index, items.length - 1));
                 items[bounded].focus();
             });
-        },
-        closeTaskActions(restoreTrigger = false) {
-            if (!this.isTaskActionsOpen) return;
-            this.isTaskActionsOpen = false;
+        }
+
+        function closeTaskActions(restoreTrigger = false) {
+            if (!isTaskActionsOpen.value) return;
+            isTaskActionsOpen.value = false;
             if (restoreTrigger) {
-                this.$nextTick(() => {
-                    if (this.$refs.taskActionsTrigger) {
-                        this.$refs.taskActionsTrigger.focus();
+                nextTick(() => {
+                    if (taskActionsTrigger.value) {
+                        taskActionsTrigger.value.focus();
                     }
                 });
             }
-        },
-        getTaskActionItems() {
-            if (!this.$el) return [];
-            return Array.from(this.$el.querySelectorAll('.modal-task-actions .dropdown-menu .menu-item'));
-        },
-        onTaskActionsKeydown(event) {
-            const items = this.getTaskActionItems();
+        }
+
+        function onTaskActionsOutside() {
+            closeTaskActions(false);
+        }
+
+        function getTaskActionItems() {
+            if (!modalContent.value) return [];
+            return Array.from(modalContent.value.querySelectorAll('.modal-task-actions .dropdown-menu .menu-item'));
+        }
+
+        function onTaskActionsKeydown(event) {
+            const items = getTaskActionItems();
             if (!items.length) return;
             const currentIndex = items.indexOf(document.activeElement);
 
@@ -288,12 +340,13 @@ const TaskModal = {
             }
             if (event.key === 'Escape') {
                 event.preventDefault();
-                this.closeTaskActions(true);
+                closeTaskActions(true);
             }
-        },
-        saveAsTemplate() {
-            if (!this.isEdit || !this.task) return;
-            this.closeTaskActions(true);
+        }
+
+        function saveAsTemplate() {
+            if (!isEdit.value || !task.value) return;
+            closeTaskActions(false);
             mutations.openDialog({
                 variant: 'prompt',
                 title: 'Save as template',
@@ -306,148 +359,204 @@ const TaskModal = {
                 },
                 action: {
                     type: 'template.saveFromTask',
-                    payload: { taskId: this.task.id }
+                    payload: { taskId: task.value.id }
                 }
             });
-        },
-        toggleCompleted() { if (this.isEdit) mutations.toggleTaskCompletion(this.task.id); },
-        onEsc(e) {
-            if (e.key !== 'Escape' || !this.isOpen) return;
-            this.close();
-        },
-        onTitleBlur() {
-            const trimmed = (this.localTitle || '').replace(/\s+/g, ' ').trim();
-            this.localTitle = trimmed;
-            if (this.isEdit && this.task) {
-                if (trimmed === this.task.title) return;
-                const result = mutations.updateTask(this.task.id, { title: trimmed });
+        }
+
+        function toggleCompleted() {
+            if (isEdit.value && task.value) {
+                mutations.toggleTaskCompletion(task.value.id);
+            }
+        }
+
+        function onEsc(event) {
+            if (event.key !== 'Escape' || !isOpen.value) return;
+            close();
+        }
+
+        function onTitleBlur() {
+            const trimmed = (localTitle.value || '').replace(/\s+/g, ' ').trim();
+            localTitle.value = trimmed;
+            if (isEdit.value && task.value) {
+                if (trimmed === task.value.title) return;
+                const result = mutations.updateTask(task.value.id, { title: trimmed });
                 if (!result.ok) {
-                    this.showTitleError = true;
-                    this.titleErrorMessage = result.error.message;
-                    this.localTitle = this.task.title;
+                    showTitleError.value = true;
+                    titleErrorMessage.value = result.error.message;
+                    localTitle.value = task.value.title;
                     return;
                 }
-                this.showTitleError = false;
-                return;
+                showTitleError.value = false;
             }
-        },
-        saveDescription() { if (this.isEdit && this.localDescription !== this.task.description) mutations.updateTask(this.task.id, { description: this.localDescription }); },
-        saveDueDate() { if (this.isEdit) mutations.updateTask(this.task.id, { dueDate: this.localDueDate }); },
-        savePriority() { if (this.isEdit) mutations.setTaskPriority(this.task.id, this.localPriority || null); },
-        saveColor(color) { this.localColor = color; if (this.isEdit) mutations.updateTask(this.task.id, { color }); },
-        getColumnTitle(columnId) { const column = store.columns[columnId]; return column ? column.title : ''; },
-        onColumnBlur() { if (this.isEdit) this.saveColumn(); },
-        onColumnSelect() { if (this.isEdit) this.saveColumn(); },
-        resolveColumnIdForSubmit() {
-            if (this.localColumnId && store.columns[this.localColumnId]) {
-                return { ok: true, columnId: this.localColumnId };
+        }
+
+        function saveDescription() {
+            if (isEdit.value && task.value && localDescription.value !== task.value.description) {
+                mutations.updateTask(task.value.id, { description: localDescription.value });
             }
-            const title = this.localColumnInput.trim();
+        }
+
+        function saveDueDate() {
+            if (isEdit.value && task.value) {
+                mutations.updateTask(task.value.id, { dueDate: localDueDate.value });
+            }
+        }
+
+        function savePriority() {
+            if (isEdit.value && task.value) {
+                mutations.setTaskPriority(task.value.id, localPriority.value || null);
+            }
+        }
+
+        function saveColor(color) {
+            localColor.value = color;
+            if (isEdit.value && task.value) {
+                mutations.updateTask(task.value.id, { color });
+            }
+        }
+
+        function getColumnTitle(columnId) {
+            const column = store.columns[columnId];
+            return column ? column.title : '';
+        }
+
+        function onColumnBlur() {
+            if (isEdit.value) {
+                saveColumn();
+            }
+        }
+
+        function onColumnSelect() {
+            if (isEdit.value) {
+                saveColumn();
+            }
+        }
+
+        function resolveColumnIdForSubmit() {
+            if (localColumnId.value && store.columns[localColumnId.value]) {
+                return { ok: true, columnId: localColumnId.value };
+            }
+
+            const title = localColumnInput.value.trim();
             if (!title) {
                 return { ok: false, error: { message: 'Column is required.' } };
             }
-            const existing = this.workspaceColumns.find(col => col.title.toLowerCase() === title.toLowerCase());
+
+            const existing = workspaceColumns.value.find(col => col.title.toLowerCase() === title.toLowerCase());
             if (existing) {
                 return { ok: true, columnId: existing.id };
             }
-            const workspaceId = this.workspaceId || store.currentWorkspaceId;
-            if (!workspaceId) {
+
+            const currentWorkspaceId = workspaceId.value || store.currentWorkspaceId;
+            if (!currentWorkspaceId) {
                 return { ok: false, error: { message: 'Target workspace does not exist.' } };
             }
 
-            const result = mutations.addColumn(workspaceId, title);
+            const result = mutations.addColumn(currentWorkspaceId, title);
             if (!result.ok) {
                 return { ok: false, error: result.error };
             }
             return { ok: true, columnId: result.data.columnId };
-        },
-        saveColumn() {
-            if (!this.isEdit || !this.task) return;
-            const result = this.resolveColumnIdForSubmit();
+        }
+
+        function saveColumn() {
+            if (!isEdit.value || !task.value) return;
+            const result = resolveColumnIdForSubmit();
             if (!result.ok) {
-                this.showColumnError = true;
-                this.columnErrorMessage = result.error.message;
-                this.localColumnId = this.task.columnId;
-                this.localColumnInput = this.getColumnTitle(this.task.columnId);
+                showColumnError.value = true;
+                columnErrorMessage.value = result.error.message;
+                localColumnId.value = task.value.columnId;
+                localColumnInput.value = getColumnTitle(task.value.columnId);
                 return;
             }
-            this.showColumnError = false;
-            this.columnErrorMessage = 'Column is required.';
+
+            showColumnError.value = false;
+            columnErrorMessage.value = 'Column is required.';
             const columnId = result.columnId;
-            this.localColumnId = columnId;
-            this.localColumnInput = this.getColumnTitle(columnId);
-            if (columnId !== this.task.columnId) {
-                const updateResult = mutations.updateTask(this.task.id, { columnId });
+            localColumnId.value = columnId;
+            localColumnInput.value = getColumnTitle(columnId);
+            if (columnId !== task.value.columnId) {
+                const updateResult = mutations.updateTask(task.value.id, { columnId });
                 if (!updateResult.ok) {
-                    this.showColumnError = true;
-                    this.columnErrorMessage = updateResult.error.message;
-                    this.localColumnId = this.task.columnId;
-                    this.localColumnInput = this.getColumnTitle(this.task.columnId);
+                    showColumnError.value = true;
+                    columnErrorMessage.value = updateResult.error.message;
+                    localColumnId.value = task.value.columnId;
+                    localColumnInput.value = getColumnTitle(task.value.columnId);
                 }
             }
-        },
-        onAddTag(normalized) {
-            const current = this.selectedTags;
-            if (this.isEdit) {
-                mutations.updateTask(this.task.id, { tags: [...current, normalized] });
+        }
+
+        function onAddTag(normalized) {
+            const current = selectedTags.value;
+            if (isEdit.value && task.value) {
+                mutations.updateTask(task.value.id, { tags: [...current, normalized] });
             } else {
-                this.localTags = [...current, normalized];
+                localTags.value = [...current, normalized];
             }
-        },
-        onRemoveTag(tagToRemove) {
-            const nextTags = this.selectedTags.filter(tag => tag !== tagToRemove);
-            if (this.isEdit) {
-                mutations.updateTask(this.task.id, { tags: nextTags });
+        }
+
+        function onRemoveTag(tagToRemove) {
+            const nextTags = selectedTags.value.filter(tag => tag !== tagToRemove);
+            if (isEdit.value && task.value) {
+                mutations.updateTask(task.value.id, { tags: nextTags });
             } else {
-                this.localTags = nextTags;
+                localTags.value = nextTags;
             }
-        },
-        onRemoveLastTag() {
-            const nextTags = this.selectedTags.slice(0, this.selectedTags.length - 1);
-            if (this.isEdit) {
-                mutations.updateTask(this.task.id, { tags: nextTags });
+        }
+
+        function onRemoveLastTag() {
+            const nextTags = selectedTags.value.slice(0, selectedTags.value.length - 1);
+            if (isEdit.value && task.value) {
+                mutations.updateTask(task.value.id, { tags: nextTags });
             } else {
-                this.localTags = nextTags;
+                localTags.value = nextTags;
             }
-        },
-        submitModal() {
-            if (!this.isCreate) { this.close(); return; }
-            const columnResult = this.resolveColumnIdForSubmit();
-            if (!columnResult.ok) {
-                this.showColumnError = true;
-                this.columnErrorMessage = columnResult.error.message;
+        }
+
+        function submitModal() {
+            if (!isCreate.value) {
+                close();
                 return;
             }
 
-            this.showColumnError = false;
-            this.columnErrorMessage = 'Column is required.';
+            const columnResult = resolveColumnIdForSubmit();
+            if (!columnResult.ok) {
+                showColumnError.value = true;
+                columnErrorMessage.value = columnResult.error.message;
+                return;
+            }
+
+            showColumnError.value = false;
+            columnErrorMessage.value = 'Column is required.';
 
             const createResult = mutations.createTask({
-                title: this.localTitle,
+                title: localTitle.value,
                 columnId: columnResult.columnId,
-                description: this.localDescription,
-                dueDate: this.localDueDate || null,
-                priority: this.localPriority || null,
-                color: this.localColor,
-                tags: this.localTags
+                description: localDescription.value,
+                dueDate: localDueDate.value || null,
+                priority: localPriority.value || null,
+                color: localColor.value,
+                tags: localTags.value
             });
             if (!createResult.ok) {
                 if (createResult.error.field === 'column') {
-                    this.showColumnError = true;
-                    this.columnErrorMessage = createResult.error.message;
+                    showColumnError.value = true;
+                    columnErrorMessage.value = createResult.error.message;
                 } else {
-                    this.showTitleError = true;
-                    this.titleErrorMessage = createResult.error.message;
+                    showTitleError.value = true;
+                    titleErrorMessage.value = createResult.error.message;
                 }
                 return;
             }
 
-            this.showTitleError = false;
-            this.titleErrorMessage = 'Task title is required.';
+            showTitleError.value = false;
+            titleErrorMessage.value = 'Task title is required.';
             mutations.closeTaskModal();
-        },
-        deleteTask() {
-            if (!this.isEdit) return;
+        }
+
+        function deleteTask() {
+            if (!isEdit.value || !task.value) return;
             mutations.openDialog({
                 variant: 'confirm',
                 title: 'Delete task?',
@@ -457,12 +566,65 @@ const TaskModal = {
                 destructive: true,
                 action: {
                     type: 'task.delete',
-                    payload: { taskId: this.task.id }
+                    payload: { taskId: task.value.id }
                 }
             });
         }
+
+        return {
+            modalContent,
+            tagEditor,
+            columnPicker,
+            taskActionsTrigger,
+            localTitle,
+            localDescription,
+            localDueDate,
+            localPriority,
+            localColor,
+            localTags,
+            localColumnId,
+            localColumnInput,
+            showTitleError,
+            showColumnError,
+            titleErrorMessage,
+            columnErrorMessage,
+            colors,
+            priorities,
+            MAX_TASK_TITLE,
+            MAX_COLUMN_NAME,
+            taskActionsMenuId,
+            isTaskActionsOpen,
+            task,
+            isEdit,
+            isCreate,
+            isOpen,
+            colorClass,
+            selectedTags,
+            workspaceColumns,
+            workspaceTags,
+            close,
+            toggleTaskActions,
+            openTaskActionsAndFocus,
+            closeTaskActions,
+            onTaskActionsOutside,
+            getTaskActionItems,
+            onTaskActionsKeydown,
+            saveAsTemplate,
+            toggleCompleted,
+            onTitleBlur,
+            saveDescription,
+            saveDueDate,
+            savePriority,
+            saveColor,
+            onColumnBlur,
+            onColumnSelect,
+            onAddTag,
+            onRemoveTag,
+            onRemoveLastTag,
+            submitModal,
+            deleteTask
+        };
     }
 };
 
 export default TaskModal;
-

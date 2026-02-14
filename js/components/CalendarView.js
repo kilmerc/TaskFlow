@@ -1,7 +1,10 @@
-import { store, mutations } from '../store.js';
-import { taskMatchesFilters } from '../utils/taskFilters.js';
+import { mutations } from '../store.js';
+import { useWorkspaceTaskContext } from '../composables/useWorkspaceTaskContext.js';
+
+const { ref, computed } = Vue;
 
 const CalendarView = {
+    name: 'CalendarView',
     props: {
         workspace: {
             type: Object,
@@ -11,7 +14,7 @@ const CalendarView = {
     template: `
         <div class="calendar-layout">
             <calendar-sidebar :workspace="workspace"></calendar-sidebar>
-            
+
             <div class="calendar-main">
                 <div class="calendar-header">
                     <div class="cal-controls">
@@ -24,7 +27,7 @@ const CalendarView = {
                         </button>
                         <h3 class="cal-title">{{ currentMonthYear }}</h3>
                     </div>
-                    
+
                     <div class="cal-modes">
                         <button :class="{ active: viewMode === 'month' }" @click="viewMode = 'month'" title="Switch to Month View">Month</button>
                         <button :class="{ active: viewMode === 'week' }" @click="viewMode = 'week'" title="Switch to Week View">Week</button>
@@ -33,13 +36,13 @@ const CalendarView = {
 
                 <div class="calendar-grid" :class="viewMode">
                     <div class="cal-day-header" v-for="day in weekDays" :key="day">{{ day }}</div>
-                    
-                    <div 
-                        v-for="cell in calendarCells" 
+
+                    <div
+                        v-for="cell in calendarCells"
                         :key="cell.dateStr"
                         class="cal-cell"
-                        :class="{ 
-                            'current-month': cell.isCurrentMonth, 
+                        :class="{
+                            'current-month': cell.isCurrentMonth,
                             'other-month': !cell.isCurrentMonth,
                             'today': cell.isToday
                         }"
@@ -52,9 +55,9 @@ const CalendarView = {
                         <div class="cal-cell-header">
                             <span class="day-number">{{ cell.dayNumber }}</span>
                         </div>
-                        
-                        <draggable 
-                            :list="cell.tasks" 
+
+                        <draggable
+                            :list="cell.tasks"
                             item-key="id"
                             group="calendar"
                             :data-date="cell.dateStr"
@@ -87,176 +90,147 @@ const CalendarView = {
             </div>
         </div>
     `,
-    data() {
-        return {
-            currentDate: new Date(),
-            viewMode: 'month', // 'month' | 'week'
-            weekDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-        };
-    },
-    computed: {
-        store() {
-            return store;
-        },
-        activeFilters() {
-            return this.store.activeFilters || { tags: [], priorities: [] };
-        },
-        workspaceViewState() {
-            if (!this.workspace || !this.workspace.id) {
-                return { searchQuery: '' };
-            }
-            return this.store.workspaceViewState[this.workspace.id]
-                || { searchQuery: '' };
-        },
-        searchQuery() {
-            return this.workspaceViewState.searchQuery || '';
-        },
-        workspaceTaskIds() {
-            if (!this.workspace || !Array.isArray(this.workspace.columns)) {
-                return [];
-            }
+    setup(props) {
+        const currentDate = ref(new Date());
+        const viewMode = ref('month');
+        const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-            const ids = [];
-            this.workspace.columns.forEach(columnId => {
-                const orderedTaskIds = this.store.columnTaskOrder[columnId] || [];
-                ids.push(...orderedTaskIds);
-            });
-            return ids;
-        },
-        workspaceTasks() {
-            return this.workspaceTaskIds
-                .map(taskId => this.store.tasks[taskId])
-                .filter(task => !!task);
-        },
-        currentMonthYear() {
-            return this.currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-        },
-        tasksByDate() {
-            // Group tasks by dueDate YYYY-MM-DD
+        const context = useWorkspaceTaskContext(computed(() => props.workspace));
+
+        const currentMonthYear = computed(() => {
+            return currentDate.value.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        });
+
+        const tasksByDate = computed(() => {
             const map = {};
-            this.workspaceTasks.forEach(task => {
+            context.workspaceTasks.value.forEach(task => {
                 if (!task.dueDate) return;
                 if (task.isCompleted) return;
-
-                if (!taskMatchesFilters(task, this.activeFilters, this.searchQuery)) return;
+                if (!context.matchesWorkspaceFilters(task)) return;
 
                 if (!map[task.dueDate]) {
                     map[task.dueDate] = [];
                 }
                 map[task.dueDate].push(task);
             });
+            return map;
+        });
 
-            return map; // Returns a new object reference, which is fine for computed
-        },
-        calendarCells() {
-            const year = this.currentDate.getFullYear();
-            const month = this.currentDate.getMonth();
+        const calendarCells = computed(() => {
+            const year = currentDate.value.getFullYear();
+            const month = currentDate.value.getMonth();
             const cells = [];
 
-            let startDate, endDate;
+            let startDate;
+            let endDate;
 
-            if (this.viewMode === 'month') {
-                // First day of month
+            if (viewMode.value === 'month') {
                 const firstDay = new Date(year, month, 1);
-                // Last day of month
                 const lastDay = new Date(year, month + 1, 0);
 
-                // Start padding (back to Sunday)
                 startDate = new Date(firstDay);
                 startDate.setDate(firstDay.getDate() - firstDay.getDay());
 
-                // End padding (forward to Saturday)
                 endDate = new Date(lastDay);
                 endDate.setDate(lastDay.getDate() + (6 - lastDay.getDay()));
             } else {
-                // Week view
-                startDate = new Date(this.currentDate);
-                startDate.setDate(this.currentDate.getDate() - this.currentDate.getDay());
+                startDate = new Date(currentDate.value);
+                startDate.setDate(currentDate.value.getDate() - currentDate.value.getDay());
 
                 endDate = new Date(startDate);
                 endDate.setDate(startDate.getDate() + 6);
             }
 
-            // Iterate days
             const itr = new Date(startDate);
-            // Use local date string comparison to avoid timezone issues
             const today = new Date();
             const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
             while (itr <= endDate) {
                 const dateStr = `${itr.getFullYear()}-${String(itr.getMonth() + 1).padStart(2, '0')}-${String(itr.getDate()).padStart(2, '0')}`;
-
                 const isCurrentMonth = itr.getMonth() === month;
-
-                // We must return a NEW array for tasks to ensure vuedraggable works with a fresh list for the cell
-                // tasksByDate[dateStr] returns a reference to the array created in tasksByDate
-                // tasksByDate is recomputed when store.tasks changes.
-                // When we drag, we mutate store.tasks (via scheduleTask).
-                // This triggers reactivity -> tasksByDate recomputes -> calendarCells recomputes.
 
                 cells.push({
                     date: new Date(itr),
-                    dateStr: dateStr,
+                    dateStr,
                     dayNumber: itr.getDate(),
-                    isCurrentMonth: this.viewMode === 'week' ? true : isCurrentMonth,
+                    isCurrentMonth: viewMode.value === 'week' ? true : isCurrentMonth,
                     isToday: dateStr === todayStr,
-                    tasks: this.tasksByDate[dateStr] || []
+                    tasks: tasksByDate.value[dateStr] || []
                 });
 
                 itr.setDate(itr.getDate() + 1);
             }
 
             return cells;
-        }
-    },
-    methods: {
-        moveDate(delta) {
-            const newDate = new Date(this.currentDate);
-            if (this.viewMode === 'month') {
+        });
+
+        function moveDate(delta) {
+            const newDate = new Date(currentDate.value);
+            if (viewMode.value === 'month') {
                 newDate.setMonth(newDate.getMonth() + delta);
             } else {
                 newDate.setDate(newDate.getDate() + (delta * 7));
             }
-            this.currentDate = newDate;
-        },
-        goToToday() {
-            this.currentDate = new Date();
-        },
-        onTaskDrop(event, targetDateStr) {
+            currentDate.value = newDate;
+        }
+
+        function goToToday() {
+            currentDate.value = new Date();
+        }
+
+        function onTaskDrop(event, targetDateStr) {
             if (event.added) {
                 const task = event.added.element;
                 mutations.scheduleTask(task.id, targetDateStr);
             }
-        },
-        onCellClick(cell, event) {
+        }
+
+        function onCellClick(cell, event) {
             const target = event && event.target;
             if (target && target.closest && (target.closest('.cal-task-pill') || target.closest('.cal-task-checkbox'))) {
                 return;
             }
 
             mutations.openTaskModalForCreate({
-                workspaceId: this.workspace.id,
+                workspaceId: props.workspace.id,
                 dueDate: cell.dateStr,
                 priority: null
             });
-        },
-        onCellKeydown(cell, event) {
+        }
+
+        function onCellKeydown(cell, event) {
             if (!event || !['Enter', ' '].includes(event.key)) return;
             const target = event.target;
             if (target && target.closest && (target.closest('.cal-task-pill') || target.closest('.cal-task-checkbox'))) {
                 return;
             }
             event.preventDefault();
-            this.onCellClick(cell, event);
-        },
-        toggleTaskCompletion(taskId) {
+            onCellClick(cell, event);
+        }
+
+        function toggleTaskCompletion(taskId) {
             mutations.toggleTaskCompletion(taskId);
-        },
-        openTask(task) {
+        }
+
+        function openTask(task) {
             mutations.setActiveTask(task.id);
         }
+
+        return {
+            currentDate,
+            viewMode,
+            weekDays,
+            currentMonthYear,
+            calendarCells,
+            moveDate,
+            goToToday,
+            onTaskDrop,
+            onCellClick,
+            onCellKeydown,
+            toggleTaskCompletion,
+            openTask
+        };
     }
 };
 
 export default CalendarView;
-

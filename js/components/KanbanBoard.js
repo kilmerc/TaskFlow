@@ -1,6 +1,9 @@
-import { MAX_COLUMN_NAME, store, mutations } from '../store.js';
+import { MAX_COLUMN_NAME, mutations } from '../store.js';
+
+const { ref, computed, nextTick } = Vue;
 
 const KanbanBoard = {
+    name: 'KanbanBoard',
     props: {
         workspace: {
             type: Object,
@@ -9,10 +12,10 @@ const KanbanBoard = {
     },
     template: `
         <div class="kanban-board">
-            <draggable 
-                v-model="columns" 
+            <draggable
+                v-model="columns"
                 :item-key="item => item"
-                class="kanban-columns-container" 
+                class="kanban-columns-container"
                 handle=".column-header"
                 animation="150"
                 ghost-class="column-ghost"
@@ -25,7 +28,7 @@ const KanbanBoard = {
                     ></kanban-column>
                 </template>
             </draggable>
-            
+
             <div class="add-column-container">
                 <button
                     v-if="!isAdding"
@@ -37,9 +40,9 @@ const KanbanBoard = {
                     <i class="fas fa-plus"></i> Add Column
                 </button>
                 <div v-else class="add-column-input-wrapper" v-click-outside="cancelAdding">
-                    <input 
+                    <input
                         ref="addInput"
-                        v-model="newColumnTitle" 
+                        v-model="newColumnTitle"
                         placeholder="Column title..."
                         :maxlength="MAX_COLUMN_NAME"
                         aria-label="Column title"
@@ -55,59 +58,64 @@ const KanbanBoard = {
             </div>
         </div>
     `,
-    data() {
-        return {
-            isAdding: false,
-            newColumnTitle: '',
-            addError: '',
-            MAX_COLUMN_NAME
-        };
-    },
-    computed: {
-        columns: {
+    setup(props) {
+        const addInput = ref(null);
+        const isAdding = ref(false);
+        const newColumnTitle = ref('');
+        const addError = ref('');
+
+        const columns = computed({
             get() {
-                return this.workspace ? this.workspace.columns : [];
+                return props.workspace ? props.workspace.columns : [];
             },
             set(value) {
-                // v-model updates local value, but we need to commit to store
-                // We'll handle persistence in @end event to avoid drag jitter, 
-                // but for v-model to work smoothly we update the local array temporarily if needed.
-                // However, since we're binding directly to a prop derived from store, 
-                // we should rely on the mutation to update state. Only the drag library needs a writable list.
-                // So the strictly correct way with Vuex/Store is usually a computed setter.
-                mutations.reorderColumns(this.workspace.id, value);
+                mutations.reorderColumns(props.workspace.id, value);
             }
+        });
+
+        function onDragEnd() {
+            // Persisted in store mutation invoked by computed setter.
         }
-    },
-    methods: {
-        onDragEnd() {
-            // Persistence is handled by the setter 'reorderColumns' which persists.
-            // But sometimes generic setter fires on every move? 
-            // vuedraggable fires input event on drop.
-        },
-        startAdding() {
-            this.isAdding = true;
-            this.newColumnTitle = '';
-            this.addError = '';
-            this.$nextTick(() => {
-                this.$refs.addInput.focus();
+
+        function startAdding() {
+            isAdding.value = true;
+            newColumnTitle.value = '';
+            addError.value = '';
+            nextTick(() => {
+                if (addInput.value) {
+                    addInput.value.focus();
+                }
             });
-        },
-        cancelAdding() {
-            this.isAdding = false;
-            this.addError = '';
-        },
-        confirmAdd() {
-            const result = mutations.addColumn(this.workspace.id, this.newColumnTitle);
+        }
+
+        function cancelAdding() {
+            isAdding.value = false;
+            addError.value = '';
+        }
+
+        function confirmAdd() {
+            const result = mutations.addColumn(props.workspace.id, newColumnTitle.value);
             if (!result.ok) {
-                this.addError = result.error.message;
+                addError.value = result.error.message;
                 return;
             }
-            this.addError = '';
-            this.isAdding = false;
+            addError.value = '';
+            isAdding.value = false;
         }
+
+        return {
+            addInput,
+            isAdding,
+            newColumnTitle,
+            addError,
+            columns,
+            MAX_COLUMN_NAME,
+            onDragEnd,
+            startAdding,
+            cancelAdding,
+            confirmAdd
+        };
     }
 };
 
 export default KanbanBoard;
-

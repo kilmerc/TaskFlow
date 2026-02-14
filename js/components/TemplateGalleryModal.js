@@ -1,7 +1,10 @@
 import { MAX_TASK_TITLE, store, mutations } from '../store.js';
 import { PRIORITY_VALUES } from '../utils/taskFilters.js';
 
+const { ref, computed, watch } = Vue;
+
 const TemplateGalleryModal = {
+    name: 'TemplateGalleryModal',
     template: `
         <div v-if="isOpen" class="modal-backdrop template-gallery-backdrop" @click.self="close">
             <div class="modal-content template-gallery-modal">
@@ -131,87 +134,79 @@ const TemplateGalleryModal = {
             </div>
         </div>
     `,
-    data() {
-        return {
-            editingTemplateId: null,
-            form: {
-                name: '',
-                description: '',
-                tags: [],
-                priority: '',
-                color: 'gray',
-                subtasks: []
-            },
-            newSubtaskText: '',
-            formError: '',
-            priorities: PRIORITY_VALUES,
-            colors: ['gray', 'red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink'],
-            MAX_TASK_TITLE
-        };
-    },
-    computed: {
-        isOpen() {
-            return !!store.templateGalleryOpen;
-        },
-        workspaceId() {
-            return store.currentWorkspaceId;
-        },
-        templates() {
-            if (!this.workspaceId) return [];
+    setup() {
+        const editingTemplateId = ref(null);
+        const form = ref({
+            name: '',
+            description: '',
+            tags: [],
+            priority: '',
+            color: 'gray',
+            subtasks: []
+        });
+        const newSubtaskText = ref('');
+        const formError = ref('');
+        const priorities = PRIORITY_VALUES;
+        const colors = ['gray', 'red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink'];
+
+        const isOpen = computed(() => !!store.templateGalleryOpen);
+        const workspaceId = computed(() => store.currentWorkspaceId);
+
+        const templates = computed(() => {
+            if (!workspaceId.value) return [];
             return Object.values(store.taskTemplates || {})
-                .filter(template => template && template.workspaceId === this.workspaceId)
+                .filter(template => template && template.workspaceId === workspaceId.value)
                 .sort((a, b) => a.name.localeCompare(b.name));
-        },
-        editingTemplate() {
-            return this.editingTemplateId ? store.taskTemplates[this.editingTemplateId] : null;
-        },
-        workspaceTags() {
+        });
+
+        const editingTemplate = computed(() => {
+            return editingTemplateId.value ? store.taskTemplates[editingTemplateId.value] : null;
+        });
+
+        const workspaceTags = computed(() => {
             const tags = new Set();
-            this.templates.forEach(template => {
+            templates.value.forEach(template => {
                 (template.tags || []).forEach(tag => tags.add(tag));
             });
             return Array.from(tags).sort((a, b) => a.localeCompare(b));
-        }
-    },
-    watch: {
-        isOpen: {
-            immediate: true,
-            handler(isOpen) {
-                if (!isOpen) {
-                    this.resetEditor();
-                    return;
-                }
+        });
 
-                if (this.templates.length > 0) {
-                    this.startEdit(this.templates[0]);
-                } else {
-                    this.resetEditor();
-                }
-            }
-        },
-        templates() {
-            if (!this.isOpen) return;
-            if (!this.templates.length) {
-                this.resetEditor();
+        watch(isOpen, (open) => {
+            if (!open) {
+                resetEditor();
                 return;
             }
 
-            const stillExists = this.editingTemplateId
-                && this.templates.some(template => template.id === this.editingTemplateId);
-            if (!stillExists) {
-                this.startEdit(this.templates[0]);
+            if (templates.value.length > 0) {
+                startEdit(templates.value[0]);
+            } else {
+                resetEditor();
             }
-        }
-    },
-    methods: {
-        close() {
+        }, { immediate: true });
+
+        watch(templates, () => {
+            if (!isOpen.value) return;
+            if (!templates.value.length) {
+                resetEditor();
+                return;
+            }
+
+            const stillExists = editingTemplateId.value
+                && templates.value.some(template => template.id === editingTemplateId.value);
+            if (!stillExists) {
+                startEdit(templates.value[0]);
+            }
+        });
+
+        function close() {
             mutations.closeTemplateGallery();
-        },
-        resetEditor() {
-            this.editingTemplateId = null;
-            this.formError = '';
-            this.newSubtaskText = '';
-            this.form = {
+        }
+
+        function resetEditor() {
+            editingTemplateId.value = null;
+            formError.value = '';
+            newSubtaskText.value = '';
+            form.value = {
                 name: '',
                 description: '',
                 tags: [],
@@ -219,13 +214,14 @@ const TemplateGalleryModal = {
                 color: 'gray',
                 subtasks: []
             };
-        },
-        startEdit(template) {
+        }
+
+        function startEdit(template) {
             if (!template) return;
-            this.editingTemplateId = template.id;
-            this.formError = '';
-            this.newSubtaskText = '';
-            this.form = {
+            editingTemplateId.value = template.id;
+            formError.value = '';
+            newSubtaskText.value = '';
+            form.value = {
                 name: template.name || '',
                 description: template.description || '',
                 tags: Array.isArray(template.tags) ? template.tags.slice() : [],
@@ -238,63 +234,71 @@ const TemplateGalleryModal = {
                     }))
                     : []
             };
-        },
-        onAddTag(tag) {
-            this.form.tags = [...this.form.tags, tag];
-        },
-        onRemoveTag(tagToRemove) {
-            this.form.tags = this.form.tags.filter(tag => tag !== tagToRemove);
-        },
-        onRemoveLastTag() {
-            this.form.tags = this.form.tags.slice(0, this.form.tags.length - 1);
-        },
-        addSubtask() {
-            const text = (this.newSubtaskText || '').replace(/\s+/g, ' ').trim();
+        }
+
+        function onAddTag(tag) {
+            form.value.tags = [...form.value.tags, tag];
+        }
+
+        function onRemoveTag(tagToRemove) {
+            form.value.tags = form.value.tags.filter(tag => tag !== tagToRemove);
+        }
+
+        function onRemoveLastTag() {
+            form.value.tags = form.value.tags.slice(0, form.value.tags.length - 1);
+        }
+
+        function addSubtask() {
+            const text = (newSubtaskText.value || '').replace(/\s+/g, ' ').trim();
             if (!text) return;
-            this.form.subtasks = [...this.form.subtasks, { text, done: false }];
-            this.newSubtaskText = '';
-        },
-        updateSubtask(index, value) {
-            const next = this.form.subtasks.slice();
+            form.value.subtasks = [...form.value.subtasks, { text, done: false }];
+            newSubtaskText.value = '';
+        }
+
+        function updateSubtask(index, value) {
+            const next = form.value.subtasks.slice();
             next[index] = {
                 text: typeof value === 'string' ? value : '',
                 done: false
             };
-            this.form.subtasks = next;
-        },
-        removeSubtask(index) {
-            const next = this.form.subtasks.slice();
-            next.splice(index, 1);
-            this.form.subtasks = next;
-        },
-        saveTemplate() {
-            if (!this.editingTemplateId) return;
+            form.value.subtasks = next;
+        }
 
-            const result = mutations.updateTaskTemplate(this.editingTemplateId, {
-                name: this.form.name,
-                description: this.form.description,
-                tags: this.form.tags,
-                priority: this.form.priority || null,
-                color: this.form.color,
-                subtasks: this.form.subtasks
+        function removeSubtask(index) {
+            const next = form.value.subtasks.slice();
+            next.splice(index, 1);
+            form.value.subtasks = next;
+        }
+
+        function saveTemplate() {
+            if (!editingTemplateId.value) return;
+
+            const result = mutations.updateTaskTemplate(editingTemplateId.value, {
+                name: form.value.name,
+                description: form.value.description,
+                tags: form.value.tags,
+                priority: form.value.priority || null,
+                color: form.value.color,
+                subtasks: form.value.subtasks
             });
 
             if (!result.ok) {
-                this.formError = result.error.message;
+                formError.value = result.error.message;
                 return;
             }
 
-            this.formError = '';
-            const updated = store.taskTemplates[this.editingTemplateId];
+            formError.value = '';
+            const updated = store.taskTemplates[editingTemplateId.value];
             if (updated) {
-                this.startEdit(updated);
+                startEdit(updated);
             }
             mutations.pushToast({
                 variant: 'success',
                 message: 'Template updated.'
             });
-        },
-        confirmDelete(template) {
+        }
+
+        function confirmDelete(template) {
             if (!template) return;
             mutations.openDialog({
                 variant: 'confirm',
@@ -309,8 +313,31 @@ const TemplateGalleryModal = {
                 }
             });
         }
+
+        return {
+            editingTemplateId,
+            form,
+            newSubtaskText,
+            formError,
+            priorities,
+            colors,
+            MAX_TASK_TITLE,
+            isOpen,
+            templates,
+            editingTemplate,
+            workspaceTags,
+            close,
+            startEdit,
+            onAddTag,
+            onRemoveTag,
+            onRemoveLastTag,
+            addSubtask,
+            updateSubtask,
+            removeSubtask,
+            saveTemplate,
+            confirmDelete
+        };
     }
 };
 
 export default TemplateGalleryModal;
-

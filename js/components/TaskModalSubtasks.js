@@ -1,6 +1,9 @@
 import { store, mutations } from '../store.js';
 
+const { ref, computed } = Vue;
+
 const TaskModalSubtasks = {
+    name: 'TaskModalSubtasks',
     props: {
         taskId: { type: String, required: true }
     },
@@ -55,56 +58,76 @@ const TaskModalSubtasks = {
             </div>
         </div>
     `,
-    data() {
+    setup(props) {
+        const newSubtaskText = ref('');
+        const subtaskKeySeed = ref(0);
+        const subtaskKeyMap = typeof WeakMap === 'function' ? new WeakMap() : null;
+
+        const task = computed(() => {
+            return store.tasks[props.taskId] || {};
+        });
+
+        const subtasks = computed({
+            get() {
+                return task.value.subtasks || [];
+            },
+            set(value) {
+                mutations.reorderSubtasks(props.taskId, value);
+            }
+        });
+
+        const canDragSubtasks = computed(() => {
+            return subtasks.value.length > 1;
+        });
+
+        const progress = computed(() => {
+            if (!subtasks.value.length) return 0;
+            const done = subtasks.value.filter(st => st.done).length;
+            return (done / subtasks.value.length) * 100;
+        });
+
+        function addSubtask() {
+            if (newSubtaskText.value.trim()) {
+                mutations.addSubtask(props.taskId, newSubtaskText.value.trim());
+                newSubtaskText.value = '';
+            }
+        }
+
+        function toggleSubtask(index, done) {
+            mutations.updateSubtask(props.taskId, index, { done });
+        }
+
+        function updateSubtaskText(index, text) {
+            mutations.updateSubtask(props.taskId, index, { text });
+        }
+
+        function deleteSubtask(index) {
+            mutations.deleteSubtask(props.taskId, index);
+        }
+
+        function subtaskItemKey(st) {
+            if (!st || typeof st !== 'object' || !subtaskKeyMap) {
+                return `subtask-${String(st)}`;
+            }
+            if (!subtaskKeyMap.has(st)) {
+                subtaskKeySeed.value += 1;
+                subtaskKeyMap.set(st, `subtask-${subtaskKeySeed.value}`);
+            }
+            return subtaskKeyMap.get(st);
+        }
+
         return {
-            newSubtaskText: '',
-            subtaskKeySeed: 0,
-            subtaskKeyMap: typeof WeakMap === 'function' ? new WeakMap() : null
+            newSubtaskText,
+            subtasks,
+            canDragSubtasks,
+            progress,
+            addSubtask,
+            toggleSubtask,
+            updateSubtaskText,
+            deleteSubtask,
+            subtaskItemKey
         };
-    },
-    computed: {
-        task() {
-            return store.tasks[this.taskId] || {};
-        },
-        subtasks: {
-            get() { return this.task.subtasks || []; },
-            set(value) { mutations.reorderSubtasks(this.taskId, value); }
-        },
-        canDragSubtasks() {
-            return this.subtasks.length > 1;
-        },
-        progress() {
-            if (!this.subtasks.length) return 0;
-            const done = this.subtasks.filter(st => st.done).length;
-            return (done / this.subtasks.length) * 100;
-        }
-    },
-    methods: {
-        addSubtask() {
-            if (this.newSubtaskText.trim()) {
-                mutations.addSubtask(this.taskId, this.newSubtaskText.trim());
-                this.newSubtaskText = '';
-            }
-        },
-        toggleSubtask(index, done) {
-            mutations.updateSubtask(this.taskId, index, { done });
-        },
-        updateSubtaskText(index, text) {
-            mutations.updateSubtask(this.taskId, index, { text });
-        },
-        deleteSubtask(index) {
-            mutations.deleteSubtask(this.taskId, index);
-        },
-        subtaskItemKey(st) {
-            if (!st || typeof st !== 'object' || !this.subtaskKeyMap) return `subtask-${String(st)}`;
-            if (!this.subtaskKeyMap.has(st)) {
-                this.subtaskKeySeed += 1;
-                this.subtaskKeyMap.set(st, `subtask-${this.subtaskKeySeed}`);
-            }
-            return this.subtaskKeyMap.get(st);
-        }
     }
 };
 
 export default TaskModalSubtasks;
-

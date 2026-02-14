@@ -1,11 +1,15 @@
 import { normalizeTag } from '../utils/tagParser.js';
 import { getTagToneClass as computeTagToneClass } from '../utils/tagStyle.js';
 
+const { ref, computed, watch, nextTick } = Vue;
+
 const TaskModalTagEditor = {
+    name: 'TaskModalTagEditor',
     props: {
         selectedTags: { type: Array, default: () => [] },
         workspaceTags: { type: Array, default: () => [] }
     },
+    emits: ['add-tag', 'remove-tag', 'remove-last-tag'],
     template: `
         <div class="form-group">
             <label>Tags</label>
@@ -51,80 +55,140 @@ const TaskModalTagEditor = {
             </div>
         </div>
     `,
-    data() {
-        return {
-            localTagInput: '',
-            isTagMenuOpen: false,
-            activeTagIndex: 0,
-            maxTagSuggestions: 8
-        };
-    },
-    computed: {
-        tagMenuItems() {
-            const selectedSet = new Set(this.selectedTags);
-            const query = this.localTagInput.trim().toLowerCase();
+    setup(props, { emit, expose }) {
+        const tagInput = ref(null);
+        const localTagInput = ref('');
+        const isTagMenuOpen = ref(false);
+        const activeTagIndex = ref(0);
+        const maxTagSuggestions = 8;
+
+        const tagMenuItems = computed(() => {
+            const selectedSet = new Set(props.selectedTags);
+            const query = localTagInput.value.trim().toLowerCase();
             const items = [];
-            const normalizedInput = normalizeTag(this.localTagInput);
+            const normalizedInput = normalizeTag(localTagInput.value);
             const hasInput = normalizedInput.length > 0;
-            const exists = this.workspaceTags.includes(normalizedInput);
-            if (hasInput && !exists && !selectedSet.has(normalizedInput)) items.push({ type: 'create', value: normalizedInput });
-            const existing = this.workspaceTags
+            const exists = props.workspaceTags.includes(normalizedInput);
+            if (hasInput && !exists && !selectedSet.has(normalizedInput)) {
+                items.push({ type: 'create', value: normalizedInput });
+            }
+            const existing = props.workspaceTags
                 .filter(tag => !selectedSet.has(tag))
                 .filter(tag => !query || tag.includes(query))
-                .slice(0, this.maxTagSuggestions)
+                .slice(0, maxTagSuggestions)
                 .map(tag => ({ type: 'existing', value: tag }));
             return items.concat(existing);
+        });
+
+        watch(tagMenuItems, (items) => {
+            if (!items.length || activeTagIndex.value >= items.length) {
+                activeTagIndex.value = 0;
+            }
+        });
+
+        function focusTagInput() {
+            openTagMenu();
+            nextTick(() => {
+                if (tagInput.value) {
+                    tagInput.value.focus();
+                }
+            });
         }
-    },
-    watch: {
-        tagMenuItems(items) {
-            if (!items.length || this.activeTagIndex >= items.length) this.activeTagIndex = 0;
+
+        function onTagInput() {
+            openTagMenu();
+            activeTagIndex.value = 0;
         }
-    },
-    methods: {
-        focusTagInput() {
-            this.openTagMenu();
-            this.$nextTick(() => { if (this.$refs.tagInput) this.$refs.tagInput.focus(); });
-        },
-        onTagInput() { this.openTagMenu(); this.activeTagIndex = 0; },
-        openTagMenu() { this.isTagMenuOpen = true; },
-        closeTagMenu() { this.isTagMenuOpen = false; },
-        moveTagSelection(step) {
-            if (!this.tagMenuItems.length) return;
-            const count = this.tagMenuItems.length;
-            this.activeTagIndex = (this.activeTagIndex + step + count) % count;
-        },
-        selectActiveTag() {
-            if (this.tagMenuItems.length) { this.selectTagItem(this.tagMenuItems[this.activeTagIndex]); return; }
-            const normalized = normalizeTag(this.localTagInput);
-            if (normalized) this.addTag(normalized);
-        },
-        selectTagItem(item) { if (item && item.value) this.addTag(item.value); },
-        addTag(value) {
+
+        function openTagMenu() {
+            isTagMenuOpen.value = true;
+        }
+
+        function closeTagMenu() {
+            isTagMenuOpen.value = false;
+        }
+
+        function moveTagSelection(step) {
+            if (!tagMenuItems.value.length) return;
+            const count = tagMenuItems.value.length;
+            activeTagIndex.value = (activeTagIndex.value + step + count) % count;
+        }
+
+        function selectActiveTag() {
+            if (tagMenuItems.value.length) {
+                selectTagItem(tagMenuItems.value[activeTagIndex.value]);
+                return;
+            }
+            const normalized = normalizeTag(localTagInput.value);
+            if (normalized) {
+                addTag(normalized);
+            }
+        }
+
+        function selectTagItem(item) {
+            if (item && item.value) {
+                addTag(item.value);
+            }
+        }
+
+        function addTag(value) {
             const normalized = normalizeTag(value);
             if (!normalized) return;
-            if (this.selectedTags.includes(normalized)) { this.localTagInput = ''; this.closeTagMenu(); return; }
-            this.$emit('add-tag', normalized);
-            this.localTagInput = '';
-            this.openTagMenu();
-            this.$nextTick(() => { if (this.$refs.tagInput) this.$refs.tagInput.focus(); });
-        },
-        removeTag(tagToRemove) {
-            this.$emit('remove-tag', tagToRemove);
-        },
-        getTagToneClass(tag) {
-            return computeTagToneClass(tag);
-        },
-        onTagBackspace() {
-            if (this.localTagInput.length > 0 || !this.selectedTags.length) return;
-            this.$emit('remove-last-tag');
-        },
-        reset() {
-            this.localTagInput = '';
-            this.closeTagMenu();
+            if (props.selectedTags.includes(normalized)) {
+                localTagInput.value = '';
+                closeTagMenu();
+                return;
+            }
+
+            emit('add-tag', normalized);
+            localTagInput.value = '';
+            openTagMenu();
+            nextTick(() => {
+                if (tagInput.value) {
+                    tagInput.value.focus();
+                }
+            });
         }
+
+        function removeTag(tagToRemove) {
+            emit('remove-tag', tagToRemove);
+        }
+
+        function getTagToneClass(tag) {
+            return computeTagToneClass(tag);
+        }
+
+        function onTagBackspace() {
+            if (localTagInput.value.length > 0 || !props.selectedTags.length) return;
+            emit('remove-last-tag');
+        }
+
+        function reset() {
+            localTagInput.value = '';
+            closeTagMenu();
+        }
+
+        expose({ reset });
+
+        return {
+            tagInput,
+            localTagInput,
+            isTagMenuOpen,
+            activeTagIndex,
+            tagMenuItems,
+            focusTagInput,
+            onTagInput,
+            openTagMenu,
+            closeTagMenu,
+            moveTagSelection,
+            selectActiveTag,
+            selectTagItem,
+            removeTag,
+            getTagToneClass,
+            onTagBackspace,
+            reset
+        };
     }
 };
 
 export default TaskModalTagEditor;
-

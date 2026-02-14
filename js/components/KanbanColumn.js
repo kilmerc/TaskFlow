@@ -2,7 +2,10 @@ import { store, mutations } from '../store.js';
 import { printColumn } from '../utils/print.js';
 import { hasActiveFilters, taskMatchesFilters } from '../utils/taskFilters.js';
 
+const { ref, computed } = Vue;
+
 const KanbanColumn = {
+    name: 'KanbanColumn',
     props: {
         columnId: {
             type: String,
@@ -64,71 +67,57 @@ const KanbanColumn = {
             </div>
         </div>
     `,
-    data() {
-        return {
-            sharedStore: store
-        };
-    },
-    computed: {
-        column() {
-            return this.sharedStore.columns[this.columnId] || {};
-        },
-        activeFilters() {
-            return this.sharedStore.activeFilters || { tags: [], priorities: [] };
-        },
-        workspaceViewState() {
-            if (!this.sharedStore.currentWorkspaceId) {
+    setup(props) {
+        const quickAdd = ref(null);
+
+        const column = computed(() => store.columns[props.columnId] || {});
+
+        const activeFilters = computed(() => store.activeFilters || { tags: [], priorities: [] });
+
+        const workspaceViewState = computed(() => {
+            if (!store.currentWorkspaceId) {
                 return { searchQuery: '' };
             }
-            return this.sharedStore.workspaceViewState[this.sharedStore.currentWorkspaceId]
-                || { searchQuery: '' };
-        },
-        searchQuery() {
-            return this.workspaceViewState.searchQuery || '';
-        },
-        hasFilters() {
-            return hasActiveFilters(this.activeFilters);
-        },
-        hasSearchQuery() {
-            return this.searchQuery.length > 0;
-        },
-        filteredTaskIds() {
-            const allTasks = this.sharedStore.columnTaskOrder[this.columnId] || [];
-            if (!this.hasFilters && !this.hasSearchQuery) return allTasks;
+            return store.workspaceViewState[store.currentWorkspaceId] || { searchQuery: '' };
+        });
+
+        const searchQuery = computed(() => workspaceViewState.value.searchQuery || '');
+        const hasFilters = computed(() => hasActiveFilters(activeFilters.value));
+        const hasSearchQuery = computed(() => searchQuery.value.length > 0);
+
+        const filteredTaskIds = computed(() => {
+            const allTasks = store.columnTaskOrder[props.columnId] || [];
+            if (!hasFilters.value && !hasSearchQuery.value) return allTasks;
 
             return allTasks.filter(taskId => {
-                const task = this.sharedStore.tasks[taskId];
-                return taskMatchesFilters(task, this.activeFilters, this.searchQuery);
+                const task = store.tasks[taskId];
+                return taskMatchesFilters(task, activeFilters.value, searchQuery.value);
             });
-        },
-        displayTasks: {
+        });
+
+        const displayTasks = computed({
             get() {
-                const activeTaskIds = this.filteredTaskIds.filter(taskId => {
-                    const task = this.sharedStore.tasks[taskId];
+                return filteredTaskIds.value.filter(taskId => {
+                    const task = store.tasks[taskId];
                     return task && !task.isCompleted;
                 });
-                return activeTaskIds;
             },
             set(value) {
                 const nextVisibleOrder = Array.isArray(value) ? value : [];
 
-                // Handle cross-column moves first so all dragged tasks belong to this column.
                 nextVisibleOrder.forEach(taskId => {
-                    const task = this.sharedStore.tasks[taskId];
-                    if (task && task.columnId !== this.columnId) {
-                        mutations.moveTask(taskId, task.columnId, this.columnId);
+                    const task = store.tasks[taskId];
+                    if (task && task.columnId !== props.columnId) {
+                        mutations.moveTask(taskId, task.columnId, props.columnId);
                     }
                 });
 
-                // Merge visible reorder into full active order while preserving hidden task placement.
-                const columnOrder = this.sharedStore.columnTaskOrder[this.columnId] || [];
+                const columnOrder = store.columnTaskOrder[props.columnId] || [];
                 const activeIds = [];
                 const completedIds = [];
                 columnOrder.forEach(taskId => {
-                    const task = this.sharedStore.tasks[taskId];
-                    if (!task) {
-                        return;
-                    }
+                    const task = store.tasks[taskId];
+                    if (!task) return;
                     if (task.isCompleted) {
                         completedIds.push(taskId);
                     } else {
@@ -148,61 +137,69 @@ const KanbanColumn = {
                 });
 
                 if (reorderedVisible.length === 0) {
-                    mutations.updateColumnTaskOrder(this.columnId, [...activeIds, ...completedIds]);
+                    mutations.updateColumnTaskOrder(props.columnId, [...activeIds, ...completedIds]);
                     return;
                 }
 
                 let visibleIndex = 0;
                 const reorderedVisibleSet = new Set(reorderedVisible);
                 const mergedActiveIds = activeIds.map(taskId => {
-                    if (!reorderedVisibleSet.has(taskId)) {
-                        return taskId;
-                    }
+                    if (!reorderedVisibleSet.has(taskId)) return taskId;
                     const nextTaskId = reorderedVisible[visibleIndex];
                     visibleIndex += 1;
                     return nextTaskId;
                 });
 
-                mutations.updateColumnTaskOrder(this.columnId, [...mergedActiveIds, ...completedIds]);
+                mutations.updateColumnTaskOrder(props.columnId, [...mergedActiveIds, ...completedIds]);
             }
-        },
-        completedTasks() {
-            return this.filteredTaskIds
+        });
+
+        const completedTasks = computed(() => {
+            return filteredTaskIds.value
                 .filter(taskId => {
-                    const task = this.sharedStore.tasks[taskId];
+                    const task = store.tasks[taskId];
                     return task && task.isCompleted;
                 })
                 .sort((a, b) => {
-                    const aTask = this.sharedStore.tasks[a];
-                    const bTask = this.sharedStore.tasks[b];
+                    const aTask = store.tasks[a];
+                    const bTask = store.tasks[b];
                     const aTime = Date.parse(aTask.completedAt || 0);
                     const bTime = Date.parse(bTask.completedAt || 0);
                     return bTime - aTime;
                 });
-        },
-        showCompleted() {
-            return this.column.showCompleted || false;
-        },
-        completedCount() {
-            return this.completedTasks.length;
+        });
+
+        const showCompleted = computed(() => column.value.showCompleted || false);
+        const completedCount = computed(() => completedTasks.value.length);
+
+        function toggleShowCompleted() {
+            mutations.toggleColumnShowCompleted(props.columnId);
         }
-    },
-    methods: {
-        toggleShowCompleted() {
-            mutations.toggleColumnShowCompleted(this.columnId);
-        },
-        openQuickAdd() {
-            if (this.$refs.quickAdd && typeof this.$refs.quickAdd.startAddingTask === 'function') {
-                this.$refs.quickAdd.startAddingTask();
+
+        function openQuickAdd() {
+            if (quickAdd.value && typeof quickAdd.value.startAddingTask === 'function') {
+                quickAdd.value.startAddingTask();
             }
-        },
-        printList() {
-            const allIds = [...this.displayTasks, ...this.completedTasks];
-            const tasks = allIds.map(id => this.sharedStore.tasks[id]).filter(t => t);
-            printColumn(this.column, tasks);
         }
+
+        function printList() {
+            const allIds = [...displayTasks.value, ...completedTasks.value];
+            const tasks = allIds.map(id => store.tasks[id]).filter(t => t);
+            printColumn(column.value, tasks);
+        }
+
+        return {
+            quickAdd,
+            column,
+            displayTasks,
+            completedTasks,
+            showCompleted,
+            completedCount,
+            toggleShowCompleted,
+            openQuickAdd,
+            printList
+        };
     }
 };
 
 export default KanbanColumn;
-

@@ -3,7 +3,10 @@ import { normalizeTag, parseTagsFromTitle } from '../utils/tagParser.js';
 import { getActiveHashToken, replaceHashToken, getWorkspaceTags } from '../utils/tagAutocomplete.js';
 import { getActiveSlashToken, replaceSlashToken, parseTemplateCommand } from '../utils/templateAutocomplete.js';
 
+const { ref, computed, nextTick } = Vue;
+
 const KanbanQuickAdd = {
+    name: 'KanbanQuickAdd',
     props: {
         columnId: { type: String, required: true },
         showTrigger: { type: Boolean, default: true },
@@ -70,157 +73,182 @@ const KanbanQuickAdd = {
             </div>
         </div>
     `,
-    data() {
-        return {
-            isAddingTask: false,
-            newTaskTitle: '',
-            quickAddError: '',
-            isTagMenuOpen: false,
-            tagMenuItems: [],
-            activeTagIndex: 0,
-            activeTokenRange: null,
-            tagMenuPosition: { top: 0, left: 0 },
-            maxTagSuggestions: 8,
-            menuMode: 'tag'
-        };
-    },
-    computed: {
-        column() {
-            return store.columns[this.columnId] || {};
-        },
-        workspaceTemplates() {
-            if (!this.column.workspaceId) return [];
+    setup(props, { expose }) {
+        const addTaskInput = ref(null);
+        const isAddingTask = ref(false);
+        const newTaskTitle = ref('');
+        const quickAddError = ref('');
+        const isTagMenuOpen = ref(false);
+        const tagMenuItems = ref([]);
+        const activeTagIndex = ref(0);
+        const activeTokenRange = ref(null);
+        const tagMenuPosition = ref({ top: 0, left: 0 });
+        const maxTagSuggestions = 8;
+        const menuMode = ref('tag');
+
+        const column = computed(() => {
+            return store.columns[props.columnId] || {};
+        });
+
+        const workspaceTemplates = computed(() => {
+            if (!column.value.workspaceId) return [];
             return Object.values(store.taskTemplates || {})
-                .filter(template => template && template.workspaceId === this.column.workspaceId)
+                .filter(template => template && template.workspaceId === column.value.workspaceId)
                 .sort((a, b) => a.name.localeCompare(b.name));
-        }
-    },
-    methods: {
-        startAddingTask() {
-            this.isAddingTask = true;
-            this.newTaskTitle = '';
-            this.quickAddError = '';
-            this.closeQuickAddTagMenu();
-            this.$nextTick(() => {
-                if (this.$refs.addTaskInput) {
-                    this.$refs.addTaskInput.focus();
+        });
+
+        function startAddingTask() {
+            isAddingTask.value = true;
+            newTaskTitle.value = '';
+            quickAddError.value = '';
+            closeQuickAddTagMenu();
+            nextTick(() => {
+                if (addTaskInput.value) {
+                    addTaskInput.value.focus();
                 }
             });
-        },
-        cancelAddingTask() {
-            this.isAddingTask = false;
-            this.quickAddError = '';
-            this.closeQuickAddTagMenu();
-        },
-        finishAddingTask() {
-            if (this.newTaskTitle.trim()) {
-                this.confirmAddTask();
+        }
+
+        function cancelAddingTask() {
+            isAddingTask.value = false;
+            quickAddError.value = '';
+            closeQuickAddTagMenu();
+        }
+
+        function finishAddingTask() {
+            if (newTaskTitle.value.trim()) {
+                confirmAddTask({
+                    keepOpen: false,
+                    focusAfterSuccess: false
+                });
             } else {
-                this.cancelAddingTask();
+                cancelAddingTask();
             }
-        },
-        confirmAddTask() {
-            const templateCommandResult = this.createFromTemplateCommand();
+        }
+
+        function confirmAddTask(options = {}) {
+            const keepOpen = options.keepOpen !== false;
+            const focusAfterSuccess = options.focusAfterSuccess !== false;
+
+            const templateCommandResult = createFromTemplateCommand({
+                keepOpen,
+                focusAfterSuccess
+            });
             if (templateCommandResult.handled) {
                 return;
             }
 
-            const result = mutations.addTask(this.columnId, this.newTaskTitle, {
-                position: this.insertPosition
+            const result = mutations.addTask(props.columnId, newTaskTitle.value, {
+                position: props.insertPosition
             });
             if (!result.ok) {
-                this.quickAddError = result.error.message;
+                quickAddError.value = result.error.message;
                 return;
             }
-            this.quickAddError = '';
-            this.newTaskTitle = '';
-            this.closeQuickAddTagMenu();
-            this.$nextTick(() => {
-                if (this.$refs.addTaskInput) {
-                    this.$refs.addTaskInput.focus();
+
+            quickAddError.value = '';
+            if (keepOpen) {
+                newTaskTitle.value = '';
+                closeQuickAddTagMenu();
+                if (focusAfterSuccess) {
+                    nextTick(() => {
+                        if (addTaskInput.value) {
+                            addTaskInput.value.focus();
+                        }
+                    });
                 }
-            });
-        },
-        onQuickAddEnter() {
-            if (this.isTagMenuOpen && this.tagMenuItems.length) {
-                this.acceptQuickAddSuggestion();
                 return;
             }
-            this.confirmAddTask();
-        },
-        onQuickAddTab(event) {
-            if (!this.isTagMenuOpen || !this.tagMenuItems.length) return;
-            event.preventDefault();
-            this.acceptQuickAddSuggestion();
-        },
-        onQuickAddEsc() {
-            if (this.isTagMenuOpen) {
-                this.closeQuickAddTagMenu();
+
+            cancelAddingTask();
+        }
+
+        function onQuickAddEnter() {
+            if (isTagMenuOpen.value && tagMenuItems.value.length) {
+                acceptQuickAddSuggestion();
                 return;
             }
-            this.cancelAddingTask();
-        },
-        onQuickAddArrow(step, event) {
-            if (!this.isTagMenuOpen || !this.tagMenuItems.length) return;
+            confirmAddTask();
+        }
+
+        function onQuickAddTab(event) {
+            if (!isTagMenuOpen.value || !tagMenuItems.value.length) return;
             event.preventDefault();
-            const total = this.tagMenuItems.length;
-            this.activeTagIndex = (this.activeTagIndex + step + total) % total;
-        },
-        onQuickAddInput() {
-            this.quickAddError = '';
-            this.activeTagIndex = 0;
-            this.refreshQuickAddSuggestionMenu();
-        },
-        onQuickAddKeyup(event) {
+            acceptQuickAddSuggestion();
+        }
+
+        function onQuickAddEsc() {
+            if (isTagMenuOpen.value) {
+                closeQuickAddTagMenu();
+                return;
+            }
+            cancelAddingTask();
+        }
+
+        function onQuickAddArrow(step, event) {
+            if (!isTagMenuOpen.value || !tagMenuItems.value.length) return;
+            event.preventDefault();
+            const total = tagMenuItems.value.length;
+            activeTagIndex.value = (activeTagIndex.value + step + total) % total;
+        }
+
+        function onQuickAddInput() {
+            quickAddError.value = '';
+            activeTagIndex.value = 0;
+            refreshQuickAddSuggestionMenu();
+        }
+
+        function onQuickAddKeyup(event) {
             if (['ArrowUp', 'ArrowDown', 'Enter', 'Escape', 'Tab'].includes(event.key)) {
                 return;
             }
-            this.refreshQuickAddSuggestionMenu();
-        },
-        refreshQuickAddSuggestionMenu() {
-            if (!this.isAddingTask) return;
+            refreshQuickAddSuggestionMenu();
+        }
 
-            const input = this.$refs.addTaskInput;
+        function refreshQuickAddSuggestionMenu() {
+            if (!isAddingTask.value) return;
+
+            const input = addTaskInput.value;
             if (!input) return;
 
-            const caretIndex = typeof input.selectionStart === 'number' ? input.selectionStart : this.newTaskTitle.length;
+            const caretIndex = typeof input.selectionStart === 'number' ? input.selectionStart : newTaskTitle.value.length;
 
-            const slashToken = getActiveSlashToken(this.newTaskTitle, caretIndex);
+            const slashToken = getActiveSlashToken(newTaskTitle.value, caretIndex);
             if (slashToken) {
                 const query = normalizeTag(slashToken.query || '');
-                const items = this.workspaceTemplates
+                const items = workspaceTemplates.value
                     .filter(template => !query || template.name.includes(query))
-                    .slice(0, this.maxTagSuggestions)
+                    .slice(0, maxTagSuggestions)
                     .map(template => ({ type: 'existing', value: template.name }));
 
                 if (!items.length) {
-                    this.closeQuickAddTagMenu();
+                    closeQuickAddTagMenu();
                     return;
                 }
 
-                this.menuMode = 'template';
-                this.activeTokenRange = { start: slashToken.start, end: slashToken.end };
-                this.tagMenuItems = items;
-                if (this.activeTagIndex >= items.length) {
-                    this.activeTagIndex = 0;
+                menuMode.value = 'template';
+                activeTokenRange.value = { start: slashToken.start, end: slashToken.end };
+                tagMenuItems.value = items;
+                if (activeTagIndex.value >= items.length) {
+                    activeTagIndex.value = 0;
                 }
-                this.isTagMenuOpen = true;
-                this.positionQuickAddTagMenu(input, caretIndex);
+                isTagMenuOpen.value = true;
+                positionQuickAddTagMenu(input, caretIndex);
                 return;
             }
 
-            const token = getActiveHashToken(this.newTaskTitle, caretIndex);
+            const token = getActiveHashToken(newTaskTitle.value, caretIndex);
             if (!token) {
-                this.closeQuickAddTagMenu();
+                closeQuickAddTagMenu();
                 return;
             }
 
-            const workspaceTags = getWorkspaceTags(this.column.workspaceId, store);
+            const workspaceTags = getWorkspaceTags(column.value.workspaceId, store);
             const query = (token.query || '').toLowerCase();
 
             const existingItems = workspaceTags
                 .filter(tag => !query || tag.includes(query))
-                .slice(0, this.maxTagSuggestions)
+                .slice(0, maxTagSuggestions)
                 .map(tag => ({ type: 'existing', value: tag }));
 
             const normalizedQuery = normalizeTag(token.query || '');
@@ -231,92 +259,102 @@ const KanbanQuickAdd = {
                 : existingItems;
 
             if (!items.length) {
-                this.closeQuickAddTagMenu();
+                closeQuickAddTagMenu();
                 return;
             }
 
-            this.menuMode = 'tag';
-            this.activeTokenRange = {
-                start: token.start,
-                end: token.end
-            };
-            this.tagMenuItems = items;
-            if (this.activeTagIndex >= items.length) {
-                this.activeTagIndex = 0;
+            menuMode.value = 'tag';
+            activeTokenRange.value = { start: token.start, end: token.end };
+            tagMenuItems.value = items;
+            if (activeTagIndex.value >= items.length) {
+                activeTagIndex.value = 0;
             }
-            this.isTagMenuOpen = true;
-            this.positionQuickAddTagMenu(input, caretIndex);
-        },
-        acceptQuickAddSuggestion() {
-            if (!this.tagMenuItems.length) return;
-            const item = this.tagMenuItems[this.activeTagIndex];
-            this.selectQuickAddSuggestion(item);
-        },
-        selectQuickAddSuggestion(item) {
-            if (!item || !item.value || !this.activeTokenRange) return;
+            isTagMenuOpen.value = true;
+            positionQuickAddTagMenu(input, caretIndex);
+        }
 
-            const replaced = this.menuMode === 'template'
-                ? replaceSlashToken(this.newTaskTitle, this.activeTokenRange, item.value)
-                : replaceHashToken(this.newTaskTitle, this.activeTokenRange, item.value);
-            this.newTaskTitle = replaced.text;
-            this.closeQuickAddTagMenu();
+        function acceptQuickAddSuggestion() {
+            if (!tagMenuItems.value.length) return;
+            const item = tagMenuItems.value[activeTagIndex.value];
+            selectQuickAddSuggestion(item);
+        }
 
-            this.$nextTick(() => {
-                const input = this.$refs.addTaskInput;
+        function selectQuickAddSuggestion(item) {
+            if (!item || !item.value || !activeTokenRange.value) return;
+
+            const replaced = menuMode.value === 'template'
+                ? replaceSlashToken(newTaskTitle.value, activeTokenRange.value, item.value)
+                : replaceHashToken(newTaskTitle.value, activeTokenRange.value, item.value);
+            newTaskTitle.value = replaced.text;
+            closeQuickAddTagMenu();
+
+            nextTick(() => {
+                const input = addTaskInput.value;
                 if (!input) return;
                 input.focus();
                 input.selectionStart = replaced.caretIndex;
                 input.selectionEnd = replaced.caretIndex;
-                this.refreshQuickAddSuggestionMenu();
+                refreshQuickAddSuggestionMenu();
             });
-        },
-        createFromTemplateCommand() {
-            const command = parseTemplateCommand(this.newTaskTitle);
+        }
+
+        function createFromTemplateCommand(options = {}) {
+            const keepOpen = options.keepOpen !== false;
+            const focusAfterSuccess = options.focusAfterSuccess !== false;
+            const command = parseTemplateCommand(newTaskTitle.value);
             if (!command) {
                 return { handled: false };
             }
 
             const normalizedTemplateName = normalizeTag(command.templateName);
-            const selectedTemplate = this.workspaceTemplates.find(template => template.name === normalizedTemplateName);
+            const selectedTemplate = workspaceTemplates.value.find(template => template.name === normalizedTemplateName);
             if (!selectedTemplate) {
-                this.quickAddError = 'Select an existing template.';
+                quickAddError.value = 'Select an existing template.';
                 return { handled: true };
             }
 
             const parsed = parseTagsFromTitle(command.remainder || '');
             const result = mutations.createTaskFromTemplate({
                 templateId: selectedTemplate.id,
-                columnId: this.columnId,
+                columnId: props.columnId,
                 title: parsed.title,
                 inlineTags: parsed.tags,
-                position: this.insertPosition
+                position: props.insertPosition
             });
             if (!result.ok) {
-                this.quickAddError = result.error.message;
+                quickAddError.value = result.error.message;
                 return { handled: true };
             }
 
-            this.quickAddError = '';
-            this.newTaskTitle = '';
-            this.closeQuickAddTagMenu();
-            this.$nextTick(() => {
-                if (this.$refs.addTaskInput) {
-                    this.$refs.addTaskInput.focus();
+            quickAddError.value = '';
+            if (keepOpen) {
+                newTaskTitle.value = '';
+                closeQuickAddTagMenu();
+                if (focusAfterSuccess) {
+                    nextTick(() => {
+                        if (addTaskInput.value) {
+                            addTaskInput.value.focus();
+                        }
+                    });
                 }
-            });
+            } else {
+                cancelAddingTask();
+            }
             return { handled: true };
-        },
-        closeQuickAddTagMenu() {
-            this.isTagMenuOpen = false;
-            this.tagMenuItems = [];
-            this.activeTagIndex = 0;
-            this.activeTokenRange = null;
-            this.menuMode = 'tag';
-        },
-        positionQuickAddTagMenu(textarea, caretIndex) {
-            const caret = this.getTextareaCaretCoordinates(textarea, caretIndex);
+        }
+
+        function closeQuickAddTagMenu() {
+            isTagMenuOpen.value = false;
+            tagMenuItems.value = [];
+            activeTagIndex.value = 0;
+            activeTokenRange.value = null;
+            menuMode.value = 'tag';
+        }
+
+        function positionQuickAddTagMenu(textarea, caretIndex) {
+            const caret = getTextareaCaretCoordinates(textarea, caretIndex);
             if (!caret) {
-                this.tagMenuPosition = {
+                tagMenuPosition.value = {
                     top: textarea.offsetHeight + 6,
                     left: 0
                 };
@@ -324,12 +362,13 @@ const KanbanQuickAdd = {
             }
 
             const maxLeft = Math.max(0, textarea.clientWidth - 230);
-            this.tagMenuPosition = {
+            tagMenuPosition.value = {
                 top: Math.max(34, caret.top + caret.lineHeight + 6),
                 left: Math.max(0, Math.min(caret.left, maxLeft))
             };
-        },
-        getTextareaCaretCoordinates(textarea, caretIndex) {
+        }
+
+        function getTextareaCaretCoordinates(textarea, caretIndex) {
             if (!textarea || typeof window === 'undefined') return null;
 
             const div = document.createElement('div');
@@ -343,7 +382,9 @@ const KanbanQuickAdd = {
                 'textDecoration', 'letterSpacing', 'wordSpacing', 'tabSize', 'MozTabSize'
             ];
 
-            mirrorProps.forEach(prop => { div.style[prop] = style[prop]; });
+            mirrorProps.forEach(prop => {
+                div.style[prop] = style[prop];
+            });
 
             div.style.position = 'absolute';
             div.style.visibility = 'hidden';
@@ -370,8 +411,33 @@ const KanbanQuickAdd = {
             document.body.removeChild(div);
             return coordinates;
         }
+
+        expose({ startAddingTask });
+
+        return {
+            addTaskInput,
+            isAddingTask,
+            newTaskTitle,
+            quickAddError,
+            isTagMenuOpen,
+            tagMenuItems,
+            activeTagIndex,
+            tagMenuPosition,
+            menuMode,
+            startAddingTask,
+            cancelAddingTask,
+            finishAddingTask,
+            confirmAddTask,
+            onQuickAddEnter,
+            onQuickAddTab,
+            onQuickAddEsc,
+            onQuickAddArrow,
+            onQuickAddInput,
+            onQuickAddKeyup,
+            refreshQuickAddSuggestionMenu,
+            selectQuickAddSuggestion
+        };
     }
 };
 
 export default KanbanQuickAdd;
-

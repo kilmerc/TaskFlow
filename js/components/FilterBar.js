@@ -1,14 +1,13 @@
 import { store, mutations } from '../store.js';
 import { PRIORITY_VALUES } from '../utils/taskFilters.js';
 import { getTagToneClass as computeTagToneClass } from '../utils/tagStyle.js';
+import { useUniqueId } from '../composables/useUniqueId.js';
+import { useWorkspaceTaskContext } from '../composables/useWorkspaceTaskContext.js';
+
+const { ref, computed } = Vue;
 
 const FilterBar = {
-    data() {
-        return {
-            isOpen: false,
-            dropdownId: `filter-dropdown-${Math.random().toString(36).slice(2)}`
-        };
-    },
+    name: 'FilterBar',
     template: `
         <div class="filter-bar" v-click-outside="closeDropdown">
             <button
@@ -23,7 +22,7 @@ const FilterBar = {
                 <i class="fas fa-filter"></i>
                 <span v-if="activeFilterCount > 0" class="filter-badge">{{ activeFilterCount }}</span>
             </button>
-            
+
             <div class="filter-dropdown" v-if="isOpen" :id="dropdownId">
                 <div class="filter-header">
                     <span>Filters</span>
@@ -53,64 +52,92 @@ const FilterBar = {
             </div>
         </div>
     `,
-    computed: {
-        activeFilters() {
+    setup() {
+        const isOpen = ref(false);
+        const dropdownId = useUniqueId('filter-dropdown');
+        const currentWorkspace = computed(() => {
+            return store.workspaces.find(workspace => workspace.id === store.currentWorkspaceId) || null;
+        });
+        const context = useWorkspaceTaskContext(currentWorkspace);
+
+        const activeFilters = computed(() => {
             return store.activeFilters || { tags: [], priorities: [] };
-        },
-        activeTagFilters() {
-            return this.activeFilters.tags || [];
-        },
-        activePriorityFilters() {
-            return this.activeFilters.priorities || [];
-        },
-        activeFilterCount() {
-            return this.activeTagFilters.length + this.activePriorityFilters.length;
-        },
-        allPriorities() {
+        });
+
+        const activeTagFilters = computed(() => {
+            return activeFilters.value.tags || [];
+        });
+
+        const activePriorityFilters = computed(() => {
+            return activeFilters.value.priorities || [];
+        });
+
+        const activeFilterCount = computed(() => {
+            return activeTagFilters.value.length + activePriorityFilters.value.length;
+        });
+
+        const allPriorities = computed(() => {
             return PRIORITY_VALUES;
-        },
-        allTags() {
+        });
+
+        const allTags = computed(() => {
             const tags = new Set();
-            const workspaceId = store.currentWorkspaceId;
-            Object.values(store.tasks).forEach(task => {
+            context.workspaceTasks.value.forEach(task => {
                 if (task.tags && task.tags.length) {
-                    const column = store.columns[task.columnId];
-                    if (!workspaceId || !column || column.workspaceId !== workspaceId) {
-                        return;
-                    }
                     task.tags.forEach(tag => tags.add(tag));
                 }
             });
             return Array.from(tags).sort();
+        });
+
+        function toggleDropdown() {
+            isOpen.value = !isOpen.value;
         }
-    },
-    methods: {
-        toggleDropdown() {
-            this.isOpen = !this.isOpen;
-        },
-        closeDropdown() {
-            this.isOpen = false;
-        },
-        toggleTag(tag) {
+
+        function closeDropdown() {
+            isOpen.value = false;
+        }
+
+        function toggleTag(tag) {
             mutations.toggleTagFilter(tag);
-        },
-        togglePriority(priority) {
+        }
+
+        function togglePriority(priority) {
             mutations.togglePriorityFilter(priority);
-        },
-        isTagActive(tag) {
-            return this.activeTagFilters.includes(tag);
-        },
-        isPriorityActive(priority) {
-            return this.activePriorityFilters.includes(priority);
-        },
-        getTagToneClass(tag) {
+        }
+
+        function isTagActive(tag) {
+            return activeTagFilters.value.includes(tag);
+        }
+
+        function isPriorityActive(priority) {
+            return activePriorityFilters.value.includes(priority);
+        }
+
+        function getTagToneClass(tag) {
             return computeTagToneClass(tag);
-        },
-        clearFilters() {
+        }
+
+        function clearFilters() {
             mutations.clearFilters();
         }
+
+        return {
+            isOpen,
+            dropdownId,
+            activeFilterCount,
+            allPriorities,
+            allTags,
+            toggleDropdown,
+            closeDropdown,
+            toggleTag,
+            togglePriority,
+            isTagActive,
+            isPriorityActive,
+            getTagToneClass,
+            clearFilters
+        };
     }
 };
 
 export default FilterBar;
-

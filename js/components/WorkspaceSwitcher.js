@@ -1,8 +1,12 @@
 import { MAX_WORKSPACE_NAME, store, mutations } from '../store.js';
+import { useMenuNavigation } from '../composables/useMenuNavigation.js';
+
+const { ref, computed } = Vue;
 
 const WorkspaceSwitcher = {
+    name: 'WorkspaceSwitcher',
     template: `
-        <div class="workspace-switcher" v-click-outside="onOutsideClick">
+        <div ref="root" class="workspace-switcher" v-click-outside="onOutsideClick">
             <button
                 ref="trigger"
                 type="button"
@@ -80,113 +84,62 @@ const WorkspaceSwitcher = {
             </div>
         </div>
     `,
-    data() {
-        return {
-            isOpen: false,
-            sharedStore: store,
-            dropdownId: `workspace-dropdown-${Math.random().toString(36).slice(2)}`
-        };
-    },
-    computed: {
-        workspaces() {
-            return this.sharedStore.workspaces;
-        },
-        currentWorkspaceId() {
-            return this.sharedStore.currentWorkspaceId;
-        },
-        currentWorkspaceName() {
-            const ws = this.workspaces.find(workspace => workspace.id === this.currentWorkspaceId);
-            return ws ? ws.name : 'Select Workspace';
-        }
-    },
-    methods: {
-        toggleDropdown() {
-            if (this.isOpen) {
-                this.closeDropdown(false);
-                return;
-            }
-            this.openDropdown(0);
-        },
-        openDropdown(focusIndex = 0) {
-            this.isOpen = true;
-            this.$nextTick(() => this.focusMenuItem(focusIndex));
-        },
-        closeDropdown(restoreTrigger = false) {
-            this.isOpen = false;
-            if (restoreTrigger) {
-                this.$nextTick(() => {
-                    if (this.$refs.trigger) {
-                        this.$refs.trigger.focus();
-                    }
-                });
-            }
-        },
-        onOutsideClick() {
-            this.closeDropdown(false);
-        },
-        focusMenuItem(index) {
-            const items = this.getMenuItems();
-            if (!items.length) return;
-            const bounded = Math.max(0, Math.min(index, items.length - 1));
-            items[bounded].focus();
-        },
-        getMenuItems() {
-            return Array.from(this.$el.querySelectorAll('.ws-menu-focusable'));
-        },
-        onTriggerKeydown(event) {
-            if (event.key === 'ArrowDown') {
-                event.preventDefault();
-                this.openDropdown(0);
-                return;
-            }
-            if (event.key === 'ArrowUp') {
-                event.preventDefault();
-                this.openDropdown(this.getMenuItems().length - 1);
-                return;
-            }
-            if (event.key === 'Escape') {
-                event.preventDefault();
-                this.closeDropdown(true);
-            }
-        },
-        onMenuKeydown(event) {
-            const items = this.getMenuItems();
-            if (!items.length) return;
-            const currentIndex = items.indexOf(document.activeElement);
+    setup() {
+        const root = ref(null);
+        const trigger = ref(null);
 
-            if (event.key === 'ArrowDown') {
-                event.preventDefault();
-                const next = currentIndex < 0 ? 0 : (currentIndex + 1) % items.length;
-                items[next].focus();
-                return;
-            }
-            if (event.key === 'ArrowUp') {
-                event.preventDefault();
-                const next = currentIndex < 0 ? items.length - 1 : (currentIndex - 1 + items.length) % items.length;
-                items[next].focus();
-                return;
-            }
-            if (event.key === 'Home') {
-                event.preventDefault();
-                items[0].focus();
-                return;
-            }
-            if (event.key === 'End') {
-                event.preventDefault();
-                items[items.length - 1].focus();
-                return;
-            }
-            if (event.key === 'Escape') {
-                event.preventDefault();
-                this.closeDropdown(true);
-            }
-        },
-        selectWorkspace(id) {
+        const navigation = useMenuNavigation({
+            rootRef: root,
+            triggerRef: trigger,
+            focusableSelector: '.ws-menu-focusable',
+            idPrefix: 'workspace-dropdown'
+        });
+
+        const isOpen = navigation.isOpen;
+        const dropdownId = navigation.menuId;
+
+        const workspaces = computed(() => store.workspaces);
+        const currentWorkspaceId = computed(() => store.currentWorkspaceId);
+        const currentWorkspaceName = computed(() => {
+            const ws = workspaces.value.find(workspace => workspace.id === currentWorkspaceId.value);
+            return ws ? ws.name : 'Select Workspace';
+        });
+
+        function toggleDropdown() {
+            navigation.toggleMenu();
+        }
+
+        function openDropdown(focusIndex = 0) {
+            navigation.openMenuAndFocus(focusIndex);
+        }
+
+        function closeDropdown(restoreTrigger = false) {
+            navigation.closeMenu(restoreTrigger);
+        }
+
+        function onOutsideClick() {
+            closeDropdown(false);
+        }
+
+        function getMenuItems() {
+            return navigation.getMenuItems();
+        }
+
+        function onTriggerKeydown(event) {
+            navigation.onTriggerKeydown(event, () => getMenuItems().length - 1);
+        }
+
+        function onMenuKeydown(event) {
+            navigation.onMenuKeydown(event);
+        }
+
+        function selectWorkspace(id) {
             mutations.switchWorkspace(id);
-            this.closeDropdown(true);
-        },
-        createWorkspace() {
-            this.closeDropdown(true);
+            closeDropdown(true);
+        }
+
+        function createWorkspace() {
+            closeDropdown(true);
             mutations.openDialog({
                 variant: 'prompt',
                 title: 'Create workspace',
@@ -201,9 +154,10 @@ const WorkspaceSwitcher = {
                     type: 'workspace.create'
                 }
             });
-        },
-        startRenaming(ws) {
-            this.closeDropdown(true);
+        }
+
+        function startRenaming(ws) {
+            closeDropdown(true);
             mutations.openDialog({
                 variant: 'prompt',
                 title: 'Rename workspace',
@@ -220,13 +174,14 @@ const WorkspaceSwitcher = {
                     payload: { workspaceId: ws.id }
                 }
             });
-        },
-        confirmDelete(ws) {
-            this.closeDropdown(true);
+        }
+
+        function confirmDelete(ws) {
+            closeDropdown(true);
             mutations.openDialog({
                 variant: 'confirm',
                 title: 'Delete workspace?',
-                message: `Delete workspace \"${ws.name}\" and all its tasks?`,
+                message: `Delete workspace "${ws.name}" and all its tasks?`,
                 confirmLabel: 'Delete workspace',
                 cancelLabel: 'Cancel',
                 destructive: true,
@@ -236,8 +191,27 @@ const WorkspaceSwitcher = {
                 }
             });
         }
+
+        return {
+            root,
+            trigger,
+            isOpen,
+            dropdownId,
+            workspaces,
+            currentWorkspaceId,
+            currentWorkspaceName,
+            toggleDropdown,
+            openDropdown,
+            closeDropdown,
+            onOutsideClick,
+            onTriggerKeydown,
+            onMenuKeydown,
+            selectWorkspace,
+            createWorkspace,
+            startRenaming,
+            confirmDelete
+        };
     }
 };
 
 export default WorkspaceSwitcher;
-

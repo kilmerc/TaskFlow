@@ -2,57 +2,56 @@ import { store, hydrate, persist, mutations } from './store.js';
 import { exportData, importData } from './utils/io.js';
 import { registerGlobals } from './bootstrap/registerGlobals.js';
 
-const app = Vue.createApp({
-    data() {
-        return {
-            store: store,
-            currentView: 'kanban' // Start with 'kanban' default
-        };
-    },
+const { ref, computed, watch, onBeforeMount, onMounted } = Vue;
 
-    computed: {
-        appTheme() {
-            return this.store.theme;
-        },
-        currentWorkspace() {
-            return this.store.workspaces.find(w => w.id === this.store.currentWorkspaceId);
+const app = Vue.createApp({
+    name: 'TaskFlowApp',
+    setup() {
+        const currentView = ref('kanban');
+        const fileInput = ref(null);
+
+        const appTheme = computed(() => store.theme);
+        const currentWorkspace = computed(() => {
+            return store.workspaces.find(w => w.id === store.currentWorkspaceId);
+        });
+
+        watch(appTheme, (newTheme) => {
+            document.documentElement.setAttribute('data-theme', newTheme);
+        }, { immediate: true });
+
+        onBeforeMount(() => {
+            console.log('App Initializing...');
+            hydrate();
+        });
+
+        onMounted(() => {
+            document.getElementById('app')?.removeAttribute('v-cloak');
+        });
+
+        function toggleTheme() {
+            store.theme = store.theme === 'dark' ? 'light' : 'dark';
+            persist();
         }
-    },
-    watch: {
-        appTheme: {
-            immediate: true,
-            handler(newTheme) {
-                document.documentElement.setAttribute('data-theme', newTheme);
+
+        function downloadBackup() {
+            exportData();
+        }
+
+        function triggerImport() {
+            if (fileInput.value) {
+                fileInput.value.click();
             }
         }
-    },
-    created() {
-        console.log('App Initializing...');
-        hydrate();
-    },
-    mounted() {
-        document.getElementById('app')?.removeAttribute('v-cloak');
-    },
-    methods: {
-        toggleTheme() {
-            this.store.theme = this.store.theme === 'dark' ? 'light' : 'dark';
-            persist();
-        },
-        downloadBackup() {
-            exportData();
-        },
-        triggerImport() {
-            this.$refs.fileInput.click();
-        },
-        handleImport(event) {
+
+        function handleImport(event) {
             const file = event.target.files[0];
             if (file) {
                 importData(file);
             }
-            // Reset input so same file can be selected again if needed
             event.target.value = '';
-        },
-        confirmDeleteAll() {
+        }
+
+        function confirmDeleteAll() {
             mutations.openDialog({
                 variant: 'confirm',
                 title: 'Delete all data?',
@@ -64,10 +63,25 @@ const app = Vue.createApp({
                     type: 'app.resetAll'
                 }
             });
-        },
-        openTemplateGallery() {
+        }
+
+        function openTemplateGallery() {
             mutations.openTemplateGallery();
         }
+
+        return {
+            store,
+            currentView,
+            appTheme,
+            currentWorkspace,
+            fileInput,
+            toggleTheme,
+            downloadBackup,
+            triggerImport,
+            handleImport,
+            confirmDeleteAll,
+            openTemplateGallery
+        };
     }
 });
 

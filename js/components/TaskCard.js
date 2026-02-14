@@ -1,7 +1,10 @@
 import { store, mutations } from '../store.js';
 import { getTagToneClass as computeTagToneClass } from '../utils/tagStyle.js';
 
+const { computed } = Vue;
+
 const TaskCard = {
+    name: 'TaskCard',
     props: {
         taskId: {
             type: String,
@@ -47,58 +50,79 @@ const TaskCard = {
             </div>
         </div>
     `,
-    computed: {
-        task() {
-            return store.tasks[this.taskId] || {};
-        },
-        colorClass() {
-            return `task-color-${this.task.color || 'gray'}`;
-        },
-        priorityClass() {
-            if (!this.task.priority) return '';
-            return `priority-${String(this.task.priority).toLowerCase()}`;
-        },
-        hasMeta() {
-            return this.task.priority || this.task.dueDate || (this.task.subtasks && this.task.subtasks.length > 0);
-        },
-        subtaskCount() {
-            return (this.task.subtasks || []).length;
-        },
-        completedSubtasks() {
-            return (this.task.subtasks || []).filter(st => st.done).length;
-        },
-        allSubtasksDone() {
-            return this.subtaskCount > 0 && this.completedSubtasks === this.subtaskCount;
-        },
-        formattedDate() {
-            if (!this.task.dueDate) return '';
-            // Fix: Parse YYYY-MM-DD manually to create local date instead of UTC
-            const [year, month, day] = this.task.dueDate.split('-').map(Number);
+    setup(props) {
+        const task = computed(() => {
+            return store.tasks[props.taskId] || {};
+        });
+
+        const colorClass = computed(() => {
+            return `task-color-${task.value.color || 'gray'}`;
+        });
+
+        const priorityClass = computed(() => {
+            if (!task.value.priority) return '';
+            return `priority-${String(task.value.priority).toLowerCase()}`;
+        });
+
+        const hasMeta = computed(() => {
+            return task.value.priority || task.value.dueDate || (task.value.subtasks && task.value.subtasks.length > 0);
+        });
+
+        const subtaskCount = computed(() => {
+            return (task.value.subtasks || []).length;
+        });
+
+        const completedSubtasks = computed(() => {
+            return (task.value.subtasks || []).filter(st => st.done).length;
+        });
+
+        const allSubtasksDone = computed(() => {
+            return subtaskCount.value > 0 && completedSubtasks.value === subtaskCount.value;
+        });
+
+        const formattedDate = computed(() => {
+            if (!task.value.dueDate) return '';
+            const [year, month, day] = task.value.dueDate.split('-').map(Number);
             const date = new Date(year, month - 1, day);
             return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-        },
-        isOverdue() {
-            if (!this.task.dueDate || this.task.isCompleted) return false;
+        });
+
+        const isOverdue = computed(() => {
+            if (!task.value.dueDate || task.value.isCompleted) return false;
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            // Fix: Parse YYYY-MM-DD manually to avoid timezone shifts
-            const [year, month, day] = this.task.dueDate.split('-').map(Number);
+            const [year, month, day] = task.value.dueDate.split('-').map(Number);
             const due = new Date(year, month - 1, day);
             return due < today;
+        });
+
+        function toggleCompleted() {
+            mutations.toggleTaskCompletion(props.taskId);
         }
-    },
-    methods: {
-        toggleCompleted() {
-            mutations.toggleTaskCompletion(this.taskId);
-        },
-        openTask() {
-            mutations.setActiveTask(this.taskId);
-        },
-        getTagToneClass(tag) {
+
+        function openTask() {
+            mutations.setActiveTask(props.taskId);
+        }
+
+        function getTagToneClass(tag) {
             return computeTagToneClass(tag);
         }
+
+        return {
+            task,
+            colorClass,
+            priorityClass,
+            hasMeta,
+            subtaskCount,
+            completedSubtasks,
+            allSubtasksDone,
+            formattedDate,
+            isOverdue,
+            toggleCompleted,
+            openTask,
+            getTagToneClass
+        };
     }
 };
 
 export default TaskCard;
-

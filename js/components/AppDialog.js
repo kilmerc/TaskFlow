@@ -1,6 +1,10 @@
 import { store, mutations } from '../store.js';
+import { useUniqueId } from '../composables/useUniqueId.js';
+
+const { ref, computed, watch, nextTick } = Vue;
 
 const AppDialog = {
+    name: 'AppDialog',
     template: `
         <div v-if="isOpen" class="app-dialog-backdrop" @click.self="onCancel">
             <div
@@ -46,72 +50,74 @@ const AppDialog = {
             </div>
         </div>
     `,
-    data() {
-        const suffix = Math.random().toString(36).slice(2);
-        return {
-            titleId: `app-dialog-title-${suffix}`,
-            descriptionId: `app-dialog-description-${suffix}`,
-            inputId: `app-dialog-input-${suffix}`,
-            restoreTarget: null
-        };
-    },
-    computed: {
-        dialog() {
+    setup() {
+        const panel = ref(null);
+        const dialogInput = ref(null);
+        const confirmButton = ref(null);
+        const titleId = useUniqueId('app-dialog-title');
+        const descriptionId = useUniqueId('app-dialog-description');
+        const inputId = useUniqueId('app-dialog-input');
+        const restoreTarget = ref(null);
+
+        const dialog = computed(() => {
             return store.dialog || {};
-        },
-        isOpen() {
-            return !!this.dialog.isOpen;
-        }
-    },
-    watch: {
-        isOpen(isOpen) {
-            if (isOpen) {
-                this.restoreTarget = document.activeElement;
-                this.$nextTick(() => this.focusFirstElement());
-            } else if (this.restoreTarget && typeof this.restoreTarget.focus === 'function') {
-                this.restoreTarget.focus();
-                this.restoreTarget = null;
+        });
+
+        const isOpen = computed(() => {
+            return !!dialog.value.isOpen;
+        });
+
+        watch(isOpen, (open) => {
+            if (open) {
+                restoreTarget.value = document.activeElement;
+                nextTick(() => focusFirstElement());
+            } else if (restoreTarget.value && typeof restoreTarget.value.focus === 'function') {
+                restoreTarget.value.focus();
+                restoreTarget.value = null;
             }
-        }
-    },
-    methods: {
-        onInput(event) {
+        });
+
+        function onInput(event) {
             mutations.setDialogInput(event.target.value);
-        },
-        onConfirm() {
+        }
+
+        function onConfirm() {
             mutations.confirmDialog();
-        },
-        onCancel() {
+        }
+
+        function onCancel() {
             mutations.closeDialog();
-        },
-        onKeydown(event) {
+        }
+
+        function onKeydown(event) {
             if (event.key === 'Escape') {
                 event.preventDefault();
-                this.onCancel();
+                onCancel();
                 return;
             }
 
             if (event.key === 'Tab') {
-                this.trapTab(event);
+                trapTab(event);
                 return;
             }
 
             if (event.key === 'Enter') {
                 if (event.target && event.target.tagName === 'TEXTAREA') return;
                 event.preventDefault();
-                this.onConfirm();
+                onConfirm();
             }
-        },
-        getFocusableElements() {
-            const panel = this.$refs.panel;
-            if (!panel) return [];
-            const nodes = panel.querySelectorAll(
+        }
+
+        function getFocusableElements() {
+            if (!panel.value) return [];
+            const nodes = panel.value.querySelectorAll(
                 'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
             );
             return Array.from(nodes).filter(node => !node.hasAttribute('hidden'));
-        },
-        trapTab(event) {
-            const focusables = this.getFocusableElements();
+        }
+
+        function trapTab(event) {
+            const focusables = getFocusableElements();
             if (!focusables.length) return;
 
             const first = focusables[0];
@@ -126,19 +132,34 @@ const AppDialog = {
                 event.preventDefault();
                 first.focus();
             }
-        },
-        focusFirstElement() {
-            if (this.$refs.dialogInput) {
-                this.$refs.dialogInput.focus();
-                this.$refs.dialogInput.select();
+        }
+
+        function focusFirstElement() {
+            if (dialogInput.value) {
+                dialogInput.value.focus();
+                dialogInput.value.select();
                 return;
             }
-            if (this.$refs.confirmButton) {
-                this.$refs.confirmButton.focus();
+            if (confirmButton.value) {
+                confirmButton.value.focus();
             }
         }
+
+        return {
+            panel,
+            dialogInput,
+            confirmButton,
+            titleId,
+            descriptionId,
+            inputId,
+            dialog,
+            isOpen,
+            onInput,
+            onConfirm,
+            onCancel,
+            onKeydown
+        };
     }
 };
 
 export default AppDialog;
-

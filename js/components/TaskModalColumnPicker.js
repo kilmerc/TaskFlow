@@ -1,6 +1,9 @@
 import { MAX_COLUMN_NAME } from '../store.js';
 
+const { ref, computed, watch } = Vue;
+
 const TaskModalColumnPicker = {
+    name: 'TaskModalColumnPicker',
     props: {
         workspaceColumns: { type: Array, default: () => [] },
         columnId: { type: String, default: null },
@@ -8,12 +11,13 @@ const TaskModalColumnPicker = {
         showError: { type: Boolean, default: false },
         errorMessage: { type: String, default: 'Column is required.' }
     },
+    emits: ['update:columnInput', 'update:columnId', 'clear-error', 'blur', 'select'],
     template: `
         <div class="form-group">
             <label>Column <span class="required-marker">*</span></label>
             <div class="column-combobox" v-click-outside="closeColumnMenu">
                 <input
-                    ref="columnInput"
+                    ref="columnInputRef"
                     type="text"
                     class="column-combobox-input"
                     :value="columnInput"
@@ -47,66 +51,91 @@ const TaskModalColumnPicker = {
             <div v-if="showError" class="form-error">{{ errorMessage }}</div>
         </div>
     `,
-    data() {
-        return {
-            isColumnMenuOpen: false,
-            activeColumnIndex: 0,
-            maxColumnSuggestions: 8,
-            MAX_COLUMN_NAME
-        };
-    },
-    computed: {
-        columnMenuItems() {
-            const query = this.columnInput.trim();
+    setup(props, { emit, expose }) {
+        const columnInputRef = ref(null);
+        const isColumnMenuOpen = ref(false);
+        const activeColumnIndex = ref(0);
+        const maxColumnSuggestions = 8;
+
+        const columnMenuItems = computed(() => {
+            const query = props.columnInput.trim();
             const lowered = query.toLowerCase();
             const items = [];
-            const exact = this.workspaceColumns.find(col => col.title.toLowerCase() === lowered);
-            if (query && !exact) items.push({ type: 'create', id: '', value: query });
-            const existing = this.workspaceColumns
+            const exact = props.workspaceColumns.find(col => col.title.toLowerCase() === lowered);
+            if (query && !exact) {
+                items.push({ type: 'create', id: '', value: query });
+            }
+            const existing = props.workspaceColumns
                 .filter(col => !lowered || col.title.toLowerCase().includes(lowered))
-                .slice(0, this.maxColumnSuggestions)
+                .slice(0, maxColumnSuggestions)
                 .map(col => ({ type: 'existing', id: col.id, value: col.title }));
             return items.concat(existing);
+        });
+
+        watch(columnMenuItems, (items) => {
+            if (!items.length || activeColumnIndex.value >= items.length) {
+                activeColumnIndex.value = 0;
+            }
+        });
+
+        function openColumnMenu() {
+            isColumnMenuOpen.value = true;
         }
-    },
-    watch: {
-        columnMenuItems(items) {
-            if (!items.length || this.activeColumnIndex >= items.length) this.activeColumnIndex = 0;
+
+        function closeColumnMenu() {
+            isColumnMenuOpen.value = false;
         }
-    },
-    methods: {
-        openColumnMenu() { this.isColumnMenuOpen = true; },
-        closeColumnMenu() { this.isColumnMenuOpen = false; },
-        onColumnInput(value) {
-            this.$emit('update:columnInput', value);
+
+        function onColumnInput(value) {
+            emit('update:columnInput', value);
             const lowered = value.trim().toLowerCase();
-            const exact = this.workspaceColumns.find(col => col.title.toLowerCase() === lowered);
-            this.$emit('update:columnId', exact ? exact.id : null);
-            this.$emit('clear-error');
-            this.openColumnMenu();
-            this.activeColumnIndex = 0;
-        },
-        moveColumnSelection(step) {
-            if (!this.columnMenuItems.length) return;
-            const count = this.columnMenuItems.length;
-            this.activeColumnIndex = (this.activeColumnIndex + step + count) % count;
-        },
-        selectActiveColumn() {
-            if (!this.columnMenuItems.length) return;
-            this.selectColumnItem(this.columnMenuItems[this.activeColumnIndex]);
-        },
-        selectColumnItem(item) {
-            if (!item) return;
-            this.$emit('update:columnId', item.type === 'existing' ? item.id : null);
-            this.$emit('update:columnInput', item.value);
-            this.closeColumnMenu();
-            this.$emit('select');
-        },
-        reset() {
-            this.closeColumnMenu();
+            const exact = props.workspaceColumns.find(col => col.title.toLowerCase() === lowered);
+            emit('update:columnId', exact ? exact.id : null);
+            emit('clear-error');
+            openColumnMenu();
+            activeColumnIndex.value = 0;
         }
+
+        function moveColumnSelection(step) {
+            if (!columnMenuItems.value.length) return;
+            const count = columnMenuItems.value.length;
+            activeColumnIndex.value = (activeColumnIndex.value + step + count) % count;
+        }
+
+        function selectActiveColumn() {
+            if (!columnMenuItems.value.length) return;
+            selectColumnItem(columnMenuItems.value[activeColumnIndex.value]);
+        }
+
+        function selectColumnItem(item) {
+            if (!item) return;
+            emit('update:columnId', item.type === 'existing' ? item.id : null);
+            emit('update:columnInput', item.value);
+            closeColumnMenu();
+            emit('select');
+        }
+
+        function reset() {
+            closeColumnMenu();
+        }
+
+        expose({ reset });
+
+        return {
+            columnInputRef,
+            isColumnMenuOpen,
+            activeColumnIndex,
+            columnMenuItems,
+            MAX_COLUMN_NAME,
+            openColumnMenu,
+            closeColumnMenu,
+            onColumnInput,
+            moveColumnSelection,
+            selectActiveColumn,
+            selectColumnItem,
+            reset
+        };
     }
 };
 
 export default TaskModalColumnPicker;
-

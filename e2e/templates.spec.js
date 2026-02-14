@@ -28,7 +28,10 @@ test.describe('Task Templates', () => {
         await expect(saveTemplateItem).toBeVisible();
         await saveTemplateItem.click();
         await expect(page.locator('.app-dialog-panel')).toBeVisible();
-        await page.locator('.app-dialog-input').fill(templateName);
+        const dialogInput = page.locator('.app-dialog-input');
+        await expect(dialogInput).toBeFocused();
+        await dialogInput.fill(templateName);
+        await expect(dialogInput).toHaveValue(templateName);
         await page.locator('.app-dialog-panel .btn-primary').click();
         await page.locator('.close-btn').first().click();
     }

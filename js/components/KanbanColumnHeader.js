@@ -1,11 +1,16 @@
 import { MAX_COLUMN_NAME, store, mutations } from '../store.js';
+import { useMenuNavigation } from '../composables/useMenuNavigation.js';
+
+const { ref, computed, nextTick } = Vue;
 
 const KanbanColumnHeader = {
+    name: 'KanbanColumnHeader',
     props: {
         columnId: { type: String, required: true }
     },
+    emits: ['quick-add', 'print'],
     template: `
-        <div class="column-header">
+        <div ref="root" class="column-header">
             <button
                 v-if="!isRenaming"
                 type="button"
@@ -39,7 +44,7 @@ const KanbanColumnHeader = {
                 >
                     <i class="fas fa-plus" aria-hidden="true"></i>
                 </button>
-                <div class="dropdown" :class="{ active: isMenuOpen }" v-click-outside="closeMenu">
+                <div class="dropdown" :class="{ active: isMenuOpen }" v-click-outside="onMenuOutside">
                     <button
                         ref="menuTrigger"
                         type="button"
@@ -64,114 +69,90 @@ const KanbanColumnHeader = {
             </div>
         </div>
     `,
-    data() {
-        return {
-            isRenaming: false,
-            renameValue: '',
-            renameError: '',
-            isMenuOpen: false,
-            menuId: `column-menu-${Math.random().toString(36).slice(2)}`,
-            MAX_COLUMN_NAME
-        };
-    },
-    computed: {
-        column() {
-            return store.columns[this.columnId] || {};
-        }
-    },
-    methods: {
-        toggleMenu() {
-            if (this.isMenuOpen) {
-                this.closeMenu(false);
-                return;
-            }
-            this.openMenuAndFocus(0);
-        },
-        openMenuAndFocus(index = 0) {
-            this.isMenuOpen = true;
-            this.$nextTick(() => {
-                const items = this.getMenuItems();
-                if (!items.length) return;
-                const bounded = Math.max(0, Math.min(index, items.length - 1));
-                items[bounded].focus();
-            });
-        },
-        closeMenu(restoreTrigger = false) {
-            this.isMenuOpen = false;
-            if (restoreTrigger === true) {
-                this.$nextTick(() => {
-                    if (this.$refs.menuTrigger) {
-                        this.$refs.menuTrigger.focus();
-                    }
-                });
-            }
-        },
-        getMenuItems() {
-            return Array.from(this.$el.querySelectorAll('.dropdown-menu .menu-item'));
-        },
-        onMenuKeydown(event) {
-            const items = this.getMenuItems();
-            if (!items.length) return;
-            const currentIndex = items.indexOf(document.activeElement);
+    setup(props, { emit }) {
+        const root = ref(null);
+        const renameInput = ref(null);
+        const menuTrigger = ref(null);
 
-            if (event.key === 'ArrowDown') {
-                event.preventDefault();
-                const next = currentIndex < 0 ? 0 : (currentIndex + 1) % items.length;
-                items[next].focus();
-                return;
-            }
-            if (event.key === 'ArrowUp') {
-                event.preventDefault();
-                const next = currentIndex < 0 ? items.length - 1 : (currentIndex - 1 + items.length) % items.length;
-                items[next].focus();
-                return;
-            }
-            if (event.key === 'Home') {
-                event.preventDefault();
-                items[0].focus();
-                return;
-            }
-            if (event.key === 'End') {
-                event.preventDefault();
-                items[items.length - 1].focus();
-                return;
-            }
-            if (event.key === 'Escape') {
-                event.preventDefault();
-                this.closeMenu(true);
-            }
-        },
-        startRenaming() {
-            this.isMenuOpen = false;
-            this.renameError = '';
-            this.renameValue = this.column.title;
-            this.isRenaming = true;
-            this.$nextTick(() => {
-                this.$refs.renameInput.focus();
-                this.$refs.renameInput.select();
+        const isRenaming = ref(false);
+        const renameValue = ref('');
+        const renameError = ref('');
+
+        const navigation = useMenuNavigation({
+            rootRef: root,
+            triggerRef: menuTrigger,
+            focusableSelector: '.dropdown-menu .menu-item',
+            idPrefix: 'column-menu'
+        });
+
+        const isMenuOpen = navigation.isOpen;
+        const menuId = navigation.menuId;
+
+        const column = computed(() => {
+            return store.columns[props.columnId] || {};
+        });
+
+        function toggleMenu() {
+            navigation.toggleMenu();
+        }
+
+        function openMenuAndFocus(index = 0) {
+            navigation.openMenuAndFocus(index);
+        }
+
+        function closeMenu(restoreTrigger = false) {
+            navigation.closeMenu(restoreTrigger);
+        }
+
+        function onMenuOutside() {
+            closeMenu(false);
+        }
+
+        function getMenuItems() {
+            return navigation.getMenuItems();
+        }
+
+        function onMenuKeydown(event) {
+            navigation.onMenuKeydown(event);
+        }
+
+        function startRenaming() {
+            closeMenu(false);
+            renameError.value = '';
+            renameValue.value = column.value.title;
+            isRenaming.value = true;
+            nextTick(() => {
+                if (renameInput.value) {
+                    renameInput.value.focus();
+                    renameInput.value.select();
+                }
             });
-        },
-        finishRenaming() {
-            if (!this.isRenaming) return;
-            const result = mutations.updateColumn(this.columnId, this.renameValue);
+        }
+
+        function finishRenaming() {
+            if (!isRenaming.value) return;
+            const result = mutations.updateColumn(props.columnId, renameValue.value);
             if (!result.ok) {
-                this.renameError = result.error.message;
+                renameError.value = result.error.message;
                 return;
             }
-            this.renameError = '';
-            this.isRenaming = false;
-        },
-        cancelRenaming() {
-            this.isRenaming = false;
-            this.renameError = '';
-        },
-        printList() {
-            this.isMenuOpen = false;
-            this.$emit('print');
-        },
-        deleteColumn() {
-            this.isMenuOpen = false;
-            const taskCount = (store.columnTaskOrder[this.columnId] || []).length;
+            renameError.value = '';
+            isRenaming.value = false;
+        }
+
+        function cancelRenaming() {
+            isRenaming.value = false;
+            renameError.value = '';
+        }
+
+        function printList() {
+            closeMenu(false);
+            emit('print');
+        }
+
+        function deleteColumn() {
+            closeMenu(false);
+            const taskCount = (store.columnTaskOrder[props.columnId] || []).length;
             const message = taskCount > 0
                 ? `This column has ${taskCount} tasks. Delete it and all tasks?`
                 : 'Delete this column?';
@@ -185,12 +166,35 @@ const KanbanColumnHeader = {
                 destructive: true,
                 action: {
                     type: 'column.delete',
-                    payload: { columnId: this.columnId }
+                    payload: { columnId: props.columnId }
                 }
             });
         }
+
+        return {
+            root,
+            renameInput,
+            menuTrigger,
+            isRenaming,
+            renameValue,
+            renameError,
+            isMenuOpen,
+            menuId,
+            column,
+            MAX_COLUMN_NAME,
+            toggleMenu,
+            openMenuAndFocus,
+            closeMenu,
+            onMenuOutside,
+            getMenuItems,
+            onMenuKeydown,
+            startRenaming,
+            finishRenaming,
+            cancelRenaming,
+            printList,
+            deleteColumn
+        };
     }
 };
 
 export default KanbanColumnHeader;
-

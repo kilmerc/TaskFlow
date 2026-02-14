@@ -1,13 +1,10 @@
 import { store, mutations } from '../store.js';
+import { useDebouncedAction } from '../composables/useDebouncedAction.js';
+
+const { ref, computed, watch } = Vue;
 
 const SearchControls = {
-    data() {
-        return {
-            searchInput: '',
-            searchDebounceMs: 200,
-            searchDebounceTimer: null
-        };
-    },
+    name: 'SearchControls',
     template: `
         <div v-if="currentWorkspaceId" class="search-controls">
             <div class="workspace-search">
@@ -33,65 +30,58 @@ const SearchControls = {
             </div>
         </div>
     `,
-    computed: {
-        currentWorkspaceId() {
+    setup() {
+        const searchInput = ref('');
+        const searchDebounceMs = 200;
+
+        const currentWorkspaceId = computed(() => {
             return store.currentWorkspaceId;
-        },
-        currentWorkspaceViewState() {
-            if (!this.currentWorkspaceId) {
+        });
+
+        const currentWorkspaceViewState = computed(() => {
+            if (!currentWorkspaceId.value) {
                 return { searchQuery: '' };
             }
-            return store.workspaceViewState[this.currentWorkspaceId]
-                || { searchQuery: '' };
-        }
-    },
-    watch: {
-        currentWorkspaceId: {
-            immediate: true,
-            handler() {
-                this.searchInput = this.currentWorkspaceViewState.searchQuery || '';
+            return store.workspaceViewState[currentWorkspaceId.value] || { searchQuery: '' };
+        });
+
+        const { schedule, cancel } = useDebouncedAction(() => {
+            if (!currentWorkspaceId.value) return;
+            mutations.setWorkspaceSearchQuery(currentWorkspaceId.value, searchInput.value);
+        }, searchDebounceMs);
+
+        watch(currentWorkspaceId, () => {
+            searchInput.value = currentWorkspaceViewState.value.searchQuery || '';
+        }, { immediate: true });
+
+        watch(currentWorkspaceViewState, (nextValue) => {
+            const nextQuery = nextValue && typeof nextValue.searchQuery === 'string'
+                ? nextValue.searchQuery
+                : '';
+            if (nextQuery !== searchInput.value) {
+                searchInput.value = nextQuery;
             }
-        },
-        currentWorkspaceViewState: {
-            deep: true,
-            handler(nextValue) {
-                const nextQuery = nextValue && typeof nextValue.searchQuery === 'string'
-                    ? nextValue.searchQuery
-                    : '';
-                if (nextQuery !== this.searchInput) {
-                    this.searchInput = nextQuery;
-                }
-            }
+        }, { deep: true });
+
+        function onSearchInput() {
+            if (!currentWorkspaceId.value) return;
+            schedule();
         }
-    },
-    beforeUnmount() {
-        if (this.searchDebounceTimer) {
-            clearTimeout(this.searchDebounceTimer);
-            this.searchDebounceTimer = null;
+
+        function clearSearch() {
+            if (!currentWorkspaceId.value) return;
+            cancel();
+            searchInput.value = '';
+            mutations.setWorkspaceSearchQuery(currentWorkspaceId.value, '');
         }
-    },
-    methods: {
-        onSearchInput() {
-            if (!this.currentWorkspaceId) return;
-            if (this.searchDebounceTimer) {
-                clearTimeout(this.searchDebounceTimer);
-            }
-            this.searchDebounceTimer = setTimeout(() => {
-                mutations.setWorkspaceSearchQuery(this.currentWorkspaceId, this.searchInput);
-                this.searchDebounceTimer = null;
-            }, this.searchDebounceMs);
-        },
-        clearSearch() {
-            if (!this.currentWorkspaceId) return;
-            if (this.searchDebounceTimer) {
-                clearTimeout(this.searchDebounceTimer);
-                this.searchDebounceTimer = null;
-            }
-            this.searchInput = '';
-            mutations.setWorkspaceSearchQuery(this.currentWorkspaceId, '');
-        }
+
+        return {
+            searchInput,
+            currentWorkspaceId,
+            onSearchInput,
+            clearSearch
+        };
     }
 };
 
 export default SearchControls;
-

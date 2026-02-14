@@ -1,6 +1,9 @@
 import { store, mutations } from '../store.js';
 
+const { computed, watch, onBeforeUnmount } = Vue;
+
 const AppToast = {
+    name: 'AppToast',
     template: `
         <div class="app-toast-stack" aria-label="Notifications">
             <div
@@ -24,57 +27,56 @@ const AppToast = {
             </div>
         </div>
     `,
-    data() {
-        return {
-            timers: {}
-        };
-    },
-    computed: {
-        toasts() {
-            return store.toasts || [];
-        }
-    },
-    watch: {
-        toasts: {
-            deep: true,
-            immediate: true,
-            handler() {
-                this.syncTimers();
-            }
-        }
-    },
-    beforeUnmount() {
-        Object.keys(this.timers).forEach(id => {
-            clearTimeout(this.timers[id]);
-        });
-        this.timers = {};
-    },
-    methods: {
-        syncTimers() {
-            const activeIds = new Set(this.toasts.map(toast => toast.id));
+    setup() {
+        const timers = {};
 
-            Object.keys(this.timers).forEach(id => {
+        const toasts = computed(() => {
+            return store.toasts || [];
+        });
+
+        function syncTimers() {
+            const activeIds = new Set(toasts.value.map(toast => toast.id));
+
+            Object.keys(timers).forEach(id => {
                 if (!activeIds.has(id)) {
-                    clearTimeout(this.timers[id]);
-                    delete this.timers[id];
+                    clearTimeout(timers[id]);
+                    delete timers[id];
                 }
             });
 
-            this.toasts.forEach(toast => {
-                if (this.timers[toast.id]) return;
+            toasts.value.forEach(toast => {
+                if (timers[toast.id]) return;
                 if (!toast.timeoutMs || toast.timeoutMs <= 0) return;
 
-                this.timers[toast.id] = setTimeout(() => {
+                timers[toast.id] = setTimeout(() => {
                     mutations.dismissToast(toast.id);
-                    delete this.timers[toast.id];
+                    delete timers[toast.id];
                 }, toast.timeoutMs);
             });
-        },
-        dismiss(toastId) {
+        }
+
+        function dismiss(toastId) {
             mutations.dismissToast(toastId);
         }
+
+        watch(toasts, () => {
+            syncTimers();
+        }, {
+            deep: true,
+            immediate: true
+        });
+
+        onBeforeUnmount(() => {
+            Object.keys(timers).forEach(id => {
+                clearTimeout(timers[id]);
+            });
+        });
+
+        return {
+            toasts,
+            dismiss
+        };
     }
 };
 
 export default AppToast;
-
