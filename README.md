@@ -4,8 +4,8 @@ TaskFlow is a lightweight, no-build personal task management app (Kanban, Calend
 
 ## Runtime
 
-- Vue 2.7 (CDN)
-- SortableJS + Vue.Draggable (CDN)
+- Vue 3.5.28 (CDN global build)
+- SortableJS 1.15.7 + Vue.Draggable 4.1.0 (CDN)
 - Font Awesome (CDN)
 - Static HTML/CSS/JS (no bundler)
 
@@ -74,4 +74,4 @@ On failure, CI uploads:
 
 - Persisted data key: `taskflow_data`
 - Snapshot persistence uses `buildPersistedSnapshot()` and excludes transient UI state (`dialog`, `toasts`, active modal state).
-- Current hydrated schema target version is `appVersion: '1.2'`.
+- Current hydrated schema target version is `appVersion: '1.4'`.

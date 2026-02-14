@@ -34,6 +34,7 @@ Automated coverage:
 Automated coverage:
 - `e2e/accessibility.spec.js`
 - `e2e/quality.spec.js`
+- `e2e/drag-parity.spec.js` (subtask reorder persistence)
 
 ## 4. Calendar + Eisenhower Views
 - [ ] Calendar view shows scheduled tasks.
@@ -42,6 +43,7 @@ Automated coverage:
 
 Automated coverage:
 - `e2e/views.spec.js`
+- `e2e/drag-parity.spec.js` (calendar/eisenhower drag round-trip parity)
 
 ## 5. Filtering
 - [ ] Apply tag filter and confirm non-matching tasks are hidden.
@@ -71,10 +73,11 @@ Automated coverage:
 ## 8. Persistence + Schema Boundary
 - [ ] Inspect `taskflow_data` in `localStorage`.
 - [ ] Confirm persisted payload excludes transient UI state (`dialog`, `toasts`, modal transient fields).
-- [ ] Verify app hydrates to schema target `appVersion: 1.2`.
+- [ ] Verify app hydrates to schema target `appVersion: 1.4`.
 
 Automated coverage:
 - `tests/store.test.js`
+- `e2e/drag-parity.spec.js` (subtask reorder persistence after reload)
 
 ## 9. Security Baseline
 - [ ] Verify CDN assets include `integrity` and `crossorigin`.

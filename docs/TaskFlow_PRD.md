@@ -6,7 +6,7 @@
 
 **Version:** 1.0
 
-**Tech Stack:** HTML5, CSS3, Vue.js 2.7 (via CDN), LocalStorage
+**Tech Stack:** HTML5, CSS3, Vue.js 3 (via CDN), LocalStorage
 
 **Platform:** Web (GitHub Pages hosting)
 
@@ -16,13 +16,13 @@ The goal is to build a lightweight, "no-build" personal task management applicat
 
 ## **2\. Technical Constraints & Architecture**
 
-* **Framework:** Vue.js 2.7.x loaded via CDN (Content Delivery Network).  
+* **Framework:** Vue.js 3.x loaded via CDN (Content Delivery Network).  
 * **Build System:** None. The app must run directly from an index.html file.  
 * **Data Storage:** Browser localStorage for immediate persistence.  
 * **Data Structure:** Relational JSON model (Workspaces, Columns, Tasks).  
 * **External Libraries (CDN only):**  
-  * Vue 2.7  
-  * SortableJS / Vue.Draggable (for Drag-and-Drop)  
+  * Vue 3.5.28  
+  * SortableJS 1.15.7 / Vue.Draggable 4.1.0 (for Drag-and-Drop)  
   * FontAwesome or similar (for icons)  
   * *No complex bundlers (Webpack/Vite).*
 
@@ -159,7 +159,7 @@ Clicking a task card opens a modal with:
 The application state should resemble this structure:
 
 {  
-  "appVersion": "1.1",  
+  "appVersion": "1.4",  
   "theme": "dark",  
   "currentWorkspaceId": "ws\_1",  
   "workspaces": \[  

@@ -1,6 +1,6 @@
 # TaskFlow Technical Stack Specification
 
-**Version:** 1.2  
+**Version:** 1.3  
 **Date:** February 14, 2026
 
 ## 1. Architecture
@@ -18,9 +18,9 @@ There is no bundler and no server-side runtime.
 
 ## 2. Runtime Dependencies (CDN)
 
-- Vue 2.7.16 (`vue.js`)
-- SortableJS 1.15.2
-- Vue.Draggable 2.24.3
+- Vue 3.5.28 (`vue.global.js`)
+- SortableJS 1.15.7
+- Vue.Draggable 4.1.0
 - Font Awesome 6.5.1
 
 All external CDN assets are loaded with SRI and `crossorigin="anonymous"`.
@@ -28,7 +28,7 @@ All external CDN assets are loaded with SRI and `crossorigin="anonymous"`.
 ## 3. Security Baseline
 
 - Enforced CSP is defined in `index.html` via `Content-Security-Policy` meta.
-- Script policy allows only `self` + jsDelivr and includes `'unsafe-eval'` for Vue 2 runtime compiler compatibility.
+- Script policy allows only `self` + jsDelivr and includes `'unsafe-eval'` for CDN runtime compiler compatibility.
 - Style policy allows `self` + cdnjs and `'unsafe-inline'` to support required dynamic style attributes.
 - `object-src 'none'`, `frame-ancestors 'none'`, and `base-uri 'self'` are enforced.
 
@@ -42,14 +42,14 @@ If dependencies fail, the app renders a non-inline styled error banner.
 
 ## 5. State and Persistence
 
-- Reactive store: `Vue.observable` in `js/store.js`.
+- Reactive store: `Vue.reactive` in `js/store.js`.
 - Persisted key: `taskflow_data`.
 - Persisted payload is produced by `buildPersistedSnapshot()` and includes only domain state:
   - `appVersion`, `theme`, `currentWorkspaceId`
-  - `workspaces`, `columns`, `tasks`, `columnTaskOrder`, `activeFilters`
+  - `workspaces`, `columns`, `tasks`, `taskTemplates`, `columnTaskOrder`, `activeFilters`, `workspaceViewState`
 - Transient UI state is excluded from persistence:
-  - `activeTaskId`, `taskModalMode`, `taskModalDraft`, `dialog`, `toasts`, `storageWarning`
-- Hydration normalizes legacy and invalid data and targets `appVersion: '1.2'`.
+  - `activeTaskId`, `taskModalMode`, `taskModalDraft`, `templateGalleryOpen`, `dialog`, `toasts`, `storageWarning`
+- Hydration normalizes legacy and invalid data and targets `appVersion: '1.4'`.
 
 ## 6. Testing Stack
 
@@ -86,7 +86,7 @@ Failure artifacts:
 
 ## 9. Versioning Notes
 
-- Current hydrated schema target is `appVersion: '1.2'`.
+- Current hydrated schema target is `appVersion: '1.4'`.
 - Legacy migration supported:
   - `activeFilter[]` -> `activeFilters.tags[]`
 - Snapshot contract changes must update:
