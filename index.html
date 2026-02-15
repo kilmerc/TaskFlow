@@ -9,8 +9,6 @@
     <title>TaskFlow</title>
 
     <!-- CDNs -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
-        integrity="sha384-t1nt8BQoYMLFN5p42tRAtuAAFQaCQODekUVeKKZrEnEyp4H2R0RHFz0KWpmj7i8g" crossorigin="anonymous">
     <script src="https://cdn.jsdelivr.net/npm/vue@3.5.28/dist/vue.global.prod.js"
         integrity="sha384-EyKhbIJoP1t1fKIFRNEfYKy4uy8qxs7UNS4Cab53xyXqCTUB1PCoxeFsD0G/NX9W"
         crossorigin="anonymous"></script>
@@ -32,7 +30,7 @@
 <body>
     <div id="app" v-cloak>
         <div v-if="store.storageWarning" class="app-notice app-notice-warning" role="status" aria-live="polite">
-            <i class="fas fa-exclamation-triangle"></i> {{ store.storageWarning }}
+            <app-icon name="alert-triangle"></app-icon> {{ store.storageWarning }}
         </div>
         <header>
             <div class="app-brand">
@@ -40,21 +38,21 @@
                 <h2 class="app-title">TaskFlow</h2>
                 <workspace-switcher v-if="currentWorkspace"></workspace-switcher>
 
-                <div class="view-toggle">
+                <div class="view-toggle segmented-control" role="tablist" aria-label="TaskFlow views">
                     <button :class="{ active: currentView === 'kanban' }" @click="currentView = 'kanban'"
                         aria-label="Switch to Kanban Board"
-                        title="Kanban Board">
-                        <i class="fas fa-columns"></i>
+                        title="Kanban Board" role="tab" :aria-selected="currentView === 'kanban' ? 'true' : 'false'">
+                        <app-icon name="layout-columns"></app-icon>
                     </button>
                     <button :class="{ active: currentView === 'calendar' }" @click="currentView = 'calendar'"
                         aria-label="Switch to Calendar View"
-                        title="Calendar View">
-                        <i class="fas fa-calendar-alt"></i>
+                        title="Calendar View" role="tab" :aria-selected="currentView === 'calendar' ? 'true' : 'false'">
+                        <app-icon name="calendar-days"></app-icon>
                     </button>
                     <button :class="{ active: currentView === 'eisenhower' }" @click="currentView = 'eisenhower'"
                         aria-label="Switch to Eisenhower Matrix View"
-                        title="Eisenhower Matrix View">
-                        <i class="fas fa-table-cells"></i>
+                        title="Eisenhower Matrix View" role="tab" :aria-selected="currentView === 'eisenhower' ? 'true' : 'false'">
+                        <app-icon name="layout-grid"></app-icon>
                     </button>
                 </div>
             </div>
@@ -63,22 +61,22 @@
                 <filter-bar></filter-bar>
                 <search-controls></search-controls>
                 <button @click="openTemplateGallery" title="Template Gallery" aria-label="Open template gallery" class="icon-btn">
-                    <i class="fas fa-copy"></i>
+                    <app-icon name="copy"></app-icon>
                 </button>
                 <button @click="confirmDeleteAll" title="Delete All Data (Reset App)" aria-label="Delete all data" class="icon-btn delete-btn">
-                    <i class="fas fa-trash-alt"></i>
+                    <app-icon name="trash"></app-icon>
                 </button>
                 <div class="header-icon-group">
                     <button @click="downloadBackup" title="Export Data" aria-label="Export data" class="icon-btn">
-                        <i class="fas fa-download"></i>
+                        <app-icon name="download"></app-icon>
                     </button>
                     <button @click="triggerImport" title="Import Data" aria-label="Import data" class="icon-btn">
-                        <i class="fas fa-upload"></i>
+                        <app-icon name="upload"></app-icon>
                     </button>
                     <input type="file" ref="fileInput" @change="handleImport" accept=".json" class="hidden-file-input">
                 </div>
                 <button @click="toggleTheme" title="Toggle Theme" aria-label="Toggle theme">
-                    <i class="fas" :class="appTheme === 'dark' ? 'fa-sun' : 'fa-moon'"></i>
+                    <app-icon :name="appTheme === 'dark' ? 'sun' : 'moon'"></app-icon>
                 </button>
             </div>
         </header>
@@ -94,7 +92,7 @@
                 :workspace="currentWorkspace"></eisenhower-view>
 
             <div v-else-if="!currentWorkspace" class="empty-workspace-state">
-                No workspace selected. Please create one.
+                {{ uiCopy.labels.emptyWorkspace }}
             </div>
         </main>
 

@@ -2,14 +2,16 @@ import { MAX_COLUMN_NAME, MAX_TASK_TITLE, store, mutations } from '../store.js';
 import { PRIORITY_VALUES } from '../utils/taskFilters.js';
 import { getWorkspaceTags } from '../utils/tagAutocomplete.js';
 import { useUniqueId } from '../composables/useUniqueId.js';
+import { uiCopy } from '../config/uiCopy.js';
 
 const { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } = Vue;
 
 const TaskModal = {
     name: 'TaskModal',
     template: `
-        <div class="modal-backdrop" @click.self="close" v-if="isOpen">
-            <div ref="modalContent" class="modal-content" :class="colorClass">
+        <transition name="modal-slide">
+            <div class="modal-backdrop" @click.self="close" v-if="isOpen">
+            <div ref="modalContent" class="modal-content task-sheet" :class="colorClass">
                 <header class="modal-header">
                     <div class="modal-title-row">
                         <input
@@ -27,7 +29,7 @@ const TaskModal = {
                             :maxlength="MAX_TASK_TITLE"
                             @blur="onTitleBlur"
                             @keyup.enter="$event.target.blur()"
-                            placeholder="Task Title *"
+                            placeholder="Task name *"
                         >
                     </div>
                     <div class="dropdown modal-task-actions" :class="{ active: isTaskActionsOpen }" v-click-outside="onTaskActionsOutside">
@@ -44,19 +46,21 @@ const TaskModal = {
                             @keydown.up.prevent="openTaskActionsAndFocus(getTaskActionItems().length - 1)"
                             @keydown.esc.prevent="closeTaskActions(true)"
                         >
-                            <i class="fas fa-ellipsis-h" aria-hidden="true"></i>
+                            <app-icon name="ellipsis" aria-hidden="true"></app-icon>
                         </button>
-                        <div
-                            v-if="isTaskActionsOpen"
-                            class="dropdown-menu"
-                            :id="taskActionsMenuId"
-                            role="menu"
-                            @keydown="onTaskActionsKeydown"
-                        >
-                            <button class="menu-item" role="menuitem" type="button" @click="saveAsTemplate">Save as template</button>
-                        </div>
+                        <transition name="dropdown-fade">
+                            <div
+                                v-if="isTaskActionsOpen"
+                                class="dropdown-menu"
+                                :id="taskActionsMenuId"
+                                role="menu"
+                                @keydown="onTaskActionsKeydown"
+                            >
+                                <button class="menu-item" role="menuitem" type="button" @click="saveAsTemplate">Save as template</button>
+                            </div>
+                        </transition>
                     </div>
-                    <button class="close-btn" @click="close" title="Close Modal"><i class="fas fa-times"></i></button>
+                    <button class="close-btn" @click="close" title="Close Modal"><app-icon name="x"></app-icon></button>
                 </header>
 
                 <div class="modal-body">
@@ -78,7 +82,7 @@ const TaskModal = {
 
                     <div class="form-group">
                         <label>Description</label>
-                        <textarea v-model="localDescription" @blur="saveDescription" placeholder="Add a description..." rows="4"></textarea>
+                        <textarea v-model="localDescription" @blur="saveDescription" :placeholder="uiCopy.placeholders.taskDescription" rows="4"></textarea>
                     </div>
 
                     <task-modal-tag-editor
@@ -98,7 +102,7 @@ const TaskModal = {
                         <div class="form-group">
                             <label>Priority</label>
                             <select v-model="localPriority" @change="savePriority" title="Set Priority">
-                                <option value="">Unassigned</option>
+                                <option value="">Needs priority</option>
                                 <option v-for="priority in priorities" :key="priority" :value="priority">{{ priority }}</option>
                             </select>
                         </div>
@@ -130,10 +134,11 @@ const TaskModal = {
                 <footer class="modal-footer">
                     <button v-if="isEdit" class="btn btn-danger" @click="deleteTask" title="Permanently delete this task">Delete Task</button>
                     <span v-else></span>
-                    <button class="btn btn-primary" @click="submitModal" :title="isCreate ? 'Create task' : 'Save and close'">{{ isCreate ? 'Create Task' : 'OK' }}</button>
+                    <button class="btn btn-primary" @click="submitModal" :title="isCreate ? 'Create task' : 'Save and close'">{{ isCreate ? uiCopy.actions.createTask : 'OK' }}</button>
                 </footer>
             </div>
-        </div>
+            </div>
+        </transition>
     `,
     setup() {
         const modalContent = ref(null);
@@ -683,7 +688,7 @@ const TaskModal = {
             mutations.openDialog({
                 variant: 'confirm',
                 title: 'Delete task?',
-                message: 'This task will be permanently deleted.',
+                message: uiCopy.dialogs.deleteTaskMessage,
                 confirmLabel: 'Delete task',
                 cancelLabel: 'Cancel',
                 destructive: true,
@@ -718,6 +723,7 @@ const TaskModal = {
             MAX_COLUMN_NAME,
             taskActionsMenuId,
             isTaskActionsOpen,
+            uiCopy,
             task,
             isEdit,
             isCreate,

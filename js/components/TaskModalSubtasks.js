@@ -1,3 +1,5 @@
+import { uiCopy } from '../config/uiCopy.js';
+
 const { ref, computed } = Vue;
 
 const TaskModalSubtasks = {
@@ -31,7 +33,7 @@ const TaskModalSubtasks = {
                             :title="canDragSubtasks ? 'Drag to reorder subtask' : 'Add more subtasks to reorder'"
                             aria-label="Drag to reorder subtask"
                             :disabled="!canDragSubtasks"
-                        ><i class="fas fa-grip-vertical" aria-hidden="true"></i></button>
+                        ><app-icon name="grip-vertical" aria-hidden="true"></app-icon></button>
                         <input type="checkbox" class="subtask-checkbox" :checked="st.done" @change="toggleSubtask(index, $event.target.checked)" title="Mark as done">
                         <input
                             type="text"
@@ -39,19 +41,19 @@ const TaskModalSubtasks = {
                             @change="updateSubtaskText(index, $event.target.value)"
                             class="subtask-input"
                             :class="{ completed: st.done }"
-                            placeholder="Subtask..."
+                            :placeholder="uiCopy.placeholders.subtask"
                         >
-                        <button type="button" class="delete-subtask-btn" @click="deleteSubtask(index)" title="Delete Subtask"><i class="fas fa-trash-alt"></i></button>
+                        <button type="button" class="delete-subtask-btn" @click="deleteSubtask(index)" title="Delete Subtask"><app-icon name="trash"></app-icon></button>
                     </li>
                 </template>
             </draggable>
             <div class="add-subtask">
-                <i class="fas fa-plus"></i>
+                <app-icon name="plus"></app-icon>
                 <input
                     type="text"
                     v-model="newSubtaskText"
                     @keyup.enter="addSubtask"
-                    placeholder="Add a subtask..."
+                    :placeholder="uiCopy.actions.addStep"
                     title="Press Enter to add subtask"
                 >
             </div>
@@ -116,6 +118,7 @@ const TaskModalSubtasks = {
             localSubtasks,
             canDragSubtasks,
             progress,
+            uiCopy,
             addSubtask,
             toggleSubtask,
             updateSubtaskText,

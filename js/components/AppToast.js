@@ -5,7 +5,7 @@ const { computed, watch, onBeforeUnmount } = Vue;
 const AppToast = {
     name: 'AppToast',
     template: `
-        <div class="app-toast-stack" aria-label="Notifications">
+        <transition-group name="toast-stack" tag="div" class="app-toast-stack" aria-label="Notifications">
             <div
                 v-for="toast in toasts"
                 :key="toast.id"
@@ -13,19 +13,19 @@ const AppToast = {
                 :class="'app-toast-' + toast.variant"
                 role="status"
                 :aria-live="toast.variant === 'error' ? 'assertive' : 'polite'"
-            >
-                <div class="app-toast-message">{{ toast.message }}</div>
-                <button
+                >
+                    <div class="app-toast-message">{{ toast.message }}</div>
+                    <button
                     v-if="toast.dismissible !== false"
                     type="button"
                     class="app-toast-dismiss"
-                    :aria-label="'Dismiss notification: ' + toast.message"
-                    @click="dismiss(toast.id)"
-                >
-                    <i class="fas fa-times" aria-hidden="true"></i>
-                </button>
-            </div>
-        </div>
+                        :aria-label="'Dismiss notification: ' + toast.message"
+                        @click="dismiss(toast.id)"
+                    >
+                        <app-icon name="x" aria-hidden="true"></app-icon>
+                    </button>
+                </div>
+        </transition-group>
     `,
     setup() {
         const timers = {};

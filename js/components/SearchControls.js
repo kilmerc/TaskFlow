@@ -1,5 +1,6 @@
 import { store, mutations } from '../store.js';
 import { useDebouncedAction } from '../composables/useDebouncedAction.js';
+import { uiCopy } from '../config/uiCopy.js';
 
 const { ref, computed, watch } = Vue;
 
@@ -8,12 +9,12 @@ const SearchControls = {
     template: `
         <div v-if="currentWorkspaceId" class="search-controls">
             <div class="workspace-search">
-                <i class="fas fa-search" aria-hidden="true"></i>
+                <app-icon name="search" aria-hidden="true"></app-icon>
                 <input
                     type="search"
                     class="workspace-search-input"
                     v-model="searchInput"
-                    placeholder="Search tasks..."
+                    :placeholder="uiCopy.placeholders.searchTasks"
                     aria-label="Search tasks in workspace"
                     @input="onSearchInput"
                 >
@@ -25,7 +26,7 @@ const SearchControls = {
                     title="Clear search"
                     @click="clearSearch"
                 >
-                    <i class="fas fa-times" aria-hidden="true"></i>
+                    <app-icon name="x" aria-hidden="true"></app-icon>
                 </button>
             </div>
         </div>
@@ -79,7 +80,8 @@ const SearchControls = {
             searchInput,
             currentWorkspaceId,
             onSearchInput,
-            clearSearch
+            clearSearch,
+            uiCopy
         };
     }
 };

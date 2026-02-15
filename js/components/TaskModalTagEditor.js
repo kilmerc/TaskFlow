@@ -1,5 +1,6 @@
 import { normalizeTag } from '../utils/tagParser.js';
 import { getTagToneClass as computeTagToneClass } from '../utils/tagStyle.js';
+import { uiCopy } from '../config/uiCopy.js';
 
 const { ref, computed, watch, nextTick } = Vue;
 
@@ -18,7 +19,7 @@ const TaskModalTagEditor = {
                     <span v-for="tag in selectedTags" :key="tag" class="tag-chip tag-pill" :class="getTagToneClass(tag)">
                         {{ tag }}
                         <button type="button" class="tag-chip-remove" @click.stop="removeTag(tag)" title="Remove tag">
-                            <i class="fas fa-times"></i>
+                            <app-icon name="x"></app-icon>
                         </button>
                     </span>
                     <input
@@ -26,7 +27,7 @@ const TaskModalTagEditor = {
                         type="text"
                         class="tag-combobox-input"
                         v-model="localTagInput"
-                        placeholder="Add or search tags..."
+                        :placeholder="uiCopy.placeholders.tagInput"
                         @focus="openTagMenu"
                         @input="onTagInput"
                         @keydown.down.prevent="moveTagSelection(1)"
@@ -37,21 +38,25 @@ const TaskModalTagEditor = {
                         @keydown.backspace="onTagBackspace"
                     >
                 </div>
-                <div v-if="isTagMenuOpen && tagMenuItems.length" class="tag-combobox-menu">
-                    <div
-                        v-for="(item, index) in tagMenuItems"
-                        :key="item.type + '-' + item.value"
-                        class="tag-combobox-item"
-                        :class="{ active: index === activeTagIndex, 'is-create': item.type === 'create' }"
-                        @mousedown.prevent="selectTagItem(item)"
-                    >
-                        <span v-if="item.type === 'create'">Create "#{{ item.value }}"</span>
-                        <span v-else>#{{ item.value }}</span>
+                <transition name="dropdown-fade">
+                    <div v-if="isTagMenuOpen && tagMenuItems.length" class="tag-combobox-menu">
+                        <div
+                            v-for="(item, index) in tagMenuItems"
+                            :key="item.type + '-' + item.value"
+                            class="tag-combobox-item"
+                            :class="{ active: index === activeTagIndex, 'is-create': item.type === 'create' }"
+                            @mousedown.prevent="selectTagItem(item)"
+                        >
+                            <span v-if="item.type === 'create'">Create "#{{ item.value }}"</span>
+                            <span v-else>#{{ item.value }}</span>
+                        </div>
                     </div>
-                </div>
-                <div v-else-if="isTagMenuOpen && localTagInput.trim()" class="tag-combobox-menu">
-                    <div class="tag-combobox-empty">No matching tags</div>
-                </div>
+                </transition>
+                <transition name="dropdown-fade">
+                    <div v-if="isTagMenuOpen && !tagMenuItems.length && localTagInput.trim()" class="tag-combobox-menu">
+                        <div class="tag-combobox-empty">{{ uiCopy.emptyStates.noMatchingTags }}</div>
+                    </div>
+                </transition>
             </div>
         </div>
     `,
@@ -186,7 +191,8 @@ const TaskModalTagEditor = {
             removeTag,
             getTagToneClass,
             onTagBackspace,
-            reset
+            reset,
+            uiCopy
         };
     }
 };

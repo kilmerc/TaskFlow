@@ -35,6 +35,13 @@
   min-width: 0;
 }
 
+.app-notice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
 .search-controls {
   display: flex;
   align-items: center;
@@ -505,9 +512,37 @@
 }
 
 .view-toggle {
-  display: flex;
-  gap: 0.5rem;
+  display: inline-flex;
+  gap: 0.2rem;
   margin-left: 1rem;
+  padding: 0.2rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: color-mix(in srgb, var(--surface-elevated) 82%, transparent);
+  box-shadow: var(--card-shadow);
+}
+
+.segmented-control button {
+  border: none;
+  min-height: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: 999px;
+  padding: 0.45rem 0.7rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.segmented-control button:hover {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--bg-tertiary) 66%, transparent);
+}
+
+.segmented-control button.active {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  box-shadow: var(--card-shadow);
 }
 
 .header-icon-group {
@@ -564,6 +599,11 @@
 .ws-action-btn:hover {
   color: var(--text-primary);
   background: transparent;
+}
+
+.ws-actions .app-icon {
+  width: 0.95rem;
+  height: 0.95rem;
 }
 
 .ws-create {
@@ -645,9 +685,11 @@
 }
 
 .cal-task-pill {
-  width: 100%;
+  width: auto;
+  max-width: 62%;
   text-align: left;
   border: none;
+  border-left: 3px solid transparent;
 }
 
 .app-dialog-backdrop {
@@ -791,6 +833,11 @@
 .app-toast-dismiss:hover {
   color: var(--text-primary);
   background: transparent;
+}
+
+.app-toast-dismiss .app-icon {
+  width: 0.9rem;
+  height: 0.9rem;
 }
 
 button:focus-visible,

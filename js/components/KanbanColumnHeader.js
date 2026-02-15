@@ -42,7 +42,7 @@ const KanbanColumnHeader = {
                     title="Quick add task"
                     @click.stop="$emit('quick-add')"
                 >
-                    <i class="fas fa-plus" aria-hidden="true"></i>
+                    <app-icon name="plus" aria-hidden="true"></app-icon>
                 </button>
                 <div class="dropdown" :class="{ active: isMenuOpen }" v-click-outside="onMenuOutside">
                     <button
@@ -58,13 +58,15 @@ const KanbanColumnHeader = {
                         @keydown.up.prevent="openMenuAndFocus(getMenuItems().length - 1)"
                         @keydown.esc.prevent="closeMenu(true)"
                     >
-                        <i class="fas fa-ellipsis-h" aria-hidden="true"></i>
+                        <app-icon name="ellipsis" aria-hidden="true"></app-icon>
                     </button>
-                    <div class="dropdown-menu" v-if="isMenuOpen" :id="menuId" role="menu" @keydown="onMenuKeydown">
-                        <button class="menu-item" role="menuitem" type="button" @click="startRenaming">Rename</button>
-                        <button class="menu-item" role="menuitem" type="button" @click="printList">Print List</button>
-                        <button class="menu-item delete" role="menuitem" type="button" @click="deleteColumn">Delete</button>
-                    </div>
+                    <transition name="dropdown-fade">
+                        <div class="dropdown-menu" v-if="isMenuOpen" :id="menuId" role="menu" @keydown="onMenuKeydown">
+                            <button class="menu-item" role="menuitem" type="button" @click="startRenaming">Rename</button>
+                            <button class="menu-item" role="menuitem" type="button" @click="printList">Print list</button>
+                            <button class="menu-item delete" role="menuitem" type="button" @click="deleteColumn">Delete</button>
+                        </div>
+                    </transition>
                 </div>
             </div>
         </div>

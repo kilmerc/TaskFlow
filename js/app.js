@@ -1,6 +1,7 @@
 import { store, hydrate, persist, mutations } from './store.js';
 import { exportData, importData } from './utils/io.js';
 import { registerGlobals } from './bootstrap/registerGlobals.js';
+import { uiCopy } from './config/uiCopy.js';
 
 const { ref, computed, watch, onBeforeMount, onMounted } = Vue;
 
@@ -71,6 +72,7 @@ const app = Vue.createApp({
 
         return {
             store,
+            uiCopy,
             currentView,
             appTheme,
             currentWorkspace,

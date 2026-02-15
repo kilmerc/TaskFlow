@@ -2,6 +2,7 @@ import { store, mutations } from '../store.js';
 import { normalizeTag, parseTagsFromTitle } from '../utils/tagParser.js';
 import { getActiveHashToken, replaceHashToken, getWorkspaceTags } from '../utils/tagAutocomplete.js';
 import { getActiveSlashToken, replaceSlashToken, parseTemplateCommand } from '../utils/templateAutocomplete.js';
+import { uiCopy } from '../config/uiCopy.js';
 
 const { ref, computed, nextTick } = Vue;
 
@@ -27,13 +28,13 @@ const KanbanQuickAdd = {
                 aria-label="Add a task"
                 @click.stop="startAddingTask"
             >
-                <i class="fas fa-plus"></i> Add
+                <app-icon name="plus"></app-icon> {{ uiCopy.actions.addTaskCta }}
             </button>
             <div v-else-if="isAddingTask" class="quick-add-input-wrapper" v-click-outside="finishAddingTask">
                 <textarea
                     ref="addTaskInput"
                     v-model="newTaskTitle"
-                    placeholder="Enter a title for this card..."
+                    :placeholder="uiCopy.placeholders.quickAddTitle"
                     @keydown.enter.prevent="onQuickAddEnter"
                     @keydown.tab="onQuickAddTab"
                     @keydown.down="onQuickAddArrow(1, $event)"
@@ -67,8 +68,8 @@ const KanbanQuickAdd = {
                 </div>
 
                 <div class="add-actions">
-                    <button class="btn-primary" @mousedown.prevent="confirmAddTask" title="Add Card">Add Card</button>
-                    <button class="btn-text" @mousedown.prevent="cancelAddingTask" aria-label="Cancel add task"><i class="fas fa-times"></i></button>
+                    <button class="btn-primary" @mousedown.prevent="confirmAddTask" title="Add Card">{{ uiCopy.actions.addTask }}</button>
+                    <button class="btn-text" @mousedown.prevent="cancelAddingTask" aria-label="Cancel add task"><app-icon name="x"></app-icon></button>
                 </div>
             </div>
         </div>
@@ -424,6 +425,7 @@ const KanbanQuickAdd = {
             activeTagIndex,
             tagMenuPosition,
             menuMode,
+            uiCopy,
             startAddingTask,
             cancelAddingTask,
             finishAddingTask,

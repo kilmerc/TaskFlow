@@ -18,6 +18,7 @@ import SearchControls from '../components/SearchControls.js';
 import AppDialog from '../components/AppDialog.js';
 import AppToast from '../components/AppToast.js';
 import TemplateGalleryModal from '../components/TemplateGalleryModal.js';
+import AppIcon from '../components/AppIcon.js';
 
 export function registerGlobals(app) {
     app.directive('click-outside', clickOutsideDirective);
@@ -40,6 +41,7 @@ export function registerGlobals(app) {
     app.component('app-dialog', AppDialog);
     app.component('app-toast', AppToast);
     app.component('template-gallery-modal', TemplateGalleryModal);
+    app.component('app-icon', AppIcon);
 
     const draggable = window.vuedraggable && (window.vuedraggable.default || window.vuedraggable);
     if (draggable) {

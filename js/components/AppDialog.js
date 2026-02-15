@@ -6,7 +6,8 @@ const { ref, computed, watch, nextTick } = Vue;
 const AppDialog = {
     name: 'AppDialog',
     template: `
-        <div v-if="isOpen" class="app-dialog-backdrop" @click.self="onCancel">
+        <transition name="dialog-fade">
+            <div v-if="isOpen" class="app-dialog-backdrop" @click.self="onCancel">
             <div
                 ref="panel"
                 class="app-dialog-panel"
@@ -48,7 +49,8 @@ const AppDialog = {
                     </button>
                 </div>
             </div>
-        </div>
+            </div>
+        </transition>
     `,
     setup() {
         const panel = ref(null);

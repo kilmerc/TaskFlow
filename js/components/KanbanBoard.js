@@ -1,4 +1,5 @@
 import { MAX_COLUMN_NAME, mutations } from '../store.js';
+import { uiCopy } from '../config/uiCopy.js';
 
 const { ref, computed, nextTick } = Vue;
 
@@ -37,7 +38,7 @@ const KanbanBoard = {
                     aria-label="Add a new column"
                     @click.stop="startAdding"
                 >
-                    <i class="fas fa-plus"></i> Add Column
+                    <app-icon name="plus"></app-icon> {{ uiCopy.labels.newColumn }}
                 </button>
                 <div v-else class="add-column-input-wrapper" v-click-outside="cancelAdding">
                     <input
@@ -52,7 +53,7 @@ const KanbanBoard = {
                     <div v-if="addError" class="form-error">{{ addError }}</div>
                     <div class="add-actions">
                         <button class="btn-primary" @click="confirmAdd" title="Add Column">Add</button>
-                        <button class="btn-text" @click="cancelAdding" aria-label="Cancel add column"><i class="fas fa-times"></i></button>
+                        <button class="btn-text" @click="cancelAdding" aria-label="Cancel add column"><app-icon name="x"></app-icon></button>
                     </div>
                 </div>
             </div>
@@ -109,6 +110,7 @@ const KanbanBoard = {
             newColumnTitle,
             addError,
             columns,
+            uiCopy,
             MAX_COLUMN_NAME,
             onDragEnd,
             startAdding,

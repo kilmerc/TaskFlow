@@ -1,26 +1,28 @@
 import { MAX_TASK_TITLE, store, mutations } from '../store.js';
 import { PRIORITY_VALUES } from '../utils/taskFilters.js';
+import { uiCopy } from '../config/uiCopy.js';
 
 const { ref, computed, watch } = Vue;
 
 const TemplateGalleryModal = {
     name: 'TemplateGalleryModal',
     template: `
-        <div v-if="isOpen" class="modal-backdrop template-gallery-backdrop" @click.self="close">
+        <transition name="modal-fade">
+            <div v-if="isOpen" class="modal-backdrop template-gallery-backdrop" @click.self="close">
             <div class="modal-content template-gallery-modal">
                 <header class="modal-header">
                     <div class="modal-title-row">
-                        <h3 class="template-gallery-title">Template Gallery</h3>
+                        <h3 class="template-gallery-title">{{ uiCopy.labels.templateGalleryTitle }}</h3>
                     </div>
                     <button class="close-btn" @click="close" title="Close Template Gallery">
-                        <i class="fas fa-times"></i>
+                        <app-icon name="x"></app-icon>
                     </button>
                 </header>
 
                 <div class="modal-body template-gallery-body">
                     <aside class="template-gallery-list">
                         <div v-if="templates.length === 0" class="template-gallery-empty">
-                            No templates yet. Save a task as template from the task modal menu.
+                            {{ uiCopy.labels.templateGalleryEmpty }}
                         </div>
                         <button
                             v-for="template in templates"
@@ -64,7 +66,7 @@ const TemplateGalleryModal = {
                             <div class="form-group">
                                 <label>Priority</label>
                                 <select v-model="form.priority">
-                                    <option value="">Unassigned</option>
+                                    <option value="">Needs priority</option>
                                     <option v-for="priority in priorities" :key="priority" :value="priority">{{ priority }}</option>
                                 </select>
                             </div>
@@ -93,19 +95,19 @@ const TemplateGalleryModal = {
                                         class="subtask-input"
                                         :value="subtask.text"
                                         @input="updateSubtask(index, $event.target.value)"
-                                        placeholder="Subtask text"
+                                        :placeholder="uiCopy.placeholders.subtask"
                                     >
                                     <button type="button" class="delete-subtask-btn" @click="removeSubtask(index)" title="Delete subtask">
-                                        <i class="fas fa-trash-alt"></i>
+                                        <app-icon name="trash"></app-icon>
                                     </button>
                                 </div>
                             </div>
                             <div class="add-subtask">
-                                <i class="fas fa-plus"></i>
+                                <app-icon name="plus"></app-icon>
                                 <input
                                     v-model="newSubtaskText"
                                     @keyup.enter="addSubtask"
-                                    placeholder="Add subtask..."
+                                    :placeholder="uiCopy.actions.addStepCompact"
                                 >
                             </div>
                         </div>
@@ -132,7 +134,8 @@ const TemplateGalleryModal = {
                     </button>
                 </footer>
             </div>
-        </div>
+            </div>
+        </transition>
     `,
     setup() {
         const editingTemplateId = ref(null);
@@ -322,6 +325,7 @@ const TemplateGalleryModal = {
             priorities,
             colors,
             MAX_TASK_TITLE,
+            uiCopy,
             isOpen,
             templates,
             editingTemplate,

@@ -1,4 +1,5 @@
 import { MAX_COLUMN_NAME } from '../store.js';
+import { uiCopy } from '../config/uiCopy.js';
 
 const { ref, computed, watch } = Vue;
 
@@ -45,7 +46,7 @@ const TaskModalColumnPicker = {
                     </div>
                 </div>
                 <div v-else-if="isColumnMenuOpen && columnInput.trim()" class="column-combobox-menu">
-                    <div class="column-combobox-empty">No matching columns</div>
+                    <div class="column-combobox-empty">{{ uiCopy.emptyStates.noMatchingColumns }}</div>
                 </div>
             </div>
             <div v-if="showError" class="form-error">{{ errorMessage }}</div>
@@ -126,6 +127,7 @@ const TaskModalColumnPicker = {
             isColumnMenuOpen,
             activeColumnIndex,
             columnMenuItems,
+            uiCopy,
             MAX_COLUMN_NAME,
             openColumnMenu,
             closeColumnMenu,

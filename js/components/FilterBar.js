@@ -3,6 +3,7 @@ import { PRIORITY_VALUES } from '../utils/taskFilters.js';
 import { getTagToneClass as computeTagToneClass } from '../utils/tagStyle.js';
 import { useUniqueId } from '../composables/useUniqueId.js';
 import { useWorkspaceTaskContext } from '../composables/useWorkspaceTaskContext.js';
+import { uiCopy } from '../config/uiCopy.js';
 
 const { ref, computed } = Vue;
 
@@ -19,14 +20,15 @@ const FilterBar = {
                 :aria-controls="dropdownId"
                 aria-haspopup="menu"
             >
-                <i class="fas fa-filter"></i>
+                <app-icon name="filter"></app-icon>
                 <span v-if="activeFilterCount > 0" class="filter-badge">{{ activeFilterCount }}</span>
             </button>
 
-            <div class="filter-dropdown" v-if="isOpen" :id="dropdownId">
+            <transition name="dropdown-fade">
+                <div class="filter-dropdown" v-if="isOpen" :id="dropdownId">
                 <div class="filter-header">
                     <span>Filters</span>
-                    <button v-if="activeFilterCount > 0" @click="clearFilters" class="btn-text-sm" title="Clear all filters">Clear</button>
+                    <button v-if="activeFilterCount > 0" @click="clearFilters" class="btn-text-sm" title="Clear all filters">{{ uiCopy.labels.clearAll }}</button>
                 </div>
 
                 <div class="filter-section">
@@ -49,7 +51,8 @@ const FilterBar = {
                         <div v-if="allTags.length === 0" class="empty-filters">No tags found</div>
                     </div>
                 </div>
-            </div>
+                </div>
+            </transition>
         </div>
     `,
     setup() {
@@ -135,7 +138,8 @@ const FilterBar = {
             isTagActive,
             isPriorityActive,
             getTagToneClass,
-            clearFilters
+            clearFilters,
+            uiCopy
         };
     }
 };

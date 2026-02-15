@@ -1,6 +1,7 @@
 import { mutations } from '../store.js';
 import { useWorkspaceTaskContext } from '../composables/useWorkspaceTaskContext.js';
 import { getTagToneClass as computeTagToneClass } from '../utils/tagStyle.js';
+import { uiCopy } from '../config/uiCopy.js';
 
 const { ref, computed } = Vue;
 
@@ -16,7 +17,7 @@ const EisenhowerView = {
         <div class="eisenhower-layout">
             <aside class="eisenhower-sidebar">
                 <div class="sidebar-header">
-                    <h4>Unassigned</h4>
+                    <h4>{{ uiCopy.labels.eisenhowerSidebarTitle }}</h4>
                 </div>
 
                 <draggable
@@ -30,7 +31,7 @@ const EisenhowerView = {
                     <template #item="{ element: task }">
                         <div
                             :key="task.id"
-                            class="matrix-task-card"
+                            :class="['matrix-task-card', 'task-color-' + (task.color || 'gray')]"
                         >
                             <div class="matrix-task-row">
                                 <input
@@ -52,6 +53,12 @@ const EisenhowerView = {
                                         <div class="task-tags" v-if="task.tags && task.tags.length">
                                             <span v-for="tag in task.tags" :key="tag" class="tag-pill" :class="getTagToneClass(tag)">{{ tag }}</span>
                                         </div>
+                                        <div v-if="task.subtasks && task.subtasks.length > 0" class="task-progress-strip">
+                                            <div
+                                                class="task-progress-fill"
+                                                :style="{ width: Math.round((task.subtasks.filter(s => s.done).length / task.subtasks.length) * 100) + '%' }"
+                                            ></div>
+                                        </div>
                                     </div>
                                 </button>
                             </div>
@@ -59,7 +66,7 @@ const EisenhowerView = {
                     </template>
 
                     <div v-if="unassignedTasks.length === 0" class="matrix-empty">
-                        No unassigned tasks
+                        {{ uiCopy.emptyStates.noUnassignedTasks }}
                     </div>
                 </draggable>
             </aside>
@@ -83,7 +90,7 @@ const EisenhowerView = {
                             :title="'Add task to Quadrant ' + quadrant.priority"
                             :aria-label="'Add task to Quadrant ' + quadrant.priority"
                         >
-                            <i class="fas fa-plus"></i>
+                            <app-icon name="plus"></app-icon>
                         </button>
                     </div>
                     <draggable
@@ -97,7 +104,7 @@ const EisenhowerView = {
                         <template #item="{ element: task }">
                             <div
                                 :key="task.id"
-                                class="matrix-task-card"
+                                :class="['matrix-task-card', 'task-color-' + (task.color || 'gray')]"
                             >
                                 <div class="matrix-task-row">
                                     <input
@@ -118,6 +125,12 @@ const EisenhowerView = {
                                             <span class="task-title">{{ task.title }}</span>
                                             <div class="task-tags" v-if="task.tags && task.tags.length">
                                                 <span v-for="tag in task.tags" :key="tag" class="tag-pill" :class="getTagToneClass(tag)">{{ tag }}</span>
+                                            </div>
+                                            <div v-if="task.subtasks && task.subtasks.length > 0" class="task-progress-strip">
+                                                <div
+                                                    class="task-progress-fill"
+                                                    :style="{ width: Math.round((task.subtasks.filter(s => s.done).length / task.subtasks.length) * 100) + '%' }"
+                                                ></div>
                                             </div>
                                         </div>
                                     </button>
@@ -218,7 +231,8 @@ const EisenhowerView = {
             toggleTaskCompletion,
             openCreateModal,
             openTask,
-            getTagToneClass
+            getTagToneClass,
+            uiCopy
         };
     }
 };

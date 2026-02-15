@@ -33,10 +33,10 @@ const TaskCard = {
                         <div class="task-meta" v-if="hasMeta">
                             <span v-if="task.priority" class="priority-pill" :class="priorityClass">{{ task.priority }}</span>
                             <span v-if="task.dueDate" class="meta-item due-date" :class="{ overdue: isOverdue }">
-                                <i class="far fa-clock"></i> {{ formattedDate }}
+                                <app-icon name="clock"></app-icon> {{ formattedDate }}
                             </span>
                             <span v-if="subtaskCount > 0" class="meta-item subtasks" :class="{ completed: allSubtasksDone }">
-                                <i class="fas fa-check-square"></i> {{ completedSubtasks }}/{{ subtaskCount }}
+                                <app-icon name="check-square"></app-icon> {{ completedSubtasks }}/{{ subtaskCount }}
                             </span>
                         </div>
 
@@ -44,6 +44,10 @@ const TaskCard = {
                             <span v-for="tag in task.tags" :key="tag" class="tag-pill" :class="getTagToneClass(tag)">
                                 {{ tag }}
                             </span>
+                        </div>
+
+                        <div v-if="subtaskCount > 0" class="task-progress-strip" :aria-label="'Subtask progress ' + taskProgress + '%'">
+                            <div class="task-progress-fill" :style="{ width: taskProgress + '%' }"></div>
                         </div>
                     </div>
                 </button>
@@ -78,6 +82,11 @@ const TaskCard = {
 
         const allSubtasksDone = computed(() => {
             return subtaskCount.value > 0 && completedSubtasks.value === subtaskCount.value;
+        });
+
+        const taskProgress = computed(() => {
+            if (!subtaskCount.value) return 0;
+            return Math.round((completedSubtasks.value / subtaskCount.value) * 100);
         });
 
         const formattedDate = computed(() => {
@@ -116,6 +125,7 @@ const TaskCard = {
             subtaskCount,
             completedSubtasks,
             allSubtasksDone,
+            taskProgress,
             formattedDate,
             isOverdue,
             toggleCompleted,

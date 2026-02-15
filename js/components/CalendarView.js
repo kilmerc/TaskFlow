@@ -19,16 +19,16 @@ const CalendarView = {
                 <div class="calendar-header">
                     <div class="cal-controls">
                         <button class="btn-text" @click="moveDate(-1)" title="Previous">
-                            <i class="fas fa-chevron-left"></i>
+                            <app-icon name="chevron-left"></app-icon>
                         </button>
                         <button class="btn-text" @click="goToToday" title="Go to Today">Today</button>
                         <button class="btn-text" @click="moveDate(1)" title="Next">
-                            <i class="fas fa-chevron-right"></i>
+                            <app-icon name="chevron-right"></app-icon>
                         </button>
                         <h3 class="cal-title">{{ currentMonthYear }}</h3>
                     </div>
 
-                    <div class="cal-modes">
+                    <div class="cal-modes segmented-control" role="tablist" aria-label="Calendar mode">
                         <button :class="{ active: viewMode === 'month' }" @click="viewMode = 'month'" title="Switch to Month View">Month</button>
                         <button :class="{ active: viewMode === 'week' }" @click="viewMode = 'week'" title="Switch to Week View">Week</button>
                     </div>
@@ -49,7 +49,7 @@ const CalendarView = {
                         tabindex="0"
                         role="button"
                         :aria-label="'Create task on ' + cell.dateStr"
-                        @click="onCellClick(cell, $event)"
+                        @click.capture="onCellCapture(cell, $event)"
                         @keydown="onCellKeydown(cell, $event)"
                     >
                         <div class="cal-cell-header">
@@ -72,6 +72,7 @@ const CalendarView = {
                                     type="button"
                                     :aria-label="'Open task ' + task.title"
                                     @click.stop="openTask(task)"
+                                    @keydown.enter.stop="openTask(task)"
                                 >
                                     <input
                                         type="checkbox"
@@ -185,17 +186,20 @@ const CalendarView = {
             }
         }
 
-        function onCellClick(cell, event) {
-            const target = event && event.target;
-            if (target && target.closest && (target.closest('.cal-task-pill') || target.closest('.cal-task-checkbox'))) {
-                return;
-            }
-
+        function openCreateTask(cell) {
             mutations.openTaskModalForCreate({
                 workspaceId: props.workspace.id,
                 dueDate: cell.dateStr,
                 priority: null
             });
+        }
+
+        function onCellCapture(cell, event) {
+            const target = event && event.target;
+            if (target && target.closest && (target.closest('.cal-task-checkbox') || target.closest('.cal-task-pill'))) {
+                return;
+            }
+            openCreateTask(cell);
         }
 
         function onCellKeydown(cell, event) {
@@ -205,7 +209,7 @@ const CalendarView = {
                 return;
             }
             event.preventDefault();
-            onCellClick(cell, event);
+            openCreateTask(cell);
         }
 
         function toggleTaskCompletion(taskId) {
@@ -225,7 +229,7 @@ const CalendarView = {
             moveDate,
             goToToday,
             onTaskDrop,
-            onCellClick,
+            onCellCapture,
             onCellKeydown,
             toggleTaskCompletion,
             openTask

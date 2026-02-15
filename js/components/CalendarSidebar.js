@@ -1,5 +1,6 @@
 import { mutations } from '../store.js';
 import { useWorkspaceTaskContext } from '../composables/useWorkspaceTaskContext.js';
+import { uiCopy } from '../config/uiCopy.js';
 
 const { computed } = Vue;
 
@@ -14,7 +15,7 @@ const CalendarSidebar = {
     template: `
         <div class="calendar-sidebar">
             <div class="sidebar-header">
-                <h4>Unscheduled</h4>
+                <h4>{{ uiCopy.labels.calendarSidebarTitle }}</h4>
             </div>
 
             <draggable
@@ -50,9 +51,15 @@ const CalendarSidebar = {
                                     <span class="task-title">{{ task.title }}</span>
                                     <div class="task-meta" v-if="task.subtasks && task.subtasks.length > 0">
                                         <span class="meta-item">
-                                            <i class="fas fa-check-square"></i>
+                                            <app-icon name="check-square"></app-icon>
                                             {{ task.subtasks.filter(s => s.done).length }}/{{ task.subtasks.length }}
                                         </span>
+                                    </div>
+                                    <div v-if="task.subtasks && task.subtasks.length > 0" class="task-progress-strip">
+                                        <div
+                                            class="task-progress-fill"
+                                            :style="{ width: Math.round((task.subtasks.filter(s => s.done).length / task.subtasks.length) * 100) + '%' }"
+                                        ></div>
                                     </div>
                                 </div>
                             </button>
@@ -62,7 +69,7 @@ const CalendarSidebar = {
 
                 <template #footer>
                     <div v-if="unscheduledTasks.length === 0" class="empty-state-text">
-                        All tasks scheduled!
+                        {{ uiCopy.emptyStates.allScheduled }}
                     </div>
                 </template>
             </draggable>
@@ -101,7 +108,8 @@ const CalendarSidebar = {
             unscheduledTasks,
             openTask,
             toggleTaskCompletion,
-            onSidebarDrop
+            onSidebarDrop,
+            uiCopy
         };
     }
 };

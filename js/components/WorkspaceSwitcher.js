@@ -19,17 +19,18 @@ const WorkspaceSwitcher = {
                 @keydown="onTriggerKeydown"
             >
                 <span class="ws-name">{{ currentWorkspaceName }}</span>
-                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                <app-icon name="chevron-down" aria-hidden="true"></app-icon>
             </button>
 
-            <div
-                v-if="isOpen"
-                :id="dropdownId"
-                class="ws-dropdown"
-                role="menu"
-                aria-label="Workspace menu"
-                @keydown="onMenuKeydown"
-            >
+            <transition name="dropdown-fade">
+                <div
+                    v-if="isOpen"
+                    :id="dropdownId"
+                    class="ws-dropdown"
+                    role="menu"
+                    aria-label="Workspace menu"
+                    @keydown="onMenuKeydown"
+                >
                 <div class="ws-list">
                     <div
                         v-for="ws in workspaces"
@@ -56,7 +57,7 @@ const WorkspaceSwitcher = {
                                 aria-label="Rename workspace"
                                 @click.stop="startRenaming(ws)"
                             >
-                                <i class="fas fa-pencil-alt" aria-hidden="true"></i>
+                                <app-icon name="pencil" aria-hidden="true"></app-icon>
                             </button>
                             <button
                                 v-if="workspaces.length > 1"
@@ -66,7 +67,7 @@ const WorkspaceSwitcher = {
                                 aria-label="Delete workspace"
                                 @click.stop="confirmDelete(ws)"
                             >
-                                <i class="fas fa-trash-alt" aria-hidden="true"></i>
+                                <app-icon name="trash" aria-hidden="true"></app-icon>
                             </button>
                         </div>
                     </div>
@@ -79,9 +80,10 @@ const WorkspaceSwitcher = {
                     aria-label="Create workspace"
                     @click="createWorkspace"
                 >
-                    <i class="fas fa-plus" aria-hidden="true"></i> New Workspace
+                    <app-icon name="plus" aria-hidden="true"></app-icon> New Workspace
                 </button>
-            </div>
+                </div>
+            </transition>
         </div>
     `,
     setup() {

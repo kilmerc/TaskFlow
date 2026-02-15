@@ -53,7 +53,7 @@ const KanbanColumn = {
 
                 <div v-if="completedCount > 0" class="completed-section">
                     <button type="button" class="completed-toggle" @click="toggleShowCompleted" :aria-expanded="showCompleted ? 'true' : 'false'">
-                        <i class="fas" :class="showCompleted ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                        <app-icon :name="showCompleted ? 'chevron-down' : 'chevron-right'"></app-icon>
                         <span>{{ completedCount }} completed</span>
                     </button>
                     <div v-if="showCompleted" class="completed-tasks-list">
