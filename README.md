@@ -2,12 +2,43 @@
 
 TaskFlow is a lightweight, no-build personal task management app (Kanban, Calendar, Eisenhower) with local-first persistence.
 
+TaskFlow is also installable as a Progressive Web App (PWA) with offline support after the first successful online load.
+
 ## Runtime
 
 - Vue 3.5.28 (CDN global build)
 - SortableJS 1.15.7 + Vue.Draggable 4.1.0 (CDN)
 - Font Awesome (CDN)
 - Static HTML/CSS/JS (no bundler)
+- PWA manifest + service worker (install + offline cache)
+
+## PWA
+
+- Install:
+  - Desktop Chrome/Edge: open TaskFlow, then use browser install action from the address bar/menu.
+  - Mobile (Android/iOS): open TaskFlow in the browser and use "Add to Home Screen".
+- Offline behavior:
+  - After first online load, app shell assets and pinned CDN runtime dependencies are cached.
+  - Reloading TaskFlow offline should still open the app and keep localStorage-backed data.
+- Update behavior:
+  - New service worker versions activate on a later visit/reload lifecycle.
+  - Active sessions are not force-refreshed by service worker updates.
+
+### PWA Release Versioning
+
+- Service worker cache versions live in `service-worker.js`:
+  - `PRECACHE_VERSION`
+  - `RUNTIME_VERSION`
+- Bump both versions when releasing any change that affects cached assets or cache strategy:
+  - `index.html`, `manifest.webmanifest`, `service-worker.js`
+  - files under `css/`, `js/`, or `img/`
+  - pinned CDN dependency URLs
+- Suggested release checklist:
+  1. Increment versions in `service-worker.js`.
+  2. Run `npm run test:ci`.
+  3. Deploy.
+  4. Verify in browser DevTools that a new `taskflow-precache-v*` and `taskflow-runtime-v*` pair is created and older `taskflow-*` caches are removed.
+  5. Confirm update semantics: existing open tab keeps current worker; new worker controls on next reload/visit.
 
 ## Local Setup
 

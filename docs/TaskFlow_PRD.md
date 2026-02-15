@@ -8,7 +8,7 @@
 
 **Tech Stack:** HTML5, CSS3, Vue.js 3 (via CDN), LocalStorage
 
-**Platform:** Web (GitHub Pages hosting)
+**Platform:** Web PWA (GitHub Pages hosting)
 
 ## **1\. Executive Summary**
 
@@ -18,6 +18,7 @@ The goal is to build a lightweight, "no-build" personal task management applicat
 
 * **Framework:** Vue.js 3.x loaded via CDN (Content Delivery Network).  
 * **Build System:** None. The app must run directly from an index.html file.  
+* **PWA Delivery:** Include a web app manifest and service worker for installability + offline shell.  
 * **Data Storage:** Browser localStorage for immediate persistence.  
 * **Data Structure:** Relational JSON model (Workspaces, Columns, Tasks).  
 * **External Libraries (CDN only):**  

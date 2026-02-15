@@ -87,3 +87,14 @@ Automated coverage:
 Automated coverage:
 - Partially automated by E2E boot checks (`e2e/accessibility.spec.js`)
 - Static verification via code review of `index.html`
+
+## 10. PWA Installability + Offline
+- [ ] Verify `manifest.webmanifest` is linked and returns valid JSON.
+- [ ] Verify manifest includes `display: standalone` and icon sizes `192x192` + `512x512`.
+- [ ] Verify service worker registers on first load.
+- [ ] Verify service worker controls the page after reload (not first uncontrolled load).
+- [ ] Verify app reloads while offline after first controlled online load.
+- [ ] Verify previously created task data remains visible after offline reload.
+
+Automated coverage:
+- `e2e/pwa.spec.js`
